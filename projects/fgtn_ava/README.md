@@ -125,6 +125,7 @@ extractor resizes every level to the stage-3 (H/16) map. Re-run the baseline bef
 comparing numbers.
 
 CPU self-check for all of the above (no mmaction / GPU): `python projects/fgtn_ava/selfcheck.py`.
+Per-file change notes (Vietnamese): [`CHANGES.md`](CHANGES.md).
 
 ## Test
 
