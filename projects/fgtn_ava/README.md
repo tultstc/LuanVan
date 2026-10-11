@@ -99,6 +99,34 @@ Same config, one override each (`branch_mode`):
 Baseline "TAN gốc" (no neck): `--cfg-options model.neck=None` — or compare
 against mmaction2's published SlowFast/VideoMAE AVA 2.2 numbers.
 
+## Full pipeline: multi-scale + ACRN + focal / class-weighted loss
+
+`ava22_swin-tiny_fgtn-ms-acrn-focal_32x2x1-10e.py` (and the `_subset` variant) extends the
+base recipe with three additions, each isolated by a single config override:
+
+| Addition | Where | Config keys |
+|---|---|---|
+| Multi-scale (Swin stages 3+4, 384+768 ch) | `fgtn_neck.py` (one block stack per level) + `SingleRoIExtractor3D` concat | `backbone.out_indices=(2,3)`, `neck.in_channels=(384,768)`, `featmap_stride=16` |
+| ACRN actor-scene context | mmaction2 `ACRNHead` as `shared_head` | `shared_head=dict(type="ACRNHead", in_channels=2304, out_channels=1152)` |
+| Focal + class weight | `heads.py` (`BBoxHeadAVAWeighted`) | `focal_gamma`, `focal_alpha`, `class_weight` (json from `make_class_weight.py`) |
+
+```bash
+python projects/fgtn_ava/make_class_weight.py \
+    --ann data/ava/annotations/ava_train_v2.2_subset.csv \
+    --out data/ava/annotations/class_weight_train_subset.json
+mim train mmaction2 projects/fgtn_ava/ava22_swin-tiny_fgtn-ms-acrn-focal_subset.py --gpus 1 \
+    --cfg-options class_weight=data/ava/annotations/class_weight_train_subset.json
+```
+
+**RoI stride note.** Swin-T's last stage is H/32, but the first logged run used
+`SingleRoIExtractor3D`'s default `featmap_stride=16` (boxes mapped at 2x their scale).
+The base config now sets `featmap_stride=32`; the multi-scale config uses 16 because the
+extractor resizes every level to the stage-3 (H/16) map. Re-run the baseline before
+comparing numbers.
+
+CPU self-check for all of the above (no mmaction / GPU): `python projects/fgtn_ava/selfcheck.py`.
+Per-file change notes (Vietnamese): [`CHANGES.md`](CHANGES.md).
+
 ## Test
 
 ```bash

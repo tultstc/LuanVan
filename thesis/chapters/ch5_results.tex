@@ -1,0 +1,130 @@
+\chapter{Kết quả và thảo luận}
+\label{ch:results}
+
+Chương này báo cáo kết quả của lần chạy cơ sở (cấu hình A4 trong \cref{tab:ablation}) trên tập con AVA~v2.2. Mọi con số được trích từ \code{trainning.log} theo bảng truy nguồn ở \cref{app:traceability}; các số liệu từ công trình khác được tách riêng ở \cref{sec:reference} và chỉ dùng để định vị khoảng hiệu năng.
+
+\section{Kết quả theo epoch}
+\label{sec:per-epoch}
+
+\Cref{tab:per-epoch} trình bày frame-mAP@0,5 trên tập kiểm định sau mỗi epoch, tách theo ba nhóm hành vi của AVA, cùng hàm mất mát huấn luyện trung bình của epoch đó. Kết quả tốt nhất là 8,50\% mAP tại epoch~9; checkpoint tương ứng được bộ \code{CheckpointHook} lưu lại làm mô hình cuối.
+
+\begin{table}[H]
+\centering
+\caption{Kết quả trên tập kiểm định của tập con AVA~v2.2 theo epoch (frame-mAP@0,5, \%) và hàm mất mát huấn luyện trung bình}
+\label{tab:per-epoch}
+\begin{tabular}{crrrrr}
+\toprule
+\textbf{Epoch} & \textbf{mAP tổng} & \textbf{Chuyển động} & \textbf{Vật thể} & \textbf{Tương tác} & \textbf{Loss huấn luyện}\\
+\midrule
+1  & 7,30 & 15,91 & 2,65 & 9,94  & 0,2276\\
+2  & 7,32 & 17,36 & 2,17 & 9,88  & 0,1924\\
+3  & 7,15 & 15,66 & 2,40 & 10,04 & 0,1650\\
+4  & 7,60 & 18,06 & 2,12 & 10,50 & 0,1443\\
+5  & 7,68 & 17,56 & 2,41 & 10,58 & 0,1260\\
+6  & 7,89 & 19,00 & 2,37 & 10,42 & 0,1129\\
+7  & 8,26 & 20,61 & 2,42 & 10,55 & 0,1021\\
+8  & 8,08 & 19,45 & 2,45 & 10,62 & 0,0966\\
+\textbf{9}  & \textbf{8,50} & 19,95 & \textbf{3,14} & 10,51 & 0,0923\\
+10 & 8,27 & 20,27 & 2,53 & 10,60 & 0,0909\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{training_curves.pdf}
+\caption[Đường cong huấn luyện và mAP kiểm định]{(a) Hàm mất mát huấn luyện (BCE phân loại hành động) theo epoch, giá trị thô mỗi 20 iteration và đường làm mượt EMA. (b) mAP kiểm định tổng và theo ba nhóm hành vi; giá trị tốt nhất 8,50\% tại epoch~9. Vẽ từ \code{trainning.log}.}
+\label{fig:curves}
+\end{figure}
+
+\section{Hội tụ và ổn định huấn luyện}
+\label{sec:convergence}
+
+Hàm mất mát giảm đơn điệu theo epoch, từ 0,7704 tại 20 iteration đầu xuống trung bình 0,2276 ở epoch~1 và 0,0909 ở epoch~10; chuẩn gradient giảm từ 2,77 xuống khoảng 0,2--0,3 từ epoch~4 trở đi. mAP kiểm định tăng từ 7,30\% lên 8,50\% với dao động nhỏ (epoch~3 và epoch~8 thấp hơn epoch liền trước 0,2 điểm), phù hợp với mức nhiễu của một tập kiểm định 4.846 khung hình và một hạt giống. Đường mAP chưa bão hòa rõ rệt ở epoch~10, trong khi learning rate theo lịch cosine đã về gần 0 ($4{,}8 \times 10^{-6}$ cuối epoch~9); điều này gợi ý rằng lịch huấn luyện dài hơn có thể còn cải thiện, và là lý do tệp cấu hình tập con sau đó được điều chỉnh lên 20 epoch (\cref{app:config}).
+
+Khoảng cách giữa hàm mất mát giảm liên tục và mAP tăng chậm cho thấy mô hình khớp dần tập huấn luyện nhanh hơn mức tổng quát hóa; với 15.246 khung hình khóa huấn luyện và 41,8 triệu tham số, đây là dấu hiệu của chế độ dữ liệu nhỏ, và các cơ chế điều hòa hiện có (DropPath 0,1 ở neck, 0,2 ở backbone, dropout 0,5 ở head, weight decay 0,05, tăng cường dữ liệu) chưa đủ để đóng khoảng cách này.
+
+\section{Phân tích theo nhóm hành vi}
+\label{sec:groups}
+
+Ba nhóm hành vi có mức hiệu năng khác nhau rõ rệt và ổn định qua các epoch:
+\begin{itemize}
+  \item \textbf{Chuyển động của người} (15,91\% $\rightarrow$ 20,61\%, tốt nhất ở epoch~7; 19,95\% ở epoch~9): đây là nhóm có tín hiệu toàn thân, bền vững theo thời gian (đứng, ngồi, đi, nằm) và được hưởng lợi nhiều nhất từ huấn luyện; mAP nhóm tăng khoảng 4--5 điểm trong 10 epoch. Đây cũng là nhóm tương ứng với các hành vi trạng thái trong bài toán phân xưởng (ngủ trên bàn, gác chân), và kết quả cho thấy pipeline nắm bắt được loại tín hiệu này.
+  \item \textbf{Tương tác giữa người} (9,94\% $\rightarrow$ 10,62\%): nhóm này gần như không đổi sau epoch~4 (10,4--10,6\%). Các lớp trong nhóm (nói chuyện, nghe, nhìn người khác) phụ thuộc vào ngữ cảnh ngoài hộp người; RoI chỉ chứa actor và không có mô-đun quan hệ actor--cảnh trong cấu hình cơ sở là hạn chế L4 đã nêu, và là động cơ trực tiếp để tích hợp ACRN.
+  \item \textbf{Thao tác với vật thể} (2,12\%--3,14\%): nhóm thấp nhất, gần như không cải thiện ngoại trừ epoch~9. Các lớp trong nhóm phụ thuộc vào vật thể nhỏ (điện thoại, cốc, bút) vốn chiếm chưa đến một ô trên lưới $8 \times 8$ của tầng 4 (hạn chế L3), và nhiều lớp trong nhóm rất hiếm trong tập con (hạn chế L5). Hai điểm này là động cơ cho đặc trưng đa tỉ lệ và hàm mất mát hai cấp. Sai lệch tỷ lệ RoI (\cref{sec:roi-stride}) cũng ảnh hưởng nặng nhất tới nhóm này vì vùng vật thể nhỏ dễ bị cắt lệch nhất.
+\end{itemize}
+Thứ tự ba nhóm (chuyển động $>$ tương tác $>$ vật thể) trùng với thứ tự thường thấy trên AVA đầy đủ ở các mô hình hai giai đoạn \cite{feichtenhofer2019slowfast,sun2018acrn}, cho thấy tập con giữ được đặc điểm độ khó của bộ dữ liệu gốc dù giá trị tuyệt đối thấp hơn nhiều. Nhật ký không ghi AP theo từng lớp (bộ đánh giá chỉ in ba nhóm và mAP tổng ở mức tóm tắt), nên phân tích ở mức lớp được xếp vào kế hoạch đánh giá tiếp theo.
+
+\section{Tài nguyên và tốc độ}
+\label{sec:resources}
+
+\begin{table}[H]
+\centering
+\caption{Tài nguyên của lần chạy cơ sở trên một GPU RTX~4090 (trích từ nhật ký)}
+\label{tab:resources}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Hạng mục} & \textbf{Giá trị}\\
+\midrule
+Số tham số & 41.827.383 (backbone 27.850.470; neck 13.914.624; head 62.289)\\
+Bộ nhớ GPU đỉnh khi huấn luyện & 28.139 MB (epoch~1), 28.800 MB (epoch~2--10), lô 6, FP32\\
+Bộ nhớ GPU đỉnh khi kiểm định & 2.058--2.838 MB, lô 1\\
+Thời gian một iteration huấn luyện & 0,69--0,70 s (lô 6, gồm nạp dữ liệu 0,02 s)\\
+Thời gian một epoch huấn luyện & $\approx 29{,}5$ phút (2.541 iteration)\\
+Thời gian một mẫu kiểm định & 0,06--0,08 s (lô 1; $\approx 5{,}8$ phút cho 4.846 khung hình khóa)\\
+Tổng thời gian 10 epoch (huấn luyện + kiểm định) & 5 giờ 55 phút (00:20:20 $\rightarrow$ 06:15:06)\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Bộ nhớ đỉnh 28,8~GB vượt dung lượng 24~GB của RTX~4090 tiêu chuẩn; ghi chú trong tệp cấu hình tập con xác nhận lần chạy dùng card 48~GB. Thời gian kiểm định 0,07~s cho một khung hình khóa (gồm cả giải mã 32 khung hình từ đĩa) tương đương khoảng 14 khung hình khóa mỗi giây ở lô 1, tức vượt tốc độ 1 khung hình khóa mỗi giây của định dạng AVA; tuy nhiên, như đã nêu ở \cref{sec:inference}, con số này chưa bao gồm bộ phát hiện người, bộ đệm nhìn trước của quét hai chiều và các bước nghiệp vụ, nên không được hiểu là độ trễ đầu--cuối của hệ thống cảnh báo.
+
+\section{Sai lệch tỷ lệ RoI trong lần chạy cơ sở}
+\label{sec:roi-stride}
+
+Khi rà soát mã nguồn của bộ trích RoI sau khi huấn luyện, luận văn phát hiện cấu hình cơ sở không đặt tham số \code{featmap\_stride} của \code{SingleRoIExtractor3D}, nên giá trị mặc định 16 được dùng. Giá trị này đúng với các backbone có bước giảm mẫu 16 (SlowFast cấu hình AVA của MMAction2, ViT), nhưng tầng 4 của Video Swin-T có bước giảm mẫu 32 (patch $4 \times 4$ và ba lần gộp patch, cho lưới $8 \times 8$ với ảnh 256 điểm ảnh). Hệ quả là RoIAlign nhân tọa độ hộp với $1/16$ thay vì $1/32$: một hộp người được ánh xạ lên bản đồ đặc trưng ở tỷ lệ gấp đôi kích thước thật, các hộp nằm ở nửa phải hoặc nửa dưới ảnh bị đẩy ra ngoài lưới $8 \times 8$ và nhận đặc trưng bằng 0 từ phép nội suy song tuyến tính của RoIAlign, còn các hộp ở góc trên trái nhận đặc trưng của một vùng rộng gấp đôi.
+
+Việc mô hình vẫn đạt 8,50\% mAP và học ổn định trong điều kiện này được giải thích bởi hai yếu tố: (i) vì gộp trung bình theo thời gian và gộp cực đại theo không gian trong head, đặc trưng của một vùng rộng gấp đôi vẫn chứa phần lớn thông tin về actor; (ii) nhóm chuyển động của người (lớp phổ biến, tín hiệu toàn thân) ít nhạy với sai lệch vùng hơn nhóm thao tác với vật thể. Sai lệch này không ảnh hưởng tới nhận định về tính ổn định huấn luyện của neck, nhưng khiến giá trị tuyệt đối của mAP \emph{không phản ánh đúng} năng lực của cấu hình. Tệp cấu hình cơ sở đã được sửa thành \code{featmap\_stride = 32} (cấu hình A5), cấu hình đa tỉ lệ dùng \code{featmap\_stride = 16} đúng với tỷ lệ của tầng 3 mà mọi bản đồ được nội suy về, và lần chạy cơ sở cần được lặp lại với cấu hình đã sửa trước khi so sánh với công trình khác. Luận văn giữ nguyên số liệu của lần chạy đã ghi nhật ký vì đó là bằng chứng thực nghiệm duy nhất hiện có, và công bố sai lệch này như một phần của kết quả.
+
+\section{Mốc tham chiếu trên AVA}
+\label{sec:reference}
+
+\Cref{tab:reference} liệt kê các mốc công bố trên AVA đầy đủ của những phương pháp đã khảo sát ở \cref{ch:related}. Vì luận văn chỉ có kết quả trên tập con (khoảng 8\% số khung hình khóa kiểm định của AVA), chưa sửa tỷ lệ RoI và dùng backbone Swin-Tiny với tiền huấn luyện Kinetics-400, các số liệu này \emph{không thể so sánh trực tiếp} với 8,50\% của luận văn; bảng chỉ nhằm cho thấy khoảng hiệu năng của bài toán và vị trí của các giao thức khác nhau.
+
+\begin{table}[H]
+\centering
+\caption{Mốc công bố trên AVA và kết quả của luận văn (không so sánh trực tiếp; mức bằng chứng E3 cho các hàng tham chiếu)}
+\label{tab:reference}
+\small
+\begin{tabularx}{\textwidth}{lXlX}
+\toprule
+\textbf{Phương pháp} & \textbf{Giao thức} & \textbf{mAP} & \textbf{Ghi chú}\\
+\midrule
+A* ngoại tuyến \cite{kim2024astar} & AVA v2.2, closed-set & 27,7 & SlowFast-R101-NL, Kinetics-600\\
+STAR/CSN-152 \cite{gritsenko2024star} & AVA, end-to-end & 31,4 & IG65M $\to$ K400\\
+STAR/B \cite{gritsenko2024star} & AVA, end-to-end & 30,0 & IN21K $\to$ K400\\
+STAR/L \cite{gritsenko2024star} & AVA, end-to-end & 39,2 & CLIP $\to$ K700; 320 px\\
+OV-STAD \cite{wu2024ovstad} & OV-AVA (base / novel / all) & 27,8 / 16,6 / 25,0 & Open-vocabulary\\
+ST-CLIP \cite{huang2025stclip} & ZS-AVA (trung bình; với hộp thật) & 9,01 / 11,76 & Zero-shot\\
+\midrule
+Swin-T + Hybrid FGTN-Mamba (luận văn) & \textbf{Tập con} AVA v2.2, closed-set, \code{featmap\_stride} 16 & 8,50 & K400; 1 GPU; 10 epoch; \cref{sec:roi-stride}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Trả lời câu hỏi nghiên cứu}
+\label{sec:rq-answers}
+
+\textbf{RQ1} được trả lời ở mức thực nghiệm: pipeline huấn luyện ổn định từ trọng số Kinetics-400, mAP tăng đều qua epoch, nhóm chuyển động của người đạt gần 20\% trong khi hai nhóm phụ thuộc ngữ cảnh và vật thể nhỏ còn thấp, phù hợp với các hạn chế L3--L5 và với động cơ của ba thành phần hỗ trợ. \textbf{RQ2--RQ4} chưa có số liệu: các cấu hình tương ứng (A0--A3, A6--A8) đã sẵn sàng và chỉ cần tài nguyên GPU để chạy; mỗi cấu hình tốn khoảng sáu giờ trên một RTX~4090 với lịch 10 epoch hiện tại. \textbf{RQ5} chưa được kiểm tra: kết quả hiện có đến từ một hạt giống trên một tập con.
+
+\section{Hạn chế của nghiên cứu}
+\label{sec:limitations}
+
+\begin{itemize}
+  \item \emph{Quy mô dữ liệu}: tập con AVA chỉ chiếm một phần nhỏ của bộ dữ liệu; giá trị mAP tuyệt đối thấp hơn nhiều so với các mốc công bố và có phương sai cao.
+  \item \emph{Sai lệch tỷ lệ RoI}: lần chạy cơ sở dùng \code{featmap\_stride} 16 trên bản đồ bước 32; đã sửa trong cấu hình nhưng chưa chạy lại.
+  \item \emph{Learning rate}: giá trị của công thức 8 GPU được dùng cho một GPU mà không co giãn; cần kiểm tra lại với \code{auto\_scale\_lr} bật hoặc quét learning rate.
+  \item \emph{Thiếu ablation và lặp lại}: chưa có số liệu cho các nhánh riêng lẻ, cổng, đa tỉ lệ, ACRN và hàm mất mát; chưa có nhiều hạt giống.
+  \item \emph{Thiếu AP theo lớp}: nhật ký chỉ ghi mAP tổng và theo nhóm; phân tích lớp hiếm cần bật đầu ra chi tiết của bộ đánh giá.
+  \item \emph{Khoảng cách tới ứng dụng}: bộ dữ liệu phân xưởng chưa được đánh giá; độ trễ đầu--cuối chưa được đo.
+\end{itemize}

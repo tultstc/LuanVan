@@ -1,0 +1,36 @@
+\chapter*{KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN}
+\addcontentsline{toc}{chapter}{KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN}
+\label{ch:conclusion}
+
+\section*{1. Kết luận}
+
+Luận văn đặt ra bài toán phát hiện hành động không--thời gian theo từng người trong bối cảnh giám sát phân xưởng, nơi các hành vi mục tiêu trải trên hai thang thời gian đối lập, và đề xuất Hybrid FGTN-Mamba, một temporal neck lai đặt sau backbone Video Swin-Tiny và trước 3D RoIAlign. Các kết quả chính như sau.
+
+\begin{enumerate}
+  \item \textbf{Về thiết kế.} Khối gồm nhánh mô hình không gian trạng thái chọn lọc hai chiều (toàn cục, chi phí tuyến tính theo $T$), nhánh self-attention trong cửa sổ $W = 5$ (cục bộ) và cổng sigmoid học theo từng kênh và từng bước thời gian. Phân tích độ phức tạp cho thấy mọi số hạng đều tuyến tính theo độ dài chuỗi, với phần phụ thuộc cấu trúc thời gian là $O(TC + TWC)$. Vị trí hậu-backbone, tiền-RoI cho phép giữ nguyên trọng số tiền huấn luyện Kinetics-400 và thay thế backbone mà không đổi neck.
+  \item \textbf{Về cài đặt.} Khối được cài đặt tự chứa trên MMAction2 (\code{projects/fgtn\_ava}), với bốn chế độ nhánh để ablation, hỗ trợ bản đồ đặc trưng đa tỉ lệ, kèm bản dự phòng thuần PyTorch để kiểm thử trên CPU. Neck hai khối có 13,9 triệu tham số, bằng khoảng một nửa backbone.
+  \item \textbf{Về thực nghiệm.} Trên tập con AVA~v2.2 (15.246 khung hình khóa huấn luyện, 4.846 khung hình khóa kiểm định), pipeline đạt frame-mAP@0,5 tốt nhất 8,50\% tại epoch~9 sau 10 epoch trên một GPU RTX~4090, với mAP theo nhóm 19,95\% (chuyển động của người), 10,51\% (tương tác giữa người) và 3,14\% (thao tác với vật thể). Hàm mất mát giảm đơn điệu, mAP kiểm định tăng ổn định và chuẩn gradient hội tụ, cho thấy neck được huấn luyện ổn định trên backbone tiền huấn luyện. Quá trình rà soát mã sau huấn luyện phát hiện bộ trích RoI của lần chạy này dùng tỷ lệ $1/16$ trên bản đồ có bước giảm mẫu 32; sai lệch đã được sửa trong cấu hình và lần chạy cơ sở cần được lặp lại trước khi kết quả được dùng để so sánh với các phương pháp khác.
+  \item \textbf{Về các thành phần hỗ trợ.} Đặc trưng đa tỉ lệ (tầng 3 + tầng 4), ACRN và hàm mất mát focal kết hợp trọng số lớp theo số mẫu hiệu dụng đã được cài đặt, kiểm tra về kích thước tensor và tính chất toán học, và tích hợp vào cấu hình huấn luyện cùng ma trận ablation mười hàng.
+\end{enumerate}
+
+Các mục tiêu M1, M2 và M3 (\cref{sec:objectives}) đã đạt ở mức thiết kế và cài đặt; M5 đạt một phần với lần chạy cơ sở trên tập con; M4 và các câu hỏi RQ2--RQ5 đã được chuẩn bị đầy đủ nhưng chưa có số liệu.
+
+\section*{2. Hạn chế}
+
+\begin{itemize}
+  \item Kết quả chỉ có trên một tập con AVA, một hạt giống, một cấu hình; chưa có ablation để tách đóng góp của từng nhánh.
+  \item Lần chạy cơ sở có sai lệch tỷ lệ RoI; kết quả 8,50\% vì vậy là số liệu của cấu hình chưa sửa, không phải số liệu cuối cùng của phương pháp.
+  \item Learning rate của công thức 8 GPU được dùng cho một GPU mà không co giãn.
+  \item Bộ dữ liệu phân xưởng với bốn hành vi mục tiêu chưa được thu thập và gán nhãn đủ để đánh giá.
+  \item Pipeline phụ thuộc person proposal và closed-set; chưa xử lý hành vi mới không có nhãn.
+\end{itemize}
+
+\section*{3. Hướng phát triển}
+
+\begin{enumerate}
+  \item \textbf{Ngắn hạn (có thể thực hiện với tài nguyên hiện tại):} chạy lại A5 (đã sửa tỷ lệ RoI) với ba hạt giống; chạy A0--A3 để trả lời RQ2; chạy A6--A8 để trả lời RQ3 và RQ4; ghi phân bố cổng $g$ theo epoch để kiểm tra giả thuyết định tuyến dài--ngắn.
+  \item \textbf{Trung hạn:} huấn luyện trên AVA~v2.2 đầy đủ với nhiều GPU để so sánh với các mốc công bố; thử nghiệm neck với backbone khác (VideoMAE, MViTv2) để kiểm tra tính độc lập backbone; bổ sung positional bias tương đối cho nhánh cục bộ.
+  \item \textbf{Ứng dụng:} thu thập và gán nhãn bộ dữ liệu phân xưởng theo định dạng AVA với phân chia theo camera; tinh chỉnh pipeline; xây dựng chế độ suy luận nhân quả hoặc nhìn trước giới hạn để giảm độ trễ cảnh báo; tích hợp theo dõi (tracking) và logic $m/n$ với cooldown.
+  \item \textbf{Dài hạn:} thay person proposal bằng truy vấn end-to-end theo hướng STAR; mở rộng tập lớp bằng căn chỉnh vùng--văn bản (open-vocabulary) trong khi giữ Hybrid FGTN-Mamba làm bộ mô hình hóa thời gian.
+\end{enumerate}
+\clearpage
