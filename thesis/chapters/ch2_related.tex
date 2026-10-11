@@ -1,0 +1,132 @@
+\chapter{Cơ sở lý thuyết và các công trình liên quan}
+\label{ch:related}
+
+Chương này trình bày các cơ sở lý thuyết trực tiếp phục vụ thiết kế ở \cref{ch:method}, gồm self-attention và attention cửa sổ, mô hình không gian trạng thái chọn lọc, pipeline STAD hai giai đoạn và các hàm mất mát cho dữ liệu mất cân bằng; sau đó tổng quan các họ phương pháp liên quan và rút ra khoảng trống nghiên cứu.
+
+\section{Cơ sở lý thuyết}
+\label{sec:theory}
+
+\subsection{Self-attention và attention trong cửa sổ}
+\label{sec:attention}
+
+Cho chuỗi $T$ token $\mat{X} \in \R^{T \times C}$, self-attention \cite{vaswani2017attention} tính ba phép chiếu tuyến tính $\mat{Q} = \mat{X}\mat{W}_Q$, $\mat{K} = \mat{X}\mat{W}_K$, $\mat{V} = \mat{X}\mat{W}_V$ và trả ra
+\begin{equation}
+\mathrm{Attn}(\mat{X}) = \softmax\!\left(\frac{\mat{Q}\mat{K}^{\top}}{\sqrt{d}} + \mat{M}\right)\mat{V},
+\label{eq:attention}
+\end{equation}
+trong đó $d$ là số chiều mỗi đầu và $\mat{M} \in \{0, -\infty\}^{T \times T}$ là mặt nạ. Với $\mat{M} = \mat{0}$, mọi cặp token được so khớp và chi phí của tích $\mat{Q}\mat{K}^{\top}$ là $O(T^2 d)$. Multi-head self-attention (MHSA) chia $C$ kênh thành $h$ đầu, mỗi đầu học một kiểu quan hệ riêng. Khi đặt $M_{ij} = -\infty$ cho mọi $|i - j| > \lfloor W/2 \rfloor$, attention chỉ còn tác dụng trong một \emph{cửa sổ trượt} độ rộng $W$ quanh mỗi token (band attention, \cite{beltagy2020longformer}); số cặp có ích giảm từ $T^2$ xuống $TW$. Swin Transformer \cite{liu2021swin} và Video Swin \cite{liu2022videoswin} áp dụng ý tưởng cửa sổ trong không gian (và thời gian) với các cửa sổ dịch chuyển xen kẽ để thông tin lan truyền giữa các cửa sổ qua nhiều tầng.
+
+\subsection{Mô hình không gian trạng thái chọn lọc}
+\label{sec:ssm}
+
+Một mô hình không gian trạng thái (SSM) tuyến tính liên tục ánh xạ tín hiệu vào $x(t) \in \R$ sang tín hiệu ra $y(t)$ thông qua trạng thái ẩn $\mat{h}(t) \in \R^{N}$:
+\begin{equation}
+\mat{h}'(t) = \mat{A}\mat{h}(t) + \mat{B}x(t), \qquad y(t) = \mat{C}\mat{h}(t) + Dx(t).
+\label{eq:ssm-cont}
+\end{equation}
+Rời rạc hóa với bước $\Delta$ (quy tắc zero-order hold) cho dạng hồi quy
+\begin{equation}
+\mat{h}_t = \bar{\mat{A}}\mat{h}_{t-1} + \bar{\mat{B}}x_t, \qquad y_t = \mat{C}\mat{h}_t + Dx_t,
+\qquad \bar{\mat{A}} = e^{\Delta\mat{A}},\ \bar{\mat{B}} = (\Delta\mat{A})^{-1}(e^{\Delta\mat{A}} - \mat{I})\Delta\mat{B}.
+\label{eq:ssm-disc}
+\end{equation}
+S4 \cite{gu2022s4} chỉ ra rằng với $\mat{A}$ có cấu trúc phù hợp, hồi quy này tương đương một tích chập dài và có thể huấn luyện ổn định trên chuỗi hàng nghìn bước. Tuy nhiên, các tham số $(\Delta, \mat{B}, \mat{C})$ trong S4 là bất biến theo thời gian, nên mô hình không thể ``chọn'' giữ hay quên thông tin tùy theo nội dung đầu vào.
+
+Mamba \cite{gu2023mamba} đưa vào \emph{tính chọn lọc}: $\Delta_t$, $\mat{B}_t$ và $\mat{C}_t$ được sinh từ chính $x_t$ bằng các phép chiếu tuyến tính, trong khi $\mat{A}$ vẫn là tham số học dùng chung (được lưu dưới dạng $\log$ và giữ âm để ổn định). Khi đó
+\begin{equation}
+\mat{h}_t = \bar{\mat{A}}_t\mat{h}_{t-1} + \bar{\mat{B}}_t x_t, \qquad
+\bar{\mat{A}}_t = \exp(\Delta_t\mat{A}), \qquad
+\Delta_t = \mathrm{softplus}(\mat{W}_\Delta x_t + b_\Delta),
+\label{eq:mamba}
+\end{equation}
+với phép rời rạc hóa Euler đơn giản hóa $\bar{\mat{B}}_t = \Delta_t\mat{B}_t$ như trong cài đặt gốc. Vì $\bar{\mat{A}}_t$ phụ thuộc $\Delta_t$, một bước $\Delta_t$ nhỏ làm $\bar{\mat{A}}_t \to \mat{I}$ (giữ trạng thái cũ), còn $\Delta_t$ lớn làm trạng thái cũ suy giảm nhanh và ưu tiên đầu vào mới. Toàn bộ hồi quy được thực thi bằng một phép quét song song (selective scan) có chi phí $O(TN)$ trên mỗi kênh, tức tuyến tính theo $T$. Trước selective scan, Mamba đặt một tích chập theo kênh nhân quả ngắn (depth-wise Conv1d, $k = 4$) và một nhánh cổng SiLU, tạo thành khối Mamba hoàn chỉnh. Vision Mamba \cite{zhu2024vim} mở rộng sang hai chiều (quét xuôi và quét ngược rồi hợp nhất) cho dữ liệu không nhân quả; biến thể \code{bimamba v2} dùng trong luận văn là cài đặt của Video Mamba Suite \cite{chen2024videomambasuite} với hai bộ tham số quét riêng cho hai chiều.
+
+\subsection{Pipeline STAD hai giai đoạn và 3D RoIAlign}
+\label{sec:twostage}
+
+Pipeline STAD chuẩn trên AVA kế thừa thiết kế Faster R-CNN \cite{ren2015fasterrcnn,gu2018ava}: một bộ phát hiện người (chạy riêng, hoặc dùng proposal công bố sẵn) cung cấp các hộp tại khung hình khóa; backbone video trích bản đồ đặc trưng $F \in \R^{C \times T \times H \times W}$; 3D RoIAlign \cite{he2017maskrcnn,feichtenhofer2019slowfast} cắt vùng tương ứng mỗi hộp (sau khi gộp trung bình theo trục thời gian) thành lưới $h \times w$; head phân loại đa nhãn trả ra xác suất từng hành vi. Trong MMAction2 \cite{mmaction2}, các bước này tương ứng với \code{SingleRoIExtractor3D} (hỗ trợ nhiều bản đồ đặc trưng: mọi bản đồ được nội suy về kích thước của bản đồ thứ nhất rồi nối theo kênh) và \code{BBoxHeadAVA} (gộp trung bình theo thời gian, gộp cực đại theo không gian, dropout, một lớp tuyến tính). Khối đề xuất của luận văn được chèn vào giữa backbone và \code{SingleRoIExtractor3D}.
+
+\subsection{Mất cân bằng lớp, focal loss và trọng số theo số mẫu hiệu dụng}
+\label{sec:imbalance}
+
+Với bài toán đa nhãn, hàm mất mát cơ sở là entropy chéo nhị phân (BCE) tính độc lập trên từng logit. Focal loss \cite{lin2017focal} nhân mỗi số hạng với $(1 - p_t)^{\gamma}$, trong đó $p_t$ là xác suất mô hình gán cho nhãn đúng, để giảm đóng góp của các mẫu đã được phân loại dễ dàng. Cui và cộng sự \cite{cui2019classbalanced} đề xuất trọng số lớp theo \emph{số mẫu hiệu dụng} $E_{n_c} = (1 - \beta^{n_c})/(1 - \beta)$, với $n_c$ là số mẫu của lớp $c$ và $\beta \in [0, 1)$; trọng số $w_c \propto 1/E_{n_c}$ tăng chậm hơn nghịch đảo tần suất và tránh khuếch đại quá mức các lớp cực hiếm. Hai cơ chế này được kết hợp trong \cref{sec:loss}.
+
+\section{Tổng quan các họ phương pháp liên quan}
+\label{sec:survey}
+
+Các công trình liên quan được hệ thống hóa theo bảy họ. Tiêu chí lựa chọn là các công trình (i) đại diện cho một cơ chế mô hình hóa thời gian hoặc một cách tiếp cận STAD riêng biệt và (ii) có kết quả công bố trên AVA hoặc trên các chuẩn tương đương.
+
+\subsection{Tích chập 3D và kiến trúc hai luồng}
+
+C3D \cite{tran2015c3d} và I3D \cite{carreira2017i3d} học chuyển động bằng nhân tích chập 3D; SlowFast \cite{feichtenhofer2019slowfast} tách một luồng lấy mẫu thưa giàu ngữ nghĩa và một luồng lấy mẫu dày giàu chuyển động. Nhóm này có thiên lệch quy nạp (inductive bias) rõ ràng về thứ tự thời gian và được tối ưu tốt trên GPU, nhưng trường tiếp nhận thời gian phụ thuộc kích thước nhân, hệ số giãn và độ sâu mạng. Khi hành vi kéo dài nhiều giây, thông tin phải đi qua nhiều tầng mới đến được đầu ra, và hai nhịp lấy mẫu của SlowFast là siêu tham số dùng chung, không tự thay đổi theo nội dung đoạn video.
+
+\subsection{Video Transformer và attention đa tỉ lệ}
+
+TimeSformer \cite{bertasius2021timesformer} tách attention không gian và thời gian; attention thời gian toàn cục cho phép kết nối mọi cặp khung hình nhưng chi phí tăng theo $T^2$. Video Swin \cite{liu2022videoswin} giới hạn attention trong các cửa sổ không--thời gian dịch chuyển để giảm chi phí và tạo hệ đặc trưng phân cấp bốn tầng; đổi lại, hai khung hình xa chỉ trao đổi thông tin gián tiếp qua nhiều khối, nên với hành vi ít chuyển động, tín hiệu khác biệt có thể bị làm loãng trước khi đến tầng cuối. MViTv2 \cite{li2022mvitv2} giảm dần độ phân giải và mở rộng kênh theo cấu trúc đa tỉ lệ, nhưng không tự giải quyết việc RoI của actor thiếu ngữ cảnh hay mất cân bằng lớp.
+
+\subsection{Phương pháp one-stage thời gian thực}
+
+YOWOv2 \cite{yang2023yowov2} hướng đến pipeline one-stage gọn và nhanh. A* \cite{kim2024astar} bổ sung tổng hợp đặc trưng tầng thấp, gộp kim tự tháp không--thời gian với tích chập giãn (atrous) và hàm mất mát proxy-anchor; công trình báo cáo 33~FPS trên RTX~3090 ở thiết lập thời gian thực và 27,7 frame-AP trên AVA~v2.2 ở thiết lập ngoại tuyến. Điểm mạnh của họ này là khả năng triển khai; hạn chế liên quan đến đề tài là các hệ số giãn vẫn được chọn trước, cùng một cấu hình phải phục vụ hành vi nhanh lẫn chậm, và thiết lập ảnh vuông có thể làm mất chi tiết nhỏ như chính các tác giả A* thảo luận.
+
+\subsection{Phương pháp end-to-end dựa trên truy vấn}
+
+STAR \cite{gritsenko2024star} loại bỏ bộ đề xuất người bên ngoài và NMS, nhận video và dự đoán trực tiếp các tubelet cùng nhãn hành động. Đây là bước tiến quan trọng đối với lỗi lan truyền từ bộ phát hiện người. Theo công bố, STAR/L đạt 39,2~mAP trên AVA với tiền huấn luyện CLIP$\to$Kinetics-700 và độ phân giải 320~px. Lợi thế này gắn với backbone lớn, tiền huấn luyện quy mô cao và mục tiêu end-to-end, nên STAR không phải baseline thay thế trực tiếp cho một temporal neck nhẹ gắn sau Video Swin-T trong điều kiện tài nguyên hạn chế.
+
+\subsection{Quan hệ actor--cảnh và bộ nhớ dài hạn}
+
+ACRN \cite{sun2018acrn} ghép biểu diễn actor với bản đồ đặc trưng cảnh để học quan hệ liên quan đến từng người. Long-Term Feature Banks \cite{wu2019lfb} và ACAR \cite{pan2021acar} mở rộng tương tác sang nhiều khung hình và nhiều actor. Các mô hình này xác nhận rằng RoI chỉ chứa người là chưa đủ, nhưng chi phí tăng theo số actor và vùng cảnh, và hiệu năng vẫn phụ thuộc chất lượng person proposal. Trong luận văn, ACRN là thành phần hỗ trợ có tiền lệ, không phải đóng góp trung tâm.
+
+\subsection{Open-vocabulary, zero-shot và bán giám sát}
+
+OV-STAD \cite{wu2024ovstad} xây dựng chuẩn base/novel và tinh chỉnh mô hình video--ngôn ngữ bằng căn chỉnh vùng--văn bản; công trình báo cáo 27,8/16,6/25,0~mAP cho base/novel/all trên OV-AVA. ST-CLIP \cite{huang2025stclip} dùng tương tác người--ngữ cảnh và nhắc ngữ cảnh (context prompting), đạt trung bình 9,01~mAP trên ZS-AVA và 11,76 khi dùng hộp nhãn thật. Hướng bán giám sát \cite{kwon2025semisup} cho thấy ngữ cảnh thời gian có thể khai thác từ video chưa gán nhãn. Các hướng này giảm chi phí mở rộng tập lớp nhưng phải đối mặt khoảng cách vùng--văn bản và độ chính xác thấp hơn trên lớp chưa thấy; pipeline của luận văn là closed-set có giám sát nên không so sánh trực tiếp với chúng.
+
+\subsection{Mô hình không gian trạng thái cho video}
+
+VideoMamba \cite{li2024videomamba} và Video Mamba Suite \cite{chen2024videomambasuite} cho thấy SSM chọn lọc xử lý được video dài với chi phí tuyến tính. Tuy nhiên, SSM thuần nén lịch sử vào một trạng thái và chưa tách riêng các biến đổi kéo dài vài khung hình; đây là điểm mà Hybrid FGTN-Mamba bổ sung bằng nhánh attention cục bộ. Các công trình Mamba nói trên chủ yếu thiết kế backbone hoặc module cho nhiều tác vụ video, không trùng vị trí hậu-backbone, tiền-RoI của pipeline STAD theo từng người.
+
+\section{Bảng tổng hợp}
+
+\begin{table}[H]
+\centering
+\caption{So sánh các họ phương pháp liên quan}
+\label{tab:families}
+\small
+\begin{tabularx}{\textwidth}{lXXX}
+\toprule
+\textbf{Họ} & \textbf{Đại diện} & \textbf{Điểm mạnh} & \textbf{Hạn chế liên quan}\\
+\midrule
+3D CNN / hai luồng & C3D, I3D, SlowFast & Thiên lệch quy nạp về chuyển động; tối ưu tốt & Nhân/nhịp cố định; trường tiếp nhận phụ thuộc độ sâu\\
+Transformer & TimeSformer, Video Swin, MViTv2 & Quan hệ xa; đặc trưng phân cấp & $T^2$ hoặc cửa sổ cục bộ; chi phí bộ nhớ\\
+One-stage thời gian thực & YOWOv2, A* & FPS cao; pipeline gọn & Đánh đổi chi tiết; thang thời gian chọn trước\\
+End-to-end & STAR & Không cần proposal/NMS; tubelet & Backbone và tiền huấn luyện lớn\\
+Actor--cảnh & ACRN, ACAR & Quan hệ người--cảnh rõ & Phụ thuộc proposal; chi phí theo số actor\\
+Open / zero-shot & OV-STAD, ST-CLIP & Nhận lớp chưa thấy & Giao thức khác; khoảng cách vùng--văn bản\\
+SSM cho video & VideoMamba, VMamba Suite & Tuyến tính theo $T$; hợp video dài & Chưa chuyên cho STAD theo người; cần giữ chi tiết cục bộ\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Hạn chế chung và khoảng trống nghiên cứu}
+\label{sec:gaps}
+
+Từ tổng quan trên, luận văn rút ra bảy hạn chế chung (\cref{tab:gaps}) và ánh xạ mỗi hạn chế tới cơ chế xử lý tương ứng trong \cref{ch:method}. Hạn chế L6 nằm ngoài phạm vi của khối đề xuất và được đưa vào hướng phát triển.
+
+\begin{table}[H]
+\centering
+\caption{Ma trận hạn chế $\rightarrow$ hệ quả $\rightarrow$ cơ chế xử lý}
+\label{tab:gaps}
+\small
+\begin{tabularx}{\textwidth}{lXXX}
+\toprule
+\textbf{Mã} & \textbf{Hạn chế} & \textbf{Hệ quả} & \textbf{Cơ chế xử lý}\\
+\midrule
+L1 & Khó cân bằng phụ thuộc dài hạn và chi tiết ngắn hạn & Hành vi chậm bị bỏ sót hoặc pha chuyển tiếp bị làm mờ & Hybrid FGTN-Mamba: Bi-SSM + local MHSA + cổng (\cref{sec:ssm-branch,sec:local-branch,sec:gate})\\
+L2 & Trường thời gian hoặc chi phí bị khóa bởi nhân, cửa sổ hoặc $T^2$ & Khó mở rộng đoạn video mà vẫn giữ độ phân giải & Selective SSM tuyến tính theo $T$; $W$ cố định cho nhánh cục bộ (\cref{sec:complexity})\\
+L3 & Bản đồ đặc trưng cuối làm mất chi tiết nhỏ & Điện thoại, bàn chân biến mất sau giảm mẫu & Hai tầng đặc trưng, xử lý thời gian trước RoI (\cref{sec:multiscale})\\
+L4 & RoI của actor thiếu cảnh & Không phân biệt cùng tư thế trong bối cảnh khác & ACRN điều kiện hóa actor bằng bản đồ cảnh (\cref{sec:acrn})\\
+L5 & Mất cân bằng lớp và ngưỡng chung & Thiên lệch về lớp phổ biến; recall lớp hiếm thấp & Focal + trọng số lớp + ngưỡng theo lớp (\cref{sec:loss})\\
+L6 & Phụ thuộc person proposal; closed-set & Lỗi bộ phát hiện lan truyền; phải huấn luyện lại khi thêm lớp & Chưa giải quyết; hướng phát triển\\
+L7 & Thiếu ablation và tái lập cùng giao thức & Không tách được nguyên nhân cải thiện & Giao thức và ma trận ablation (\cref{sec:protocol,sec:ablation})\\
+\bottomrule
+\end{tabularx}
+\end{table}

@@ -44,6 +44,9 @@ model = dict(
         bbox_roi_extractor=dict(
             type="SingleRoIExtractor3D",
             roi_layer_type="RoIAlign",
+            # Swin-T stage 4 is H/32 (patch 4 x three merges). The logged first run used the
+            # default featmap_stride=16, which maps boxes at 2x their true scale on this map.
+            featmap_stride=32,
             output_size=8,
             with_temporal_pool=True,
         ),

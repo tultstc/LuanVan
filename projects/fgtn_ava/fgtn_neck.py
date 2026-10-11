@@ -29,6 +29,14 @@ except ImportError:
 
 
 class FGTNNeckAVA(nn.Module):
+    """One independent stack of Hybrid FGTN-Mamba blocks per backbone level.
+
+    `in_channels` is an int (single level, e.g. Swin stage-4 with C=768) or a
+    sequence, one entry per backbone output (multi-scale, e.g. (384, 768) for
+    `out_indices=(2, 3)`). Levels never share parameters: channel statistics
+    and semantic level differ, so each gets its own norm / branches / gate.
+    """
+
     def __init__(
         self,
         in_channels,
@@ -40,31 +48,51 @@ class FGTNNeckAVA(nn.Module):
         drop_path_rate=0.1,
     ):
         super().__init__()
-        self.blocks = nn.ModuleList(
-            HybridFGTNBlock(
-                in_channels,
-                branch_mode=branch_mode,
-                n_head=n_head,
-                window_size=window_size,
-                mamba_kernel_size=mamba_kernel_size,
-                drop_path_rate=drop_path_rate,
+        channels = list(in_channels) if isinstance(in_channels, (list, tuple)) else [in_channels]
+        self.level_blocks = nn.ModuleList(
+            nn.ModuleList(
+                HybridFGTNBlock(
+                    c,
+                    branch_mode=branch_mode,
+                    n_head=n_head,
+                    window_size=window_size,
+                    mamba_kernel_size=mamba_kernel_size,
+                    drop_path_rate=drop_path_rate,
+                )
+                for _ in range(num_blocks)
             )
-            for _ in range(num_blocks)
+            for c in channels
         )
 
-    def _forward_single(self, feat):
+    @property
+    def blocks(self):
+        # alias kept for the single-level code paths / README self-check
+        return self.level_blocks[0]
+
+    def _forward_single(self, feat, blocks):
         # feat: (B, C, T, H, W) -> temporal sequences per spatial position
         B, C, T, H, W = feat.shape
         x = feat.permute(0, 3, 4, 1, 2).reshape(B * H * W, C, T)
-        for block in self.blocks:
+        for block in blocks:
             x = block(x)
         return x.reshape(B, H, W, C, T).permute(0, 3, 4, 1, 2).contiguous()
 
     def forward(self, x):
         # mmdet detectors pass backbone outputs as a tensor or a tuple of tensors
         if isinstance(x, (list, tuple)):
-            return type(x)(self._forward_single(f) for f in x)
-        return self._forward_single(x)
+            assert len(x) == len(self.level_blocks), (
+                f"neck built for {len(self.level_blocks)} level(s) but got {len(x)} feature maps"
+            )
+            return type(x)(self._forward_single(f, b) for f, b in zip(x, self.level_blocks))
+        return self._forward_single(x, self.level_blocks[0])
+
+    def load_state_dict(self, state_dict, strict=True):
+        # accept checkpoints written before the multi-level refactor (neck.blocks.* keys)
+        state_dict = {
+            (k.replace("blocks.", "level_blocks.0.", 1) if k.startswith("blocks.") else k): v
+            for k, v in state_dict.items()
+        }
+        return super().load_state_dict(state_dict, strict=strict)
 
 
 class HybridFGTNBlock(nn.Module):
