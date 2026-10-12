@@ -58,7 +58,7 @@ Hành vi nguy hiểm & Thay đổi nhanh, đa dạng, phụ thuộc thiết bị
 
 Bốn hành vi tạo ra hai thang thời gian đối lập: \path{sleep_on_table} và \path{feet_on_table} cần quan sát dài để phân biệt trạng thái bền vững với tư thế tạm thời, trong khi \path{dangerous_action} và pha chuyển tiếp của \path{use_mobilephone} có thể chỉ kéo dài vài khung hình. Một toán tử thời gian với trường tiếp nhận cố định buộc phải thỏa hiệp giữa hai yêu cầu này. Đây là động cơ trực tiếp cho thiết kế hai nhánh của Hybrid FGTN-Mamba (\cref{ch:method}): một nhánh truyền trạng thái trên toàn bộ trục thời gian, một nhánh so khớp trực tiếp các khung hình liền kề, hợp nhất bằng cổng học được thay vì tỷ lệ cố định.
 
-Nhận xét trên cũng áp dụng cho AVA: nhóm \emph{chuyển động của người} (đi, đứng, ngồi, nằm) gồm các trạng thái bền vững; nhóm \emph{thao tác với vật thể} (cầm, uống, viết, nghe điện thoại) phụ thuộc vật thể nhỏ và các pha ngắn; nhóm \emph{tương tác giữa người} (nói chuyện, nghe, nhìn người khác) phụ thuộc ngữ cảnh. Vì vậy, kết quả theo ba nhóm này trên AVA (\cref{sec:ava-subset}) phản ánh được các yêu cầu đã nêu cho bài toán phân xưởng.
+Nhận xét trên cũng áp dụng cho AVA: nhóm \emph{chuyển động của người} (đi, đứng, ngồi, nằm) gồm các trạng thái bền vững; nhóm \emph{thao tác với vật thể} (cầm, uống, viết, nghe điện thoại) phụ thuộc vật thể nhỏ và các pha ngắn; nhóm \emph{tương tác giữa người} (nói chuyện, nghe, nhìn người khác) phụ thuộc ngữ cảnh. Ba nhóm này minh họa các yêu cầu về mô hình hóa thời gian, chi tiết không gian và ngữ cảnh đã nêu cho bài toán phân xưởng.
 
 \section{Mục tiêu nghiên cứu}
 \label{sec:objectives}
@@ -67,7 +67,7 @@ Nhận xét trên cũng áp dụng cho AVA: nhóm \emph{chuyển động của n
   \item Thiết kế một temporal neck hậu-backbone kết hợp phụ thuộc dài hạn và biến đổi ngắn hạn với chi phí tuyến tính theo độ dài đoạn video.
   \item Giữ khả năng nạp trọng số tiền huấn luyện của Video Swin bằng cách không sửa cấu trúc bên trong backbone.
   \item Áp dụng temporal neck độc lập trên nhiều tầng đặc trưng để tín hiệu nhỏ không bị mất trước 3D RoIAlign.
-  \item Bổ sung ngữ cảnh actor--cảnh bằng ACRN và kiểm soát mất cân bằng lớp bằng hàm mất mát hai cấp.
+  \item Bổ sung ngữ cảnh actor--cảnh bằng ACRN.
   \item Đánh giá trên dữ liệu phân xưởng và AVA~v2.2 với nhiều hạt giống và cách chia theo camera; tách rõ kết quả của đề tài khỏi số liệu tham chiếu.
   \item Duy trì tốc độ xử lý đủ cho giám sát theo thời gian thực.
 \end{enumerate}
@@ -86,13 +86,13 @@ Nhận xét trên cũng áp dụng cho AVA: nhóm \emph{chuyển động của n
 RQ1 & Có cần temporal neck tại vị trí hậu-backbone, tiền-RoI không, và một neck tiêu chuẩn (temporal MHSA toàn cục) đã đủ chưa? & Ablation A0 $\rightarrow$ A1 $\rightarrow$ A6 trên hai cách chia dữ liệu\\
 RQ2 & Mỗi nhánh (Bi-SSM, W-MHSA), hướng quét và cổng sigmoid đóng góp bao nhiêu? & A2--A6: SSM một chiều $\leftrightarrow$ hai chiều; từng nhánh riêng lẻ; cộng trực tiếp $\leftrightarrow$ cổng\\
 RQ3 & Áp dụng khối trên hai tầng đặc trưng (đa tỉ lệ) có tốt hơn một tầng? & A6 $\rightarrow$ A7\\
-RQ4 & ACRN và hàm mất mát hai cấp có cải thiện các hành vi phụ thuộc cảnh và lớp hiếm? & A7 $\rightarrow$ A8; A9 (BCE / focal / trọng số lớp / focal + trọng số)\\
+RQ4 & ACRN có cải thiện khả năng nhận dạng các hành vi phụ thuộc ngữ cảnh actor--cảnh? & A7 $\rightarrow$ A8\\
 RQ5 & Kết quả có giữ được trên camera chưa thấy khi huấn luyện và trên bộ dữ liệu công khai? & Cách chia theo camera (S2); ba hạt giống; AVA~v2.2\\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Mã A0--A9 là các cấu hình trong ma trận ablation (\cref{tab:ablation}). RQ1--RQ3 được trả lời bằng thực nghiệm trên cả hai cách chia dữ liệu; RQ4 được trả lời cho ACRN, còn phần hàm mất mát (A9) chưa có số liệu; RQ5 được trả lời một phần (\cref{sec:rq-answers}).
+Mã A0--A8 là các cấu hình trong ma trận ablation (\cref{tab:ablation}). RQ1--RQ4 được trả lời bằng thực nghiệm trên cả hai cách chia dữ liệu; RQ5 được trả lời một phần (\cref{sec:rq-answers}).
 
 \section{Đóng góp và mức độ mới}
 \label{sec:novelty}
@@ -105,28 +105,29 @@ Mã A0--A9 là các cấu hình trong ma trận ablation (\cref{tab:ablation}). 
   \item áp dụng độc lập trên hai tầng đặc trưng với tham số riêng, rồi nối multi-scale RoI và ACRN thành pipeline Video Swin $\rightarrow$ Hybrid FGTN-Mamba đa tầng $\rightarrow$ multi-scale RoI $\rightarrow$ ACRN $\rightarrow$ head đa nhãn, cài đặt tự chứa trên MMAction2.
 \end{enumerate}
 
-\section{Phân tầng bằng chứng}
-\label{sec:evidence}
-
-Để người đọc phân biệt rõ nguồn gốc của mỗi con số, luận văn phân tầng bằng chứng theo \cref{tab:evidence}.
-
-\begin{table}[htbp]
-\centering
-\caption{Phân tầng bằng chứng được dùng trong luận văn}
-\label{tab:evidence}
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-\textbf{Mức} & \textbf{Nội dung}\\
-\midrule
-E1 --- Có nhật ký, mã nguồn & Lần chạy trên tập con AVA~v2.2 ghi trong \code{trainning.log}; cấu hình huấn luyện; số tham số tính từ mã nguồn\\
-E2 --- Hồ sơ thực nghiệm & Kết quả trên bộ dữ liệu phân xưởng (so sánh sáu mô hình; ablation A0--A8 trên hai cách chia, trung bình ba hạt giống; Precision, Recall, tốc độ, bộ nhớ GPU) và 39,1 mAP trên AVA~v2.2; nhật ký chi tiết không nằm trong kho mã\\
-E3 --- Có mã, chưa có số liệu & Ablation hàm mất mát (A9); AP theo từng hành vi; độ lệch chuẩn giữa các hạt giống; độ trễ đầu--cuối\\
-E4 --- Tham chiếu & Số liệu của A*, STAR, OV-STAD, ST-CLIP và các baseline công bố, trích từ bài báo gốc\\
-\bottomrule
-\end{tabularx}
-\end{table}
+% Tạm bỏ mục 1.8 khỏi bản in; giữ nội dung để có thể khôi phục.
+% \section{Phân tầng bằng chứng}
+% \label{sec:evidence}
+%
+% Để người đọc phân biệt rõ nguồn gốc của mỗi con số, luận văn phân tầng bằng chứng theo \cref{tab:evidence}.
+%
+% \begin{table}[htbp]
+% \centering
+% \caption{Phân tầng bằng chứng được dùng trong luận văn}
+% \label{tab:evidence}
+% \begin{tabularx}{\textwidth}{lX}
+% \toprule
+% \textbf{Mức} & \textbf{Nội dung}\\
+% \midrule
+% E1 --- Có mã nguồn & Cài đặt phương pháp, cấu hình mô hình và cấu trúc các thành phần trong kho mã\\
+% E2 --- Hồ sơ thực nghiệm & Kết quả trên bộ dữ liệu phân xưởng (so sánh sáu mô hình; ablation A0--A8 trên hai cách chia, trung bình ba hạt giống; Precision, Recall, tốc độ, bộ nhớ GPU) và 39,1 mAP trên AVA~v2.2; nhật ký chi tiết không nằm trong kho mã\\
+% E3 --- Có mã, chưa có số liệu & Ablation hàm mất mát (A9); AP theo từng hành vi; độ lệch chuẩn giữa các hạt giống; độ trễ đầu--cuối\\
+% E4 --- Tham chiếu & Số liệu của A*, STAR, OV-STAD, ST-CLIP và các baseline công bố, trích từ bài báo gốc\\
+% \bottomrule
+% \end{tabularx}
+% \end{table}
 
 \section*{Tiểu kết chương}
 \addcontentsline{toc}{section}{Tiểu kết chương}
 
-Chương này đã phát biểu bài toán phát hiện hành động không--thời gian theo từng người cho bốn hành vi mục tiêu trong phân xưởng, chỉ ra hai thang thời gian đối lập của các hành vi và yêu cầu kéo theo đối với toán tử thời gian, đồng thời xác lập độ đo đánh giá, sáu mục tiêu, năm câu hỏi nghiên cứu và cách phân tầng bằng chứng. \Cref{ch:related} tiếp theo trình bày cơ sở lý thuyết và các họ phương pháp liên quan để làm rõ khoảng trống mà thiết kế đề xuất nhắm tới.
+Chương này đã phát biểu bài toán phát hiện hành động không--thời gian theo từng người cho bốn hành vi mục tiêu trong phân xưởng, chỉ ra hai thang thời gian đối lập của các hành vi và yêu cầu kéo theo đối với toán tử thời gian, đồng thời xác lập độ đo đánh giá, sáu mục tiêu và năm câu hỏi nghiên cứu. \Cref{ch:related} tiếp theo trình bày cơ sở lý thuyết và các họ phương pháp liên quan để làm rõ khoảng trống mà thiết kế đề xuất nhắm tới.

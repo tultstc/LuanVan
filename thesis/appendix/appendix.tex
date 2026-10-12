@@ -4,23 +4,8 @@
 \chapter{Cấu hình huấn luyện}
 \label{app:config}
 
-\section{Cấu hình một tỉ lệ dùng cho lần chạy có nhật ký}
-
-So với phiên bản được ghi trong nhật ký, tệp cấu hình hiện tại đã bổ sung \code{featmap\_stride = 32} (\cref{sec:roi-stride}); mọi giá trị khác giữ nguyên. Đường dẫn tệp: \path{projects/fgtn_ava/ava22_swin-tiny_fgtn_32x2x1-10e.py}.
-\lstinputlisting[language=Python]{appendix/src/ava22_swin-tiny_fgtn_32x2x1-10e.py}
-
-\section{Cấu hình tập con}
-Tệp \path{projects/fgtn_ava/ava22_swin-tiny_fgtn_subset.py}. Nhật ký của lần chạy trên tập con tương ứng với phiên bản \emph{trước} khi tệp này được chỉnh lô 8 / 20 epoch: nhật ký ghi lô 6, 10 epoch và \code{auto\_scale\_lr.enable = False}.
-\lstinputlisting[language=Python]{appendix/src/ava22_swin-tiny_fgtn_subset.py}
-
 \section{Cấu hình pipeline đầy đủ (đa tỉ lệ + ACRN + focal/trọng số lớp)}
 \lstinputlisting[language=Python]{appendix/src/ava22_swin-tiny_fgtn-ms-acrn-focal_32x2x1-10e.py}
-
-\chapter{Trích đoạn nhật ký huấn luyện}
-\label{app:log}
-
-Nhật ký đầy đủ (\code{trainning.log}, 4.847 dòng) được nộp kèm. Dưới đây là phần môi trường và các dòng tổng kết kiểm định của mười epoch, trích nguyên văn.
-\lstinputlisting[numbers=none,basicstyle=\ttfamily\scriptsize]{appendix/src/log_excerpt.txt}
 
 \chapter{Mã nguồn khối đề xuất}
 \label{app:code}
@@ -40,100 +25,41 @@ Tệp \path{projects/fgtn_ava/make_class_weight.py}.
 \chapter{Bảng truy nguồn số liệu}
 \label{app:traceability}
 
-Mỗi con số thực nghiệm trong luận văn được đối chiếu với nguồn trong kho mã hoặc trong hồ sơ thực nghiệm (\cref{tab:trace}). Cột ``Mức'' theo \cref{tab:evidence}.
+Mỗi con số thực nghiệm trong luận văn được đối chiếu với nguồn trong kho mã hoặc trong hồ sơ thực nghiệm (\cref{tab:trace}).
 
-\begin{longtable}{p{4.2cm}p{2.4cm}p{6.0cm}p{1.0cm}}
+\begin{longtable}{p{4.2cm}p{2.4cm}p{7.0cm}}
 \caption{Truy nguồn các số liệu trong luận văn}
 \label{tab:trace}\\
 \toprule
-\textbf{Số liệu} & \textbf{Giá trị} & \textbf{Nguồn} & \textbf{Mức}\\
+\textbf{Số liệu} & \textbf{Giá trị} & \textbf{Nguồn}\\
 \midrule
 \endfirsthead
 \toprule
-\textbf{Số liệu} & \textbf{Giá trị} & \textbf{Nguồn} & \textbf{Mức}\\
+\textbf{Số liệu} & \textbf{Giá trị} & \textbf{Nguồn}\\
 \midrule
 \endhead
-mAP pipeline đầy đủ trên dữ liệu phân xưởng & 89,83\% & Hồ sơ thực nghiệm: bảng so sánh mô hình (\cref{tab:main-results}) & E2\\
-mAP các mô hình so sánh & \cref{tab:main-results} & Hồ sơ thực nghiệm: bảng so sánh mô hình & E2\\
-Precision, Recall tại ngưỡng 0,5 & 81,82\% & Hồ sơ thực nghiệm: đánh giá pipeline đầy đủ & E2\\
-Tốc độ xử lý; bộ nhớ GPU & $>$ 20 khung hình/giây; $\approx 10$~GB & Hồ sơ thực nghiệm; điều kiện đo xem \cref{tab:operating} & E2\\
-mAP ablation A0--A8 trên S1, S2 & \cref{tab:ablation-results} & Hồ sơ thực nghiệm: bảng tổng hợp ablation, trung bình ba hạt giống & E2\\
-mAP trên AVA~v2.2 (hồ sơ) & 39,1 & Hồ sơ thực nghiệm; cấu hình lượt chạy xem \cref{sec:ava-record} & E2\\
-mAP tổng tốt nhất (tập con AVA) & 8,50\% (epoch 9) & \code{trainning.log}: dòng ``The best checkpoint with 0.0850 mAP/overall at 9 epoch'' & E1\\
-mAP tổng và theo nhóm, 10 epoch & \cref{tab:per-epoch} & \code{trainning.log}: các dòng ``Epoch(val) [k][4846/4846] mAP/overall ...'' & E1\\
-Hàm mất mát trung bình mỗi epoch & \cref{tab:per-epoch} & Trung bình 128 giá trị \code{loss} ghi mỗi 20 iteration trong mỗi epoch của \code{trainning.log} & E1\\
-Hàm mất mát và chuẩn gradient ban đầu & 0,7704; 2,769 & \code{trainning.log}: dòng ``Epoch(train) [1][20/2541]'' & E1\\
-Số iteration mỗi epoch; kích thước lô & 2.541; 6 & \code{trainning.log}: dòng Epoch(train) và \path{train_dataloader.batch_size} trong cấu hình đầu nhật ký & E1\\
-Số khung hình khóa kiểm định & 4.846 & \code{trainning.log}: ``Epoch(val) [k][4846/4846]'' & E1\\
-Bộ nhớ GPU đỉnh khi huấn luyện / kiểm định & 28.800 MB / 2.838 MB & Trường \code{memory} lớn nhất trong các dòng Epoch(train) / Epoch(val) & E1\\
-Thời gian mỗi iteration huấn luyện & $\approx 0{,}70$ s & Trường \code{time} trong các dòng Epoch(train) & E1\\
-Thời gian mỗi mẫu kiểm định & $\approx 0{,}07$ s & Trường \code{time} trong các dòng Epoch(val) & E1\\
-Thời gian toàn bộ lần chạy & 5 giờ 55 phút & Dấu thời gian đầu (00:20:20) và cuối (06:15:06) của \code{trainning.log} & E1\\
-Hạt giống & 397.422.958 & \code{trainning.log}: ``seed: 397422958'' & E1\\
-Phần cứng, phiên bản thư viện & \cref{tab:config} & Phần ``System environment'' đầu \code{trainning.log} & E1\\
-Siêu tham số neck, tối ưu, lịch lr & \cref{tab:config} & Cấu hình in đầu \code{trainning.log}; tệp cấu hình \cref{app:config} & E1\\
-Số tham số từng module & \cref{tab:params} & Tích các kích thước tensor trong danh sách tham số đầu \code{trainning.log} & E1\\
-\code{featmap\_stride} của lần chạy trên tập con & 16 & Cấu hình in đầu \code{trainning.log} (không có khóa \code{featmap\_stride}; mặc định của \code{SingleRoIExtractor3D} là 16) & E1\\
-Bước giảm mẫu tầng 4 của Swin-T & 32 & Patch $(2,4,4)$ và ba lần gộp patch; \path{fgtn_ava/README.md} ghi $(B, 768, 16, H/32, W/32)$ & E1\\
-Số tham số ACRN, neck tầng 3 & $\approx 14{,}6$M; 3,57M & Tính từ kích thước lớp trong \code{ACRNHead} và \code{FGTNNeckAVA(384)} & E1\\
-Mốc A*, STAR, OV-STAD, ST-CLIP & \cref{tab:reference} & Bài báo gốc \cite{kim2024astar,gritsenko2024star,wu2024ovstad,huang2025stclip} & E4\\
+mAP pipeline đầy đủ trên dữ liệu phân xưởng & 89,83\% & Hồ sơ thực nghiệm: bảng so sánh mô hình (\cref{tab:main-results})\\
+mAP các mô hình so sánh & \cref{tab:main-results} & Hồ sơ thực nghiệm: bảng so sánh mô hình\\
+Precision, Recall tại ngưỡng 0,5 & 81,82\% & Hồ sơ thực nghiệm: đánh giá pipeline đầy đủ\\
+Tốc độ xử lý; bộ nhớ GPU & $>$ 20 khung hình/giây; $\approx 10$~GB & Hồ sơ thực nghiệm; điều kiện đo xem \cref{tab:operating}\\
+mAP ablation A0--A8 trên S1, S2 & \cref{tab:ablation-results} & Hồ sơ thực nghiệm: bảng tổng hợp ablation, trung bình ba hạt giống\\
+mAP trên AVA~v2.2 (pipeline đầy đủ) & 38,1 & Kết quả cập nhật theo học viên; xem \cref{sec:ava-record}\\
+Bước giảm mẫu tầng 4 của Swin-T & 32 & Patch $(2,4,4)$ và ba lần gộp patch; \path{fgtn_ava/README.md} ghi $(B, 768, 16, H/32, W/32)$\\
+Số tham số ACRN, neck tầng 3 & $\approx 14{,}6$M; 3,57M & Tính từ kích thước lớp trong \code{ACRNHead} và \code{FGTNNeckAVA(384)}\\
+Mốc A*, STAR, OV-STAD, ST-CLIP & \cref{tab:reference} & Bài báo gốc \cite{kim2024astar,gritsenko2024star,wu2024ovstad,huang2025stclip}\\
 \bottomrule
 \end{longtable}
 
-\chapter{Lệnh tái lập}
+\chapter{Lệnh kiểm tra mã nguồn}
 \label{app:repro}
 
-Các lệnh dưới đây chạy trên tập con AVA~v2.2 và ánh xạ sang mã cấu hình A0--A9 của \cref{tab:ablation}; với bộ dữ liệu phân xưởng, dùng cùng các khóa ghi đè trên tệp cấu hình của dữ liệu phân xưởng (\canbosung{tên tệp cấu hình dữ liệu phân xưởng}). Chú thích trong liệt kê viết bằng tiếng Anh để tránh lỗi hiển thị dấu của gói \code{listings}.
+Các lệnh dưới đây cài đặt môi trường và chạy kiểm tra mã nguồn của khối đề xuất.
 \begin{lstlisting}[language=bash,numbers=none]
-# 1. Environment (GPU machine; see projects/fgtn_ava/README.md)
+# Environment (see projects/fgtn_ava/README.md)
 pip install -U openmim && mim install mmengine "mmcv>=2.0.0,<2.2.0" mmdet "mmaction2>=1.2.0"
 pip install causal-conv1d
 pip install git+https://github.com/OpenGVLab/video-mamba-suite.git#subdirectory=mamba
 
-# 2. Data: AVA v2.2 subset
-bash projects/fgtn_ava/download_ava.sh annotations proposals
-python projects/fgtn_ava/make_subset.py --n-train 45 --n-val 8 --seed 42
-NUM_JOBS=4 bash projects/fgtn_ava/download_ava.sh videos
-CLEAN=1 JPEG_Q=5 bash projects/fgtn_ava/download_ava.sh cut frames
-
-# 3. Single-scale Hybrid FGTN-Mamba (A6), corrected RoI stride.
-#    To reproduce exactly the logged run, add --cfg-options
-#    model.roi_head.bbox_roi_extractor.featmap_stride=16
-CFG=projects/fgtn_ava/ava22_swin-tiny_fgtn_subset.py
-mim train mmaction2 $CFG --gpus 1
-
-# 4. Neck ablations: same config, one --cfg-options override each
-#    A0: model.neck=None
-#    A1: model.neck.branch_mode=attn_only
-#        model.neck.window_size=31   (window covers all T=16)
-#    A3: model.neck.branch_mode=mamba_only
-#    A4: model.neck.branch_mode=attn_only
-#    A5: model.neck.branch_mode=no_gate
-#    A2 (uni-directional SSM): set bimamba_type="none" in
-#        fgtn_neck.py (no config key yet)
-mim train mmaction2 $CFG --gpus 1 \
-    --cfg-options model.neck.branch_mode=mamba_only    # A3
-
-# 5. Multi-scale + ACRN + focal loss (A8); A7 = A8 without ACRN.
-#    Keep the loss identical within a pair (e.g. add
-#    model.roi_head.bbox_head.focal_gamma=0.0 to compare with A6).
-MS=projects/fgtn_ava/ava22_swin-tiny_fgtn-ms-acrn-focal_subset.py
-mim train mmaction2 $MS --gpus 1                         # A8
-mim train mmaction2 $MS --gpus 1 \
-    --cfg-options model.roi_head.shared_head=None        # A7
-
-# 6. Loss ablation on A8 (A9). Focal only = the A8 run above;
-#    BCE: focal_gamma=0.0; class weights: class_weight=$W.
-#    Set class_weight on the head key: a top-level class_weight=...
-#    override is ignored (the config resolves it at load time).
-python projects/fgtn_ava/make_class_weight.py \
-    --ann data/ava/annotations/ava_train_v2.2_subset.csv \
-    --out data/ava/annotations/class_weight_train_subset.json
-W=data/ava/annotations/class_weight_train_subset.json
-# focal + class weights
-mim train mmaction2 $MS --gpus 1 \
-    --cfg-options model.roi_head.bbox_head.class_weight=$W
-
-# 7. CPU self-check (no mmaction / GPU required)
+# CPU self-check (no mmaction / GPU required)
 python projects/fgtn_ava/selfcheck.py
 \end{lstlisting}

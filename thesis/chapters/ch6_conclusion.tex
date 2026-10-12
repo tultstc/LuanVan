@@ -9,15 +9,15 @@ Luận văn giải bài toán phát hiện và cảnh báo hành vi không đư�
 \begin{enumerate}
   \item \textbf{Về phương pháp.} Khối gồm nhánh SSM chọn lọc hai chiều (dài hạn), nhánh self-attention trong cửa sổ $W = 5$ (ngắn hạn) và cổng sigmoid theo từng kênh và bước thời gian, với chi phí tuyến tính theo độ dài chuỗi. Khối được áp dụng độc lập trên tầng 3 và tầng 4, kết hợp multi-scale RoI, ACRN, focal loss có trọng số lớp và logic cảnh báo theo track thành pipeline hoàn chỉnh trên MMAction2, giữ nguyên trọng số tiền huấn luyện của backbone.
   \item \textbf{Về thực nghiệm trên dữ liệu phân xưởng.} Pipeline đầy đủ đạt 89,83\% mAP, Precision = Recall = 81,82\% tại ngưỡng 0,5, trên 20 khung hình/giây với khoảng 10~GB bộ nhớ GPU; cao hơn FastViT3D-SA12 5,17 điểm, EfficientViT3D-b1 10,07 điểm và vượt xa YOWOv2-Nano, SlowFast-R50. Ablation chín cấu hình, ba hạt giống, trên hai cách chia dữ liệu cho thấy Hybrid FGTN-Mamba tốt hơn temporal MHSA toàn cục tại cùng vị trí 4,24 / 4,42 điểm; quét hai chiều, sự kết hợp hai nhánh và cổng sigmoid đều đóng góp; đa tỉ lệ và ACRN tăng thêm lần lượt 3,85 / 2,00 và 5,89 / 3,90 điểm (S1 / S2).
-  \item \textbf{Về tổng quát hóa và dữ liệu công khai.} Trên camera chưa thấy khi huấn luyện, pipeline đầy đủ đạt 78,15\% mAP và thứ tự giữa các cấu hình được giữ nguyên. Trên AVA~v2.2, hồ sơ thực nghiệm ghi nhận 39,1 mAP; lần chạy có nhật ký trên tập con AVA xác nhận neck huấn luyện ổn định từ trọng số tiền huấn luyện.
+  \item \textbf{Về tổng quát hóa và dữ liệu công khai.} Pipeline đầy đủ đạt 78,15\% mAP trên camera chưa thấy khi huấn luyện và 38,1 mAP trên AVA~v2.2 trong thiết lập closed-set. Thứ tự giữa các cấu hình được giữ nguyên trên camera mới.
 \end{enumerate}
 
-Các mục tiêu M1, M2, M3 và M6 (\cref{sec:objectives}) đã đạt; M4 đạt với ACRN, còn đóng góp riêng của hàm mất mát hai cấp chưa được định lượng; M5 đạt phần lớn, còn thiếu độ lệch chuẩn giữa các hạt giống và nhật ký chi tiết của các lượt chạy trong hồ sơ.
+Các mục tiêu M1, M2, M3, M4 và M6 (\cref{sec:objectives}) đã đạt; M5 đạt phần lớn, còn thiếu độ lệch chuẩn giữa các hạt giống và nhật ký chi tiết của các lượt chạy trong hồ sơ.
 
 \section*{2. Hạn chế}
 
 \begin{itemize}
-  \item Ablation hàm mất mát (A9), độ lệch chuẩn giữa các hạt giống và AP theo từng hành vi chưa được báo cáo.
+  \item Độ lệch chuẩn giữa các hạt giống chưa được báo cáo; AP theo từng hành vi trong báo cáo bổ sung thuộc loạt kết quả riêng, chưa đối chiếu với các lượt chạy ablation (\cref{sec:factory-class-report}).
   \item mAP giảm đáng kể khi chuyển sang camera mới (89,60\% xuống 78,15\%); bộ dữ liệu phân xưởng còn ít camera.
   \item Pipeline phụ thuộc person proposal và thiết lập closed-set; độ trễ đầu--cuối của hệ thống cảnh báo chưa được đo.
 \end{itemize}
@@ -25,8 +25,8 @@ Các mục tiêu M1, M2, M3 và M6 (\cref{sec:objectives}) đã đạt; M4 đạ
 \section*{3. Hướng phát triển}
 
 \begin{enumerate}
-  \item \textbf{Ngắn hạn:} hoàn thành ablation A9; báo cáo độ lệch chuẩn và AP theo từng hành vi; thay đổi các siêu tham số chính (cửa sổ $W$, số khối, số đầu attention) để chứng minh lựa chọn hiện tại là tối ưu; phân tích phân bố cổng $g$ theo từng hành vi; đính kèm nhật ký và cấu hình của các lượt chạy trong hồ sơ.
-  \item \textbf{Trung hạn:} mở rộng dữ liệu phân xưởng với nhiều camera hơn để thu hẹp khoảng cách giữa hai cách chia; chạy lại lần chạy trên tập con AVA với tỷ lệ RoI đã sửa; thử neck với backbone khác và bổ sung positional bias cho nhánh cục bộ.
+  \item \textbf{Ngắn hạn:} báo cáo độ lệch chuẩn và AP theo từng hành vi cho mỗi cấu hình ablation; thay đổi các siêu tham số chính (cửa sổ $W$, số khối, số đầu attention) để chứng minh lựa chọn hiện tại là tối ưu; phân tích phân bố cổng $g$ theo từng hành vi; đính kèm nhật ký và cấu hình của các lượt chạy trong hồ sơ.
+  \item \textbf{Trung hạn:} mở rộng dữ liệu phân xưởng với nhiều camera hơn để thu hẹp khoảng cách giữa hai cách chia; thử neck với backbone khác và bổ sung positional bias cho nhánh cục bộ.
   \item \textbf{Ứng dụng:} đo độ trễ đầu--cuối; xây dựng chế độ suy luận nhân quả hoặc nhìn trước giới hạn để giảm độ trễ cảnh báo; hiệu chỉnh ngưỡng theo lớp và logic $m/n$ với cooldown trên dữ liệu kiểm định; tích hợp theo dõi (tracking) và lưu ảnh minh chứng.
   \item \textbf{Dài hạn:} thay person proposal bằng truy vấn end-to-end theo hướng STAR; mở rộng tập lớp bằng căn chỉnh vùng--văn bản (open-vocabulary) trong khi giữ Hybrid FGTN-Mamba làm bộ mô hình hóa thời gian.
 \end{enumerate}

@@ -26,7 +26,7 @@ Mục tiêu tổng quát là xây dựng và đánh giá một hệ thống phá
   \item thiết lập \emph{closed-set, supervised}: tập nhãn cố định, có giám sát đầy đủ; không xét open-vocabulary hay zero-shot;
   \item bốn hành vi mục tiêu (sử dụng điện thoại, ngủ trên bàn, gác chân lên bàn, hành vi nguy hiểm) trên bộ dữ liệu riêng thu từ nhiều camera; AVA~v2.2 \cite{gu2018ava} được dùng làm chuẩn đánh giá công khai;
   \item person proposal lấy từ bộ phát hiện người có sẵn (với AVA là bộ đề xuất công bố của FAIR); luận văn không huấn luyện lại bộ phát hiện người;
-  \item tài nguyên tính toán hạn chế, nên một số thí nghiệm (ablation hàm mất mát, AP theo từng hành vi, độ lệch chuẩn giữa các hạt giống) chưa hoàn thành và được nêu rõ trong phần hạn chế.
+  \item tài nguyên tính toán hạn chế, nên một số phân tích (AP theo từng hành vi cho mỗi cấu hình ablation, độ lệch chuẩn giữa các hạt giống) chưa hoàn thành và được nêu rõ trong phần hạn chế.
 \end{itemize}
 
 \section*{4. Phương pháp nghiên cứu}
@@ -39,7 +39,7 @@ Luận văn kết hợp nghiên cứu tài liệu để hệ thống hóa các h
   \item Đề xuất Hybrid FGTN-Mamba: bidirectional selective SSM cho phụ thuộc dài hạn và windowed temporal attention cho chuyển tiếp ngắn hạn, hợp nhất bằng cổng sigmoid theo kênh và bước thời gian, với chi phí $O(TC + TWC)$ theo độ dài chuỗi.
   \item Đặt khối tại vị trí hậu-backbone, tiền-RoI và áp dụng độc lập trên hai tầng đặc trưng với tham số riêng, giúp làm giàu đặc trưng thời gian trước khi trích đặc trưng từng người mà không phải sửa backbone tiền huấn luyện.
   \item Tích hợp multi-scale RoI, ACRN, focal loss có trọng số lớp, ngưỡng theo lớp và logic theo track thành pipeline cảnh báo hoàn chỉnh theo từng người, cài đặt tự chứa trên MMAction2 (\path{projects/fgtn_ava}).
-  \item Kết quả thực nghiệm: trên dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP, Precision = Recall = 81,82\% tại ngưỡng 0,5, trên 20 khung hình/giây, cao hơn FastViT3D-SA12 5,17 điểm và EfficientViT3D-b1 10,07 điểm; ablation ba hạt giống trên hai cách chia định lượng đóng góp của từng nhánh, cổng, đa tỉ lệ và ACRN; trên AVA~v2.2, hồ sơ thực nghiệm ghi nhận 39,1 mAP.
+  \item Kết quả thực nghiệm: trên dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP, Precision = Recall = 81,82\% tại ngưỡng 0,5, trên 20 khung hình/giây, cao hơn FastViT3D-SA12 5,17 điểm và EfficientViT3D-b1 10,07 điểm; ablation ba hạt giống trên hai cách chia định lượng đóng góp của từng nhánh, cổng, đa tỉ lệ và ACRN; trên AVA~v2.2, pipeline đầy đủ đạt 38,1 mAP trong thiết lập closed-set.
 \end{enumerate}
 Luận văn không tuyên bố mô hình không gian trạng thái, attention cục bộ, đặc trưng đa tỉ lệ hay ACRN là các khái niệm mới; điểm mới nằm ở vị trí đặt, cách tham số hóa theo tầng và chuỗi tích hợp cho bài toán STAD theo từng người (\cref{sec:novelty}).
 

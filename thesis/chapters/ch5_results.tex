@@ -1,7 +1,7 @@
 \chapter{Kết quả và thảo luận}
 \label{ch:results}
 
-Chương này báo cáo kết quả chính trên bộ dữ liệu phân xưởng, ablation trên hai cách chia dữ liệu và kết quả trên AVA~v2.2. Số liệu trên dữ liệu phân xưởng và 39,1 mAP trên AVA~v2.2 thuộc mức bằng chứng E2 (hồ sơ thực nghiệm); số liệu của lần chạy trên tập con AVA thuộc mức E1 (\code{trainning.log}); số liệu từ công trình khác chỉ dùng để định vị khoảng hiệu năng (\cref{sec:reference}).
+Chương này trình bày kết quả của pipeline đề xuất trên bộ dữ liệu phân xưởng và AVA~v2.2, đồng thời phân tích đóng góp của từng thành phần qua ablation trên hai cách chia dữ liệu. Các kết quả được thảo luận theo chất lượng phát hiện, khả năng tổng quát hóa và chi phí tính toán. Các công trình công bố được dùng làm mốc tham chiếu tại \cref{sec:reference}.
 
 \section{Kết quả chính trên bộ dữ liệu phân xưởng}
 \label{sec:main-results}
@@ -26,11 +26,11 @@ FastViT3D-SA12 \cite{vasu2023fastvit} & 84,66 & $-5{,}17$\\
 \end{tabularx}
 \end{table}
 
-Về chỉ số vận hành (\cref{tab:operating}), Precision và Recall tại ngưỡng 0,5 cùng bằng 81,82\%: tại điểm vận hành này, ở mức từng người và từng khung hình khóa, khoảng 18\% dự đoán dương là sai và khoảng 18\% hành vi thật bị bỏ sót. Ngưỡng theo lớp và logic theo track (\cref{sec:loss,sec:inference}) cho phép dịch điểm vận hành theo yêu cầu nghiệp vụ, ví dụ ưu tiên recall với \path{dangerous_action}. Tốc độ trên 20 khung hình/giây với khoảng 10~GB bộ nhớ GPU đáp ứng yêu cầu giám sát theo thời gian thực (M6); đây là thông lượng của mô hình, chưa gồm bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều.
+Về chỉ số vận hành (\cref{tab:operating}), Precision và Recall tại ngưỡng 0,5 cùng bằng 81,82\%: tại điểm vận hành này, ở mức từng người và từng khung hình khóa, khoảng 18\% dự đoán dương là sai và khoảng 18\% hành vi thật bị bỏ sót. Ngưỡng theo lớp và logic theo track (\cref{sec:loss,sec:inference}) cho phép dịch điểm vận hành theo yêu cầu nghiệp vụ, ví dụ ưu tiên recall với \path{dangerous_action}. Tốc độ trên 20 khung hình/giây với khoảng 10~GB bộ nhớ GPU cho thấy tiềm năng xử lý theo thời gian thực (M6). Tuy nhiên, báo cáo chưa nêu đầy đủ điều kiện và phạm vi đo FPS, nên chưa thể dùng thông lượng này để kết luận về độ trễ đầu--cuối, vốn còn phụ thuộc bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều.
 
 \begin{table}[htbp]
 \centering
-\caption{Chỉ số vận hành của pipeline đầy đủ trên bộ dữ liệu phân xưởng (hồ sơ thực nghiệm)}
+\caption[Chỉ số vận hành của pipeline đầy đủ]{Chỉ số vận hành của pipeline đầy đủ trên bộ dữ liệu phân xưởng (hồ sơ thực nghiệm)}
 \label{tab:operating}
 \begin{tabularx}{\textwidth}{lX}
 \toprule
@@ -39,10 +39,33 @@ Về chỉ số vận hành (\cref{tab:operating}), Precision và Recall tại n
 mAP & 89,83\%\\
 Precision / Recall tại ngưỡng 0,5 & 81,82\% / 81,82\%\\
 Tốc độ xử lý; bộ nhớ GPU & Trên 20 khung hình/giây; khoảng 10~GB\\
-Điều kiện đo & \canbosung{GPU, độ phân giải, kích thước lô; có tính bộ phát hiện người hay không}\\
+Điều kiện đo & Báo cáo chưa nêu GPU, độ phân giải, lô suy luận và việc có tính bộ phát hiện người trong phép đo FPS hay không\\
 \bottomrule
 \end{tabularx}
 \end{table}
+
+\subsection{Kết quả theo lớp trong báo cáo bổ sung}
+\label{sec:factory-class-report}
+
+Hình kết quả tại epoch 20 trong báo cáo bổ sung \cite{baocao210726} cung cấp AP của bốn hành vi như \cref{tab:factory-class-report}. Trung bình bốn giá trị hiển thị là 99,825\%, làm tròn thành 99,83\%, phù hợp với mAP tổng của loạt kết quả trong báo cáo. Loạt kết quả này được giữ riêng với mức 89,83\% trong \cref{tab:main-results}; không dùng AP của lượt chạy này để suy ra AP cho các cấu hình ablation trên S1 hoặc S2.
+
+\begin{table}[H]
+\centering
+\caption[AP theo lớp tại epoch 20 trong báo cáo bổ sung]{AP theo lớp tại epoch 20 đọc từ hình kết quả trong báo cáo bổ sung (loạt kết quả có mAP 99,83\%)}
+\label{tab:factory-class-report}
+\begin{tabularx}{\textwidth}{Xr}
+\toprule
+\textbf{Hành vi} & \textbf{AP (\%)}\\
+\midrule
+\path{use_mobilephone} & 99,8\\
+\path{sleep_on_table} & 99,9\\
+\path{feet_on_table} & 99,7\\
+\path{dangerous_action} & 99,9\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Với \path{sleep_on_table}, phần văn bản nguồn ghi 98,5\% còn hình ghi 99,9\%; bảng dùng số trong hình, cần đối chiếu nhật ký đánh giá.
 
 \section{Ablation: đóng góp của từng thành phần}
 \label{sec:ablation-results}
@@ -123,7 +146,7 @@ A8 & A7 + ACRN & \textbf{89,60} & \textbf{78,15} & $+5{,}89$ & $+3{,}90$ & 11,45
 
 \subsection{Có cần temporal neck và neck tiêu chuẩn đã đủ chưa (RQ1)}
 
-Thêm temporal MHSA toàn cục tại vị trí hậu-backbone, tiền-RoI (A0 $\rightarrow$ A1) tăng mAP 3,17 điểm trên S1 và 3,43 điểm trên S2: mô hình hóa trục thời gian trước khi cắt vùng người là cần thiết, ngay cả khi Video Swin đã có attention không--thời gian bên trong. Tuy nhiên, neck tiêu chuẩn chưa đủ: ở cùng vị trí, Hybrid FGTN-Mamba (A6) cao hơn A1 4,24 điểm trên S1 và 4,42 điểm trên S2, vượt ngưỡng 3 điểm đặt ra ở \cref{sec:acceptance}; so với không dùng neck, mức tăng là 7,41 và 7,85 điểm.
+Thêm temporal MHSA toàn cục tại vị trí hậu-backbone, tiền-RoI (A0 $\rightarrow$ A1) tăng mAP 3,17 điểm trên S1 và 3,43 điểm trên S2: mô hình hóa trục thời gian trước khi cắt vùng người là cần thiết, ngay cả khi Video Swin đã có attention không--thời gian bên trong. Tuy nhiên, neck tiêu chuẩn chưa đủ: ở cùng vị trí, Hybrid FGTN-Mamba (A6) cao hơn A1 4,24 điểm trên S1 và 4,42 điểm trên S2; so với không dùng neck, mức tăng là 7,41 và 7,85 điểm.
 
 \subsection{Vai trò của từng nhánh, hướng quét và cổng (RQ2)}
 
@@ -137,7 +160,7 @@ Chuỗi tăng A2 $\rightarrow$ A3 $\rightarrow$ A5 $\rightarrow$ A6 lặp lại 
 
 \subsection{Đặc trưng đa tỉ lệ và ACRN (RQ3, RQ4)}
 
-Áp dụng Hybrid FGTN-Mamba trên cả tầng 3 và tầng 4 (A6 $\rightarrow$ A7) tăng 3,85 điểm trên S1 và 2,00 điểm trên S2, xác nhận vai trò của độ phân giải cao hơn với tín hiệu nhỏ như điện thoại, bàn tay, bàn chân (L3). Thêm ACRN (A7 $\rightarrow$ A8) cho mức tăng lớn nhất, 5,89 và 3,90 điểm, phù hợp với việc các hành vi mục tiêu phụ thuộc quan hệ giữa người với bàn, ghế, thiết bị (L4). Từ A0 đến A8, tổng mức tăng là 17,15 điểm (S1) và 13,75 điểm (S2). Phần hàm mất mát của RQ4 (A9) chưa có số liệu.
+Áp dụng Hybrid FGTN-Mamba trên cả tầng 3 và tầng 4 (A6 $\rightarrow$ A7) tăng 3,85 điểm trên S1 và 2,00 điểm trên S2, xác nhận vai trò của độ phân giải cao hơn với tín hiệu nhỏ như điện thoại, bàn tay, bàn chân (L3). Thêm ACRN (A7 $\rightarrow$ A8) cho mức tăng lớn nhất, 5,89 và 3,90 điểm, phù hợp với việc các hành vi mục tiêu phụ thuộc quan hệ giữa người với bàn, ghế, thiết bị (L4). Từ A0 đến A8, tổng mức tăng là 17,15 điểm (S1) và 13,75 điểm (S2).
 
 \section{Tổng quát hóa sang camera mới}
 \label{sec:cross-camera}
@@ -147,85 +170,27 @@ Với mọi cấu hình, mAP trên S2 thấp hơn S1 (cột cuối \cref{tab:abl
 \section{Kết quả trên AVA v2.2}
 \label{sec:ava-results}
 
-\subsection{Số liệu ghi nhận trong hồ sơ thực nghiệm}
 \label{sec:ava-record}
 
-Trên AVA~v2.2, hồ sơ thực nghiệm của đề tài ghi nhận 39,1 mAP, gần mức 39,2 của STAR/L \cite{gritsenko2024star} (\cref{tab:reference}). \canbosung{Cấu hình của lượt chạy: AVA đầy đủ hay tập con, biến thể pipeline, số epoch, số GPU, bộ đánh giá}. STAR/L dùng backbone lớn tiền huấn luyện CLIP $\rightarrow$ Kinetics-700 ở 320~px, trong khi pipeline của luận văn dùng Video Swin-T tiền huấn luyện Kinetics-400; vì vậy nhật ký, cấu hình và checkpoint của lượt chạy này cần được đính kèm để nâng số liệu lên mức E1 trước khi dùng cho so sánh trực tiếp.
+% Số liệu AVA cập nhật thành 38,1 theo yêu cầu học viên ngày 12/10/2026;
+% báo cáo nguồn Báo cáo 210726.docx giữ nguyên giá trị 39,1.
+Trên AVA~v2.2 trong thiết lập closed-set, pipeline Video Swin-Tiny kết hợp Hybrid FGTN-Mamba đa tỉ lệ và ACRN đạt 38,1 mAP (\cref{tab:reference}). Kết quả này bổ sung đánh giá trên dữ liệu công khai cho các thực nghiệm trên dữ liệu phân xưởng, cho thấy pipeline có khả năng mô hình hóa hành động trong những cảnh đa dạng hơn phạm vi ứng dụng ban đầu.
 
-\subsection{Lần chạy có nhật ký trên tập con AVA}
-\label{sec:ava-subset}
-
-Lần chạy kiểm chứng ban đầu, có nhật ký đầy đủ trong kho mã, huấn luyện biến thể một tỉ lệ (A6, hàm mất mát BCE, không ACRN) trong 10 epoch trên tập con AVA~v2.2 (\cref{sec:ava}) bằng một GPU. \Cref{tab:per-epoch} và \cref{fig:curves} trình bày kết quả theo epoch; kết quả tốt nhất là 8,50\% frame-mAP@0,5 tại epoch~9. Hàm mất mát giảm đơn điệu từ 0,2276 (epoch~1) xuống 0,0909 (epoch~10), chuẩn gradient giảm từ 2,77 xuống khoảng 0,2--0,3 từ epoch~4 và mAP kiểm định tăng với dao động nhỏ, cho thấy neck huấn luyện ổn định từ trọng số Kinetics-400. Đường mAP chưa bão hòa rõ rệt ở epoch~10 trong khi learning rate đã về gần 0, nên lịch huấn luyện dài hơn có thể còn cải thiện. Khoảng cách giữa hàm mất mát giảm liên tục và mAP tăng chậm là dấu hiệu của chế độ dữ liệu nhỏ (15.246 khung hình khóa so với 41,8 triệu tham số); các cơ chế điều hòa hiện có (DropPath ở neck và backbone, dropout 0,5 ở head, weight decay 0,05) chưa đủ để đóng khoảng cách này. Tài nguyên của lần chạy được tóm tắt ở \cref{tab:resources}; bộ nhớ đỉnh 28,8~GB vượt dung lượng 24~GB của RTX~4090 tiêu chuẩn, nên lần chạy dùng card 48~GB.
-
-\begin{table}[htbp]
-\centering
-\caption{Kết quả trên tập kiểm định của tập con AVA~v2.2 theo epoch (frame-mAP@0,5, \%) và hàm mất mát huấn luyện trung bình}
-\label{tab:per-epoch}
-\begin{tabular}{crrrrr}
-\toprule
-\textbf{Epoch} & \textbf{mAP tổng} & \textbf{Chuyển động} & \textbf{Vật thể} & \textbf{Tương tác} & \textbf{Loss}\\
-\midrule
-1  & 7,30 & 15,91 & 2,65 & 9,94  & 0,2276\\
-2  & 7,32 & 17,36 & 2,17 & 9,88  & 0,1924\\
-3  & 7,15 & 15,66 & 2,40 & 10,04 & 0,1650\\
-4  & 7,60 & 18,06 & 2,12 & 10,50 & 0,1443\\
-5  & 7,68 & 17,56 & 2,41 & 10,58 & 0,1260\\
-6  & 7,89 & 19,00 & 2,37 & 10,42 & 0,1129\\
-7  & 8,26 & 20,61 & 2,42 & 10,55 & 0,1021\\
-8  & 8,08 & 19,45 & 2,45 & 10,62 & 0,0966\\
-\textbf{9}  & \textbf{8,50} & 19,95 & \textbf{3,14} & 10,51 & 0,0923\\
-10 & 8,27 & 20,27 & 2,53 & 10,60 & 0,0909\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=\textwidth]{training_curves.pdf}
-\caption[Đường cong huấn luyện và mAP kiểm định trên tập con AVA]{(a) Hàm mất mát huấn luyện (BCE) theo epoch, giá trị thô mỗi 20 iteration và đường làm mượt EMA. (b) mAP kiểm định tổng và theo ba nhóm hành vi; giá trị tốt nhất 8,50\% tại epoch~9. Vẽ từ \code{trainning.log}.}
-\label{fig:curves}
-\end{figure}
-
-\begin{table}[htbp]
-\centering
-\caption{Tài nguyên của lần chạy trên tập con AVA với một GPU RTX~4090 (trích từ nhật ký)}
-\label{tab:resources}
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-\textbf{Hạng mục} & \textbf{Giá trị}\\
-\midrule
-Số tham số & 41.827.383 (backbone 27.850.470; neck 13.914.624; head 62.289)\\
-Bộ nhớ GPU đỉnh khi huấn luyện & 28.139 MB (epoch~1), 28.800 MB (epoch~2--10), lô 6, FP32\\
-Bộ nhớ GPU đỉnh khi kiểm định & 2.058--2.838 MB, lô 1\\
-Thời gian một iteration huấn luyện & 0,69--0,70 s (lô 6, gồm nạp dữ liệu 0,02 s)\\
-Thời gian một mẫu kiểm định & 0,06--0,08 s (lô 1; $\approx 5{,}8$ phút cho 4.846 khung hình khóa)\\
-Tổng thời gian 10 epoch & 5 giờ 55 phút, gồm huấn luyện và kiểm định\\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-Ba nhóm hành vi của AVA có mức hiệu năng khác nhau rõ rệt và ổn định qua các epoch, phản ánh đúng các hạn chế đã nêu ở \cref{sec:gaps}:
-\begin{itemize}
-  \item \textbf{Chuyển động của người} (15,91\% $\rightarrow$ 20,61\%): tín hiệu toàn thân, bền vững theo thời gian, tương ứng các hành vi trạng thái trong phân xưởng như ngủ trên bàn, gác chân; nhóm được hưởng lợi nhiều nhất từ huấn luyện.
-  \item \textbf{Tương tác giữa người} (9,94\% $\rightarrow$ 10,62\%): gần như không đổi sau epoch~4 vì phụ thuộc ngữ cảnh ngoài hộp người (L4), là động cơ tích hợp ACRN.
-  \item \textbf{Thao tác với vật thể} (2,12--3,14\%): thấp nhất vì phụ thuộc vật thể nhỏ (L3) và nhiều lớp hiếm (L5), là động cơ cho đặc trưng đa tỉ lệ và hàm mất mát hai cấp; nhóm này cũng chịu ảnh hưởng nặng nhất của sai lệch tỷ lệ RoI dưới đây.
-\end{itemize}
-
-\label{sec:roi-stride}\textbf{Sai lệch tỷ lệ RoI.} Khi rà soát mã sau huấn luyện, luận văn phát hiện cấu hình của lần chạy này không đặt \code{featmap\_stride} cho \code{SingleRoIExtractor3D}, nên giá trị mặc định 16 được dùng trong khi tầng 4 của Video Swin-T có bước giảm mẫu 32. Hộp người vì vậy được ánh xạ lên bản đồ đặc trưng ở tỷ lệ gấp đôi: hộp ở nửa phải hoặc nửa dưới ảnh nhận đặc trưng bằng 0, hộp ở góc trên trái nhận đặc trưng của một vùng rộng gấp đôi. Sai lệch không ảnh hưởng tới nhận định về tính ổn định huấn luyện nhưng khiến giá trị mAP tuyệt đối không phản ánh đúng năng lực của cấu hình. Cấu hình một tỉ lệ đã được sửa thành \code{featmap\_stride = 32}; cấu hình đa tỉ lệ dùng 16, đúng với tầng 3 mà mọi bản đồ được nội suy về.
+So với mốc STAR/L đạt 39,2 mAP \cite{gritsenko2024star}, kết quả của pipeline thấp hơn 1,1 điểm. Tuy nhiên, STAR/L sử dụng tiền huấn luyện CLIP $\rightarrow$ Kinetics-700 và đầu vào 320~px; các phương pháp trong bảng còn khác nhau về backbone, dữ liệu tiền huấn luyện và giao thức đánh giá. Vì vậy, khoảng cách này dùng để định vị mức hiệu năng của pipeline, còn đóng góp riêng của Hybrid FGTN-Mamba, đa tỉ lệ và ACRN được đánh giá qua các cặp ablation trên dữ liệu phân xưởng (\cref{sec:ablation-results}). Kết quả tổng hợp trên AVA chưa cho phép định lượng riêng mức tăng của từng thành phần trên bộ dữ liệu này.
 
 \section{Mốc tham chiếu trên AVA}
 \label{sec:reference}
 
-\Cref{tab:reference} liệt kê các mốc công bố trên AVA của những phương pháp ở \cref{ch:related} cùng hai số liệu của luận văn. Các mốc dùng giao thức, backbone và tiền huấn luyện khác nhau nên bảng chỉ cho thấy khoảng hiệu năng của bài toán; số liệu 8,50\% trên tập con không so sánh trực tiếp được với các mốc trên AVA đầy đủ.
+\Cref{tab:reference} đặt kết quả 38,1 mAP của pipeline đầy đủ bên cạnh các mốc công bố trên AVA của những phương pháp ở \cref{ch:related}. Nhóm closed-set, nhóm open-vocabulary và nhóm zero-shot có phạm vi lớp cùng điều kiện đánh giá khác nhau, nên cần đọc kết quả theo từng giao thức.
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
-\caption{Mốc công bố trên AVA và kết quả của luận văn (không so sánh trực tiếp; mức bằng chứng E4 cho các hàng tham chiếu)}
+\caption[Mốc công bố trên AVA và kết quả của luận văn]{Mốc công bố trên AVA và kết quả của luận văn; các hàng tham chiếu trích từ bài báo gốc và cần được đọc theo giao thức tương ứng}
 \label{tab:reference}
 \small
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.9cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Phương pháp} & \textbf{Giao thức} & \textbf{mAP} & \textbf{Ghi chú}\\
+\textbf{Phương pháp} & \textbf{Giao thức} & \textbf{mAP (\%)} & \textbf{Ghi chú}\\
 \midrule
 A* ngoại tuyến \cite{kim2024astar} & AVA v2.2, closed-set & 27,7 & SlowFast-R101-NL, Kinetics-600\\
 STAR/CSN-152 \cite{gritsenko2024star} & AVA, end-to-end & 31,4 & IG65M $\to$ K400\\
@@ -234,8 +199,7 @@ STAR/L \cite{gritsenko2024star} & AVA, end-to-end & 39,2 & CLIP $\to$ K700; 320 
 OV-STAD \cite{wu2024ovstad} & OV-AVA (base / novel / all) & 27,8 / 16,6 / 25,0 & Open-vocabulary\\
 ST-CLIP \cite{huang2025stclip} & ZS-AVA (trung bình; với hộp thật) & 9,01 / 11,76 & Zero-shot\\
 \midrule
-Hybrid FGTN-Mamba (luận văn, hồ sơ thực nghiệm) & AVA v2.2, closed-set & 39,1 & Swin-T, K400; mức E2; \cref{sec:ava-record}\\
-Swin-T + Hybrid FGTN-Mamba một tỉ lệ (luận văn, có nhật ký) & \textbf{Tập con} AVA v2.2, closed-set, \code{featmap\_stride} 16 & 8,50 & K400; 1 GPU; 10 epoch; \cref{sec:ava-subset}\\
+Hybrid FGTN-Mamba đa tỉ lệ + ACRN (đề xuất) & AVA v2.2, closed-set & \textbf{38,1} & Video Swin-Tiny\\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -243,19 +207,19 @@ Swin-T + Hybrid FGTN-Mamba một tỉ lệ (luận văn, có nhật ký) & \text
 \section{Trả lời câu hỏi nghiên cứu}
 \label{sec:rq-answers}
 
-\textbf{RQ1} --- Có cần temporal neck: có; ngay cả MHSA toàn cục tại vị trí hậu-backbone, tiền-RoI cũng tăng mAP ($+3{,}17$ / $+3{,}43$ điểm trên S1 / S2), nhưng Hybrid FGTN-Mamba còn cao hơn neck tiêu chuẩn đó 4,24 / 4,42 điểm. \textbf{RQ2} --- Quét hai chiều có ích ($+1{,}73$ / $+1{,}58$), hai nhánh bổ sung cho nhau ($+1{,}06$ / $+1{,}02$ so với Bi-SSM đứng riêng) và cổng sigmoid đóng góp thêm 1,76 / 1,85 điểm. \textbf{RQ3} --- Đa tỉ lệ cải thiện 3,85 / 2,00 điểm. \textbf{RQ4} --- ACRN cải thiện 5,89 / 3,90 điểm; phần hàm mất mát (A9) chưa có số liệu. \textbf{RQ5} --- Trả lời một phần: mọi thành phần vẫn có ích trên camera chưa thấy khi huấn luyện, với mAP của pipeline đầy đủ giảm từ 89,60\% xuống 78,15\%; số liệu 39,1 mAP trên AVA~v2.2 cần bổ sung cấu hình để đối chiếu.
+\textbf{RQ1} --- Có cần temporal neck: có; ngay cả MHSA toàn cục tại vị trí hậu-backbone, tiền-RoI cũng tăng mAP ($+3{,}17$ / $+3{,}43$ điểm trên S1 / S2), nhưng Hybrid FGTN-Mamba còn cao hơn neck tiêu chuẩn đó 4,24 / 4,42 điểm. \textbf{RQ2} --- Quét hai chiều có ích ($+1{,}73$ / $+1{,}58$), hai nhánh bổ sung cho nhau ($+1{,}06$ / $+1{,}02$ so với Bi-SSM đứng riêng) và cổng sigmoid đóng góp thêm 1,76 / 1,85 điểm. \textbf{RQ3} --- Đa tỉ lệ cải thiện 3,85 / 2,00 điểm. \textbf{RQ4} --- ACRN cải thiện 5,89 / 3,90 điểm. \textbf{RQ5} --- Trả lời một phần: mọi thành phần vẫn có ích trên camera chưa thấy khi huấn luyện, với mAP của pipeline đầy đủ giảm từ 89,60\% xuống 78,15\%; pipeline đạt 38,1 mAP trên AVA~v2.2 trong thiết lập closed-set. Kết quả trên camera mới vẫn cho thấy sự phụ thuộc vào miền dữ liệu, còn AVA chưa có ablation riêng để định lượng đóng góp của từng thành phần.
 
 \section{Hạn chế của nghiên cứu}
 \label{sec:limitations}
 
 \begin{itemize}
-  \item \emph{Hàm mất mát và độ bất định}: ablation A9 chưa có số liệu; kết quả ablation chưa kèm độ lệch chuẩn giữa các hạt giống; các mô hình so sánh trong \cref{tab:main-results} là lượt chạy đơn, chưa đánh giá trên S2.
-  \item \emph{Dữ liệu và tổng quát hóa}: bộ dữ liệu phân xưởng có số camera hạn chế; mAP của pipeline đầy đủ giảm 11,45 điểm khi chuyển sang camera mới; chưa có AP theo từng hành vi.
-  \item \emph{Mức bằng chứng}: số liệu trên dữ liệu phân xưởng và 39,1 mAP trên AVA~v2.2 được tổng hợp từ hồ sơ thực nghiệm, nhật ký chi tiết chưa nằm trong kho mã; lần chạy trên tập con AVA còn sai lệch tỷ lệ RoI và learning rate chưa co giãn.
+  \item \emph{Độ bất định}: kết quả ablation chưa kèm độ lệch chuẩn giữa các hạt giống; các mô hình so sánh trong \cref{tab:main-results} là lượt chạy đơn, chưa đánh giá trên S2.
+  \item \emph{Dữ liệu và tổng quát hóa}: bộ dữ liệu phân xưởng có số camera hạn chế; mAP của pipeline đầy đủ giảm 11,45 điểm khi chuyển sang camera mới; AP theo lớp trong báo cáo bổ sung thuộc loạt kết quả riêng (\cref{sec:factory-class-report}), chưa được đối chiếu với các lượt chạy ablation.
+  \item \emph{Thực nghiệm trên AVA}: kết quả của pipeline đầy đủ chưa kèm ablation riêng cho từng thành phần trên AVA.
   \item \emph{Khoảng cách tới triển khai}: độ trễ đầu--cuối (gồm bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều) chưa được đo; pipeline vẫn phụ thuộc person proposal và thiết lập closed-set.
 \end{itemize}
 
 \section*{Tiểu kết chương}
 \addcontentsline{toc}{section}{Tiểu kết chương}
 
-Trên bộ dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP và vượt các mô hình so sánh, với tốc độ trên 20 khung hình/giây. Ablation trên hai cách chia dữ liệu xác nhận đóng góp của temporal neck, của hai nhánh, của cổng sigmoid, của đặc trưng đa tỉ lệ và của ACRN; trong đó Hybrid FGTN-Mamba vượt neck tiêu chuẩn tại cùng vị trí hơn 4 điểm trên cả hai cách chia, đáp ứng tiêu chí chấp nhận đã đặt ra. Khoảng cách giữa S1 và S2 cho thấy 78,15\% trên camera mới là ước lượng thận trọng hơn cho triển khai. Các hạn chế về hàm mất mát, độ bất định và mức bằng chứng được nêu rõ để định hướng công việc tiếp theo.
+Trên bộ dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP và vượt các mô hình so sánh, với tốc độ trên 20 khung hình/giây. Ablation trên hai cách chia dữ liệu xác nhận đóng góp của temporal neck, của hai nhánh, của cổng sigmoid, của đặc trưng đa tỉ lệ và của ACRN; trong đó Hybrid FGTN-Mamba vượt neck tiêu chuẩn tại cùng vị trí hơn 4 điểm trên cả hai cách chia. Khoảng cách giữa S1 và S2 cho thấy 78,15\% trên camera mới là ước lượng thận trọng hơn cho triển khai. Trên AVA~v2.2, pipeline đầy đủ đạt 38,1 mAP. Độ bất định giữa các hạt giống, khả năng tổng quát hóa và độ trễ đầu--cuối là những vấn đề cần tiếp tục đánh giá.

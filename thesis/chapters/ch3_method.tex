@@ -145,7 +145,7 @@ Cùng một module cài đặt bốn chế độ qua tham số \code{branch\_mod
 \section{Ổn định huấn luyện và cài đặt dự phòng}
 \label{sec:stability}
 
-Pre-norm và residual cho phép khối học phần dư thay vì tái tạo toàn bộ bản đồ đặc trưng; ở khởi tạo, hai nhánh đóng góp nhỏ và pipeline xấp xỉ pipeline không có neck, nên trọng số tiền huấn luyện của backbone không bị phá vỡ. Gradient được cắt với chuẩn tối đa 40 theo công thức gốc của MMAction2 cho AVA; kernel selective scan CUDA của \code{mamba-ssm} được khóa phiên bản vì sai khác kernel có thể ảnh hưởng tốc độ và khả năng tái lập. Trong nhật ký của lần chạy trên tập con AVA (\cref{sec:ava-subset}), chuẩn gradient giảm từ 2,77 ở 20 iteration đầu xuống khoảng 0,2--0,3 từ epoch~4 và hàm mất mát không dao động bất thường. Khi thư viện \code{mamba-ssm} không khả dụng (ví dụ kiểm thử trên CPU), mã nguồn cung cấp bản cài đặt thuần PyTorch \code{NaiveBiMamba} thực hiện đúng hồi quy \cref{eq:mamba-scan} bằng vòng lặp theo $T$ với hai bộ tham số xuôi/ngược; bản này tương đương về mặt số học nhưng chậm hơn khoảng hai bậc, chỉ dùng để kiểm tra kích thước tensor.
+Pre-norm và residual cho phép khối học phần dư thay vì tái tạo toàn bộ bản đồ đặc trưng; ở khởi tạo, hai nhánh đóng góp nhỏ và pipeline xấp xỉ pipeline không có neck, nên trọng số tiền huấn luyện của backbone không bị phá vỡ. Gradient được cắt với chuẩn tối đa 40 theo công thức gốc của MMAction2 cho AVA; kernel selective scan CUDA của \code{mamba-ssm} được khóa phiên bản vì sai khác kernel có thể ảnh hưởng tốc độ và khả năng tái lập. Khi thư viện \code{mamba-ssm} không khả dụng (ví dụ kiểm thử trên CPU), mã nguồn cung cấp bản cài đặt thuần PyTorch \code{NaiveBiMamba} thực hiện đúng hồi quy \cref{eq:mamba-scan} bằng vòng lặp theo $T$ với hai bộ tham số xuôi/ngược; bản này tương đương về mặt số học nhưng chậm hơn khoảng hai bậc, chỉ dùng để kiểm tra kích thước tensor.
 
 \section{Độ phức tạp và so sánh với các temporal neck khác}
 \label{sec:complexity}
@@ -169,11 +169,11 @@ Hybrid FGTN-Mamba & Bi-SSM + W-MHSA + cổng & $O(TC + TWC)$ & Dài--ngắn tác
 \end{tabularx}
 \end{table}
 
-Số tham số của neck được tính từ kích thước các tensor ghi trong nhật ký huấn luyện (\cref{tab:params}). Với $C = 768$, một khối có 6.957.312 tham số (nhánh Mamba 4.002.816, nhánh attention 2.362.368, cổng 590.592); neck hai khối có 13.914.624 tham số, khoảng một nửa backbone Video Swin-T (27.850.470). Pipeline đầy đủ thêm khoảng 3,57 triệu tham số cho ngăn xếp tầng 3 và khoảng 14,6 triệu cho ACRN. Ngoài chi phí tuyến tính, khối đưa vào ba thiên lệch quy nạp phù hợp bài toán: trạng thái có thứ tự cho diễn biến dài, so khớp cục bộ cho chuyển tiếp ngắn và bộ định tuyến theo nội dung.
+\Cref{tab:params} tổng hợp số tham số theo cấu trúc của neck. Với $C = 768$, một khối có 6.957.312 tham số (nhánh Mamba 4.002.816, nhánh attention 2.362.368, cổng 590.592); neck hai khối có 13.914.624 tham số, khoảng một nửa backbone Video Swin-T (27.850.470). Pipeline đầy đủ thêm khoảng 3,57 triệu tham số cho ngăn xếp tầng 3 và khoảng 14,6 triệu cho ACRN. Ngoài chi phí tuyến tính, khối đưa vào ba thiên lệch quy nạp phù hợp bài toán: trạng thái có thứ tự cho diễn biến dài, so khớp cục bộ cho chuyển tiếp ngắn và bộ định tuyến theo nội dung.
 
 \begin{table}[htbp]
 \centering
-\caption{Số tham số của neck một tỉ lệ ($C = 768$, hai khối), tính từ kích thước tensor trong nhật ký}
+\caption{Số tham số theo cấu trúc của neck một tỉ lệ ($C = 768$, hai khối)}
 \label{tab:params}
 \begin{tabularx}{\textwidth}{Xrr}
 \toprule
@@ -200,7 +200,7 @@ Thành phần này xử lý L3. Video Swin-T tạo bốn tầng đặc trưng v�
 r_k = \RoIAlign\Big(\Concat\big[\Pool_T(\tilde{F}^{(3)}),\ \Pool_T(\uparrow_2 \tilde{F}^{(4)})\big],\ b_k\Big) \in \R^{1152 \times 1 \times 8 \times 8}.
 \label{eq:multiscale}
 \end{equation}
-Gộp theo thời gian được thực hiện có chủ đích \emph{sau} khi mỗi tầng đã nhận ngữ cảnh dài--ngắn từ neck. Vì tầng 3 có số chuỗi thời gian gấp bốn, cấu hình đa tỉ lệ giảm kích thước lô từ 6 xuống 4 trên cùng GPU; cặp A6 $\rightarrow$ A7 tách đóng góp của thành phần này.
+Gộp theo thời gian được thực hiện có chủ đích \emph{sau} khi mỗi tầng đã nhận ngữ cảnh dài--ngắn từ neck. Tầng 3 có số chuỗi thời gian gấp bốn tầng 4, nên kích thước lô của cấu hình đa tỉ lệ cần được lựa chọn theo bộ nhớ khả dụng; cặp A6 $\rightarrow$ A7 tách đóng góp của thành phần này.
 
 \section{Thành phần tích hợp 2: mạng quan hệ actor--cảnh (ACRN)}
 \label{sec:acrn}
@@ -237,7 +237,7 @@ w_c = \frac{\tilde{w}_c}{\frac{1}{K}\sum_{c'} \tilde{w}_{c'}}, \qquad
 \tilde{w}_c = \frac{1 - \beta}{1 - \beta^{\max(n_c, 1)}}, \qquad \beta = 0{,}999,
 \label{eq:classweight}
 \end{equation}
-được chuẩn hóa để trung bình bằng 1 và cắt trên tại 10. Vì focal và trọng số lớp có thể cùng khuếch đại gradient của lớp hiếm, bốn cấu hình hàm mất mát được đưa vào ablation (A9). Sau huấn luyện, ngưỡng $\tau_c$ của từng lớp được chọn trên tập kiểm định theo tiêu chí nghiệp vụ (ví dụ cực đại F1 hoặc đạt recall tối thiểu); mAP không phụ thuộc ngưỡng nên không bị ảnh hưởng bởi lựa chọn này.
+được chuẩn hóa để trung bình bằng 1 và cắt trên tại 10. Sau huấn luyện, ngưỡng $\tau_c$ của từng lớp được chọn trên tập kiểm định theo tiêu chí nghiệp vụ (ví dụ cực đại F1 hoặc đạt recall tối thiểu); mAP không phụ thuộc ngưỡng nên không bị ảnh hưởng bởi lựa chọn này.
 
 \section{Luồng suy luận và logic cảnh báo}
 \label{sec:inference}
@@ -280,7 +280,7 @@ Head & $N \times (K + 1)$ & $K$ lớp $+$ nền ($K = 4$ hoặc 80)\\
   \item \emph{Tầng lấn át}: tầng 4 lấn tầng 3 trong cấu hình đa tỉ lệ; đo chuẩn đặc trưng và ablation từng tầng.
   \item \emph{Điểm nóng bộ nhớ}: tầng 3 tạo $B \cdot 256$ chuỗi; theo dõi bộ nhớ đỉnh theo lô, $T$ và độ phân giải.
   \item \emph{Độ trễ hai chiều}: quét ngược cần khung hình tương lai; báo cả thông lượng và độ trễ đầu--cuối.
-  \item \emph{Sai lệch tỷ lệ RoI}: \code{featmap\_stride} của bộ trích RoI phải khớp bước giảm mẫu của bản đồ đặc trưng (32 với tầng 4, 16 với cấu hình đa tỉ lệ); lần chạy trên tập con AVA cho thấy rủi ro này đã xảy ra (\cref{sec:roi-stride}).
+  \item \emph{Sai lệch tỷ lệ RoI}: \code{featmap\_stride} của bộ trích RoI phải khớp bước giảm mẫu của bản đồ đặc trưng (32 với tầng 4, 16 với cấu hình đa tỉ lệ).
   \item \emph{Bão hòa độ đo}: với dữ liệu nhỏ, mAP cao có thể che khuất lỗi; cần kiểm tra theo camera (cách chia S2, \cref{sec:splits}), mẫu âm khó và sai số hiệu chỉnh.
 \end{itemize}
 
