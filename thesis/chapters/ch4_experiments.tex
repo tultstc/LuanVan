@@ -1,116 +1,151 @@
 \chapter{Dữ liệu và thiết kế thực nghiệm}
 \label{ch:experiments}
 
-\section{Bộ dữ liệu AVA v2.2}
-\label{sec:ava}
+Luận văn đánh giá trên bộ dữ liệu riêng của phân xưởng, phục vụ trực tiếp bài toán ứng dụng, và bộ dữ liệu công khai AVA~v2.2. Chương này mô tả hai bộ dữ liệu, cách chia dữ liệu, cấu hình huấn luyện, giao thức đánh giá, ma trận ablation và các mô hình so sánh.
 
-AVA \cite{gu2018ava} gồm 430 video phim dài 15 phút (phút 15--30 của mỗi phim), chia thành 235 video huấn luyện, 64 video kiểm định và 131 video kiểm tra; phiên bản v2.2 hiệu chỉnh chú thích của v2.1. Mỗi giây trong đoạn 15 phút là một khung hình khóa; tại đó mọi người được gán hộp bao và một hoặc nhiều nhãn trong 80 lớp hành động nguyên tử, trong đó 60 lớp có đủ mẫu được dùng để đánh giá. Các lớp được chia thành ba nhóm: chuyển động của người (ví dụ đứng, ngồi, đi, nằm), thao tác với vật thể (ví dụ cầm, uống, viết, nghe điện thoại) và tương tác giữa người (ví dụ nói chuyện, nghe, nhìn người khác). Giao thức chuẩn huấn luyện trên tập train, đánh giá frame-mAP@0,5 trên tập val với hộp người lấy từ bộ đề xuất công bố của FAIR (recall 93,9\% ở IoU 0,5) \cite{feichtenhofer2019slowfast,mmaction2}.
+\section{Bộ dữ liệu phân xưởng}
+\label{sec:factory-data}
 
-\section{Tập con AVA v2.2 dùng trong luận văn}
-\label{sec:subset}
-
-Toàn bộ AVA cần khoảng 700~GB đĩa cho video và khung hình và nhiều GPU trong nhiều ngày để huấn luyện; điều này vượt quá tài nguyên của đề tài (một GPU, đĩa hạn chế). Luận văn vì vậy xây dựng một \emph{tập con} bằng công cụ \code{make\_subset.py}: chọn ngẫu nhiên (hạt giống cố định) một số video từ tập train và tập val chính thức, lọc tệp chú thích, tệp loại trừ và tệp proposal về các video đó, rồi trích khung hình ở cạnh ngắn 256 điểm ảnh. Mọi thiết lập còn lại (định dạng, nhãn, proposal, bộ đánh giá) giữ nguyên như AVA đầy đủ.
-
-Theo nhật ký huấn luyện, tập con dùng cho lần chạy cơ sở có:
-\begin{itemize}
-  \item tập huấn luyện: 2.541 iteration mỗi epoch với kích thước lô 6, tương đương 15.246 khung hình khóa;
-  \item tập kiểm định: 4.846 khung hình khóa, đánh giá với kích thước lô 1.
-\end{itemize}
-Vì tập con chỉ chiếm một phần nhỏ của AVA (tập val đầy đủ có khoảng 57 nghìn khung hình khóa), kết quả trên tập con \emph{không so sánh trực tiếp} được với các số liệu công bố trên AVA đầy đủ; song mọi biến thể neck huấn luyện trên cùng tập con vẫn tạo thành một so sánh có kiểm soát cho ablation. Nhật ký không ghi lại số video của tập con; thông tin này nằm trong các tệp \code{*\_subset.csv} sinh ra bởi công cụ và cần được báo cáo kèm khi công bố kết quả.
-
-\section{Tiền xử lý và tăng cường dữ liệu}
-\label{sec:pipeline}
-
-Pipeline dữ liệu kế thừa công thức SlowFast/AVA của MMAction2 \cite{mmaction2}. Với mỗi khung hình khóa, 32 khung hình được lấy với bước 2 (bao phủ 64 khung hình gốc, khoảng 2,1 giây ở 30~fps) đối xứng quanh khung hình khóa. Khi huấn luyện: đổi kích thước ngẫu nhiên cạnh ngắn trong $[256, 320]$, cắt ngẫu nhiên $256 \times 256$, lật ngang với xác suất 0,5; hộp người được biến đổi theo. Khi kiểm định: đổi kích thước cạnh ngắn về 256, không cắt, không lật. Ảnh được chuẩn hóa theo trung bình $(123{,}675;\ 116{,}28;\ 103{,}53)$ và độ lệch chuẩn $(58{,}395;\ 57{,}12;\ 57{,}375)$, định dạng NCTHW.
-
-\section{Cấu hình huấn luyện}
-\label{sec:training-config}
-
-\Cref{tab:config} liệt kê cấu hình của lần chạy cơ sở, trích từ phần đầu của nhật ký (toàn văn trong \cref{app:config}). Learning rate $1{,}25 \times 10^{-4}$ là giá trị của công thức 8 GPU $\times$ 6 mẫu trong MMAction2; lần chạy này dùng một GPU với lô 6 và không bật tự động co giãn learning rate (\code{auto\_scale\_lr.enable = False}), nên learning rate hiệu dụng cao hơn công thức gốc khoảng 8 lần theo quy tắc tuyến tính; điểm này được thảo luận ở \cref{sec:limitations}.
+Bộ dữ liệu được thu từ hệ thống camera giám sát của phân xưởng và gán nhãn theo cấu trúc của AVA: tại mỗi khung hình khóa, mỗi người có một hộp bao và một tập con của bốn nhãn hành vi (\cref{tab:factory-classes}); một người có thể mang nhiều nhãn đồng thời. Vì cùng cấu trúc với AVA, bộ dữ liệu dùng chung pipeline đọc dữ liệu và bộ đánh giá frame-mAP@0,5 của MMAction2. \Cref{tab:factory-stats} tổng hợp quy mô bộ dữ liệu.
 
 \begin{table}[H]
 \centering
-\caption{Cấu hình huấn luyện của lần chạy cơ sở (trích từ nhật ký)}
+\caption{Bốn hành vi mục tiêu của bộ dữ liệu phân xưởng}
+\label{tab:factory-classes}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Nhãn} & \textbf{Thang thời gian} & \textbf{Tín hiệu nhận dạng chính}\\
+\midrule
+\path{sleep_on_table} & Dài hạn & Trạng thái gần như tĩnh, kéo dài nhiều giây; quan hệ đầu--thân với mặt bàn\\
+\path{feet_on_table} & Dài hạn & Tư thế bền vững; bàn chân và bề mặt đỡ\\
+\path{use_mobilephone} & Ngắn hạn & Vật thể nhỏ, dễ bị bàn tay che; pha đưa điện thoại lên diễn ra nhanh\\
+\path{dangerous_action} & Ngắn hạn & Thay đổi nhanh trong vài khung hình; phụ thuộc thiết bị xung quanh\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Thống kê bộ dữ liệu phân xưởng}
+\label{tab:factory-stats}
+\begin{tabularx}{\textwidth}{XX}
+\toprule
+\textbf{Hạng mục} & \textbf{Giá trị}\\
+\midrule
+Số camera; số video hoặc phiên ghi & \canbosung{cần bổ sung}\\
+Tổng thời lượng; độ phân giải; tốc độ khung hình gốc & \canbosung{cần bổ sung}\\
+Số khung hình khóa; số hộp người được gán nhãn & \canbosung{cần bổ sung}\\
+Số hộp dương của từng lớp & \canbosung{cần bổ sung}\\
+Bộ phát hiện người dùng để tạo person proposal & \canbosung{cần bổ sung}\\
+Số khung hình khóa huấn luyện / kiểm tra theo S1 và S2 & \canbosung{cần bổ sung}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Cách chia dữ liệu và phòng chống rò rỉ}
+\label{sec:splits}
+
+Luận văn dùng hai cách chia bộ dữ liệu phân xưởng:
+\begin{itemize}
+  \item \textbf{S1 --- chia ngẫu nhiên}, như các lượt chạy ban đầu của hồ sơ thực nghiệm. Cách chia này cho phép đối chiếu với kết quả đã có, nhưng cùng một cảnh và cùng một người có thể xuất hiện ở cả tập huấn luyện lẫn tập kiểm tra, nên kết quả có xu hướng lạc quan.
+  \item \textbf{S2 --- chia theo camera}: giữ riêng hai camera chỉ dùng để kiểm tra, các camera còn lại dùng để huấn luyện. S2 tránh rò rỉ cùng cảnh, cùng người và mô phỏng tình huống đưa hệ thống vào vận hành trên camera mới.
+\end{itemize}
+Mọi cấu hình ablation được chạy trên cả hai cách chia; chênh lệch giữa S1 và S2 ước lượng mức phụ thuộc của từng thành phần vào cảnh đã thấy khi huấn luyện (\cref{sec:cross-camera}).
+
+Về phòng chống rò rỉ dữ liệu, rò rỉ xảy ra khi cùng một cảnh, cùng một người hoặc các khung hình gần nhau của cùng một video nằm ở cả tập huấn luyện và tập kiểm tra. S2 loại bỏ rò rỉ theo cảnh bằng cách giữ riêng hai camera; mọi siêu tham số và ngưỡng theo lớp được chọn mà không dùng tập kiểm tra. Để kiểm soát chặt hơn, cần duy trì bảng kê \code{video\_id}, \code{camera\_id}, \code{session\_id}, thời gian và checksum, đồng thời dùng băm cảm nhận hoặc embedding để phát hiện đoạn gần trùng giữa các phần chia. Với AVA, tập con được chia theo video, kế thừa phân chia train/val chính thức, nên không có khung hình của cùng một phim ở cả hai phía.
+
+\section{Bộ dữ liệu AVA v2.2}
+\label{sec:ava}
+
+AVA \cite{gu2018ava} gồm 430 video phim dài 15 phút (235 huấn luyện, 64 kiểm định, 131 kiểm tra); mỗi giây là một khung hình khóa, tại đó mọi người được gán hộp bao và một hoặc nhiều nhãn trong 80 lớp hành động nguyên tử, trong đó 60 lớp được đánh giá. Giao thức chuẩn đánh giá frame-mAP@0,5 trên tập val với hộp người từ bộ đề xuất công bố của FAIR (recall 93,9\%) \cite{feichtenhofer2019slowfast,mmaction2}. Ngoài số liệu ghi trong hồ sơ thực nghiệm, luận văn có một lần chạy kiểm chứng với nhật ký đầy đủ trên một \emph{tập con} AVA~v2.2 do giới hạn tài nguyên (khoảng 700~GB dữ liệu cho bản đầy đủ): tập con được chọn theo video từ phân chia train/val chính thức bằng công cụ \code{make\_subset.py}, gồm 15.246 khung hình khóa huấn luyện và 4.846 khung hình khóa kiểm định, mọi thiết lập khác giữ nguyên như AVA đầy đủ. Kết quả trên tập con không so sánh trực tiếp được với số liệu công bố trên AVA đầy đủ.
+
+\section{Tiền xử lý và cấu hình huấn luyện}
+\label{sec:training-config}
+
+Pipeline dữ liệu kế thừa công thức SlowFast/AVA của MMAction2: 32 khung hình được lấy với bước 2 đối xứng quanh khung hình khóa; khi huấn luyện đổi kích thước ngẫu nhiên cạnh ngắn trong $[256, 320]$, cắt ngẫu nhiên $256 \times 256$ và lật ngang; khi kiểm định đổi cạnh ngắn về 256. Backbone được khởi tạo từ checkpoint Kinetics-400 của MMAction2; nhật ký nạp trọng số xác nhận toàn bộ khóa backbone được nạp đầy đủ, chỉ neck và lớp phân loại được khởi tạo mới, đúng mục tiêu M2.
+
+Trên bộ dữ liệu phân xưởng, mọi cấu hình trong một cặp so sánh dùng chung backbone, pipeline dữ liệu, bộ tối ưu và lịch huấn luyện; mỗi cấu hình được lặp lại với ba hạt giống. \canbosung{Số epoch, kích thước lô, learning rate và GPU của các lượt chạy trên dữ liệu phân xưởng}.
+
+\Cref{tab:config} liệt kê cấu hình của lần chạy có nhật ký trên tập con AVA, trích từ phần đầu của nhật ký. Learning rate $1{,}25 \times 10^{-4}$ là giá trị của công thức 8 GPU $\times$ 6 mẫu trong MMAction2; lần chạy dùng một GPU với lô 6 và không bật tự động co giãn learning rate, nên learning rate hiệu dụng cao hơn công thức gốc khoảng 8 lần theo quy tắc tuyến tính.
+
+\begin{table}[htbp]
+\centering
+\caption{Cấu hình huấn luyện của lần chạy có nhật ký trên tập con AVA}
 \label{tab:config}
 \small
 \begin{tabularx}{\textwidth}{lX}
 \toprule
 \textbf{Hạng mục} & \textbf{Giá trị}\\
 \midrule
-Phần cứng & 1 $\times$ NVIDIA GeForce RTX~4090; CUDA 11.8\\
-Phần mềm & Python 3.10.20; PyTorch 2.1.2+cu118; MMEngine 0.10.7; MMAction2 (phạm vi \code{mmdet} cho detector); \code{mamba-ssm} (bimamba v2)\\
-Backbone & Video Swin-Tiny, patch $(2,4,4)$, cửa sổ $(8,7,7)$, drop-path 0,2; khởi tạo từ checkpoint Kinetics-400 của MMAction2 (\path{swin-tiny-p244-w877_in1k-pre_8xb8-amp-32x2x1-30e_kinetics400-rgb})\\
-Neck & \code{FGTNNeckAVA}: 2 khối Hybrid FGTN-Mamba, $C = 768$, \code{branch\_mode = hybrid}, 4 đầu, $W = 5$, Mamba $d_{\text{state}} = 16$, $E = 2$, $k = 4$, DropPath 0,1\\
+Phần cứng & 1 $\times$ NVIDIA GeForce RTX~4090 (48~GB); CUDA 11.8\\
+Phần mềm & Python 3.10.20; PyTorch 2.1.2+cu118; MMEngine 0.10.7; MMAction2; \code{mamba-ssm} (bimamba v2)\\
+Backbone & Video Swin-Tiny, patch $(2,4,4)$, cửa sổ $(8,7,7)$, drop-path 0,2; checkpoint Kinetics-400 của MMAction2\\
+Neck & \code{FGTNNeckAVA}: 2 khối Hybrid FGTN-Mamba, $C = 768$, \code{branch\_mode = hybrid}, 4 đầu, $W = 5$, $d_{\text{state}} = 16$, $E = 2$, $k = 4$, DropPath 0,1\\
 Trích RoI & \code{SingleRoIExtractor3D}, RoIAlign $8 \times 8$, gộp trung bình theo thời gian; \code{featmap\_stride = 16} (mặc định; xem \cref{sec:roi-stride})\\
 Head & \code{BBoxHeadAVA}, 81 lớp (có nền), đa nhãn, dropout 0,5; hàm mất mát BCE\\
-Gán nhãn / lấy mẫu & \code{MaxIoUAssignerAVA} (IoU dương/âm 0,9); \code{RandomSampler} 32 RoI, tỷ lệ dương 1, thêm hộp thật làm proposal\\
-Đầu vào & 32 khung hình $\times$ bước 2; cạnh ngắn 256; cắt $256 \times 256$ khi huấn luyện\\
+Gán nhãn / lấy mẫu & \code{MaxIoUAssignerAVA} (IoU 0,9); \code{RandomSampler} 32 RoI, thêm hộp thật làm proposal\\
 Tối ưu & AdamW \cite{loshchilov2019adamw}, lr $1{,}25 \times 10^{-4}$, weight decay 0,05; cắt gradient chuẩn 40\\
-Lịch lr & Warm-up tuyến tính từ $0{,}1\times$ trong 2 epoch đầu; cosine annealing về 0 từ epoch 2 đến 10 (theo iteration)\\
+Lịch lr & Warm-up tuyến tính 2 epoch đầu; cosine annealing về 0 đến epoch 10\\
 Lô / epoch & 6 mẫu/GPU; 10 epoch; 2.541 iteration/epoch; kiểm định sau mỗi epoch\\
-Độ chính xác & FP32 (không bật AMP)\\
-Hạt giống & 397.422.958 (ngẫu nhiên, ghi trong nhật ký); \code{deterministic = False}\\
-Checkpoint & Lưu mỗi epoch, giữ 2 bản gần nhất và bản tốt nhất theo \code{mAP/overall}\\
+Độ chính xác; hạt giống & FP32; hạt giống 397.422.958 (ghi trong nhật ký)\\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Khi nạp checkpoint Kinetics-400, nhật ký ghi nhận các khóa của neck và của lớp phân loại là ``thiếu'' (được khởi tạo ngẫu nhiên) còn khóa của head nhận dạng gốc là ``thừa'' (bị bỏ qua); toàn bộ trọng số backbone được nạp đầy đủ. Điều này xác nhận mục tiêu M2: neck được thêm vào mà không làm thay đổi backbone.
+Checkpoint được lưu sau mỗi epoch, giữ hai bản gần nhất và bản tốt nhất theo mAP kiểm định. Với lô 6, mỗi epoch gồm 2.541 iteration (15.246 khung hình khóa huấn luyện); tập kiểm định gồm 4.846 khung hình khóa, đánh giá với lô 1. Số video của tập con được ghi trong các tệp \code{*\_subset.csv} do công cụ \code{make\_subset.py} sinh ra và cần được báo cáo kèm khi công bố kết quả.
 
 \section{Giao thức đánh giá}
 \label{sec:protocol}
 
-Mọi so sánh giữa các biến thể của Hybrid FGTN-Mamba tuân theo các quy tắc sau:
 \begin{enumerate}
-  \item Cùng tập con, cùng danh sách hạt giống, cùng proposal, cùng cách lấy mẫu đoạn video, cùng tăng cường dữ liệu, cùng bộ tối ưu, cùng số epoch và cùng bộ đánh giá \code{AVAMetric}; mỗi cặp so sánh chỉ thay đổi đúng một yếu tố.
-  \item Báo cáo trung bình $\pm$ độ lệch chuẩn trên tối thiểu ba hạt giống cho các cặp quan trọng nhất; nếu tài nguyên hạn chế, ưu tiên ba hạt giống cho một cặp hơn là nhiều cấu hình với một hạt giống.
-  \item Cùng với mAP tổng, báo cáo mAP theo ba nhóm, AP theo lớp, số tham số, bộ nhớ đỉnh, thời gian huấn luyện và thời gian suy luận; thời gian suy luận đo trên cùng GPU, lô 1, cùng độ phân giải và $T$, có khởi động và báo trung vị.
+  \item Mỗi cặp so sánh chỉ thay đổi đúng một yếu tố; dữ liệu, cách chia, proposal, tăng cường dữ liệu, bộ tối ưu, số epoch và bộ đánh giá giữ nguyên.
+  \item Mỗi cấu hình chạy ba hạt giống; báo cáo trung bình (kèm độ lệch chuẩn khi đã tổng hợp) trên cả S1 và S2.
+  \item Cùng với mAP, báo cáo Precision và Recall tại ngưỡng 0,5, tốc độ xử lý và bộ nhớ GPU; thời gian suy luận đo trên cùng GPU, cùng độ phân giải và $T$.
   \item Với pipeline dựa trên proposal, chạy thêm cấu hình dùng hộp nhãn thật làm cận trên để tách lỗi định vị khỏi lỗi phân loại.
-  \item Kết quả của các phương pháp one-stage (YOWOv2), end-to-end (STAR) hoặc giao thức mở (OV-STAD, ST-CLIP) chỉ được dùng để định vị khoảng hiệu năng, không được diễn giải là đóng góp thuần của temporal neck.
+  \item So sánh với các mô hình có kiến trúc khác phản ánh hiệu năng của toàn pipeline; đóng góp của temporal neck chỉ được kết luận từ các cặp ablation trong cùng pipeline. Số liệu công bố của STAR, OV-STAD, ST-CLIP chỉ dùng để định vị khoảng hiệu năng.
 \end{enumerate}
-
-Trong luận văn, nguyên tắc (1) được áp dụng cho lần chạy cơ sở; các nguyên tắc (2)--(4) được chuẩn bị trong cấu hình nhưng chưa thực hiện do giới hạn tài nguyên (\cref{sec:limitations}).
-
-\section{Phòng chống rò rỉ dữ liệu}
-\label{sec:leakage}
-
-Tập con được chia theo \emph{video}, kế thừa phân chia train/val chính thức của AVA, nên không có khung hình của cùng một phim ở cả hai phía. Mọi siêu tham số và checkpoint tốt nhất được chọn theo tập kiểm định; luận văn không dùng tập kiểm tra của AVA (chú thích không công khai). Khi áp dụng cho dữ liệu phân xưởng, quy tắc tương ứng là chia theo phiên ghi hoặc camera, duy trì bảng kê \code{video\_id}, \code{camera\_id}, \code{session\_id}, thời gian và checksum, và dùng băm cảm nhận hoặc embedding để phát hiện đoạn gần trùng giữa các phần chia.
 
 \section{Ma trận ablation}
 \label{sec:ablation}
 
-Mã nguồn và cấu hình hỗ trợ ma trận ablation trong \cref{tab:ablation}. Mỗi hàng là một lệnh \code{mim train} với một thay đổi so với hàng tham chiếu; các cấu hình tương ứng được liệt kê trong \cref{app:config,app:repro}.
+\Cref{tab:ablation} liệt kê mười cấu hình dùng để tách đóng góp của từng thành phần; cách thực hiện từng cấu hình trong mã nguồn được nêu ở \cref{sec:gate}.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \caption{Ma trận ablation (cột ``Trạng thái'' tính đến thời điểm nộp luận văn)}
 \label{tab:ablation}
 \small
-\begin{tabularx}{\textwidth}{lp{5.8cm}Xl}
+\begin{tabularx}{\textwidth}{lXXl}
 \toprule
-\textbf{Mã} & \textbf{Cấu hình} & \textbf{Câu hỏi} & \textbf{Trạng thái}\\
+\textbf{Mã} & \textbf{Cấu hình} & \textbf{Mục đích} & \textbf{Trạng thái}\\
 \midrule
-A0 & Swin-T tầng 4, không neck (\code{model.neck = None}) & Baseline tối thiểu & Có cấu hình\\
-A1 & A0 + \code{branch\_mode = mamba\_only} & Đóng góp của Bi-SSM & Có cấu hình\\
-A2 & A0 + \code{branch\_mode = attn\_only} & Đóng góp của nhánh cục bộ & Có cấu hình\\
-A3 & A0 + \code{branch\_mode = no\_gate} & Vai trò của cổng & Có cấu hình\\
-A4 & A0 + \code{branch\_mode = hybrid} & Mô hình đề xuất & \textbf{Có nhật ký} (\cref{ch:results})\\
-A5 & A4 với \code{featmap\_stride = 32} & Sửa tỷ lệ RoI (\cref{sec:roi-stride}) & Có cấu hình\\
-A6 & A5 + tầng 3 (\code{out\_indices = (2,3)}) & Đóng góp đa tỉ lệ & Có cấu hình\\
-A7 & A6 + ACRN & Đóng góp ngữ cảnh actor--cảnh & Có cấu hình\\
-A8 & A7 với BCE / focal / trọng số lớp / focal + trọng số & Đóng góp hàm mất mát & Có cấu hình\\
-A9 & A4 + positional bias tương đối trong nhánh cục bộ & Vai trò vị trí trong W-MHSA & Đề xuất\\
+A0 & Video Swin-T tầng 4, không neck & Baseline tối thiểu (RQ1) & S1, S2\\
+A1 & A0 + temporal MHSA toàn cục & So sánh toán tử tại cùng vị trí (RQ1) & S1, S2\\
+A2 & A0 + SSM một chiều & Vai trò của quét một chiều (RQ2) & S1, S2\\
+A3 & A0 + Bi-SSM & Nhánh dài hạn đứng riêng (RQ2) & S1, S2\\
+A4 & A0 + W-MHSA cục bộ ($W = 5$) & Nhánh ngắn hạn đứng riêng (RQ2) & S1, S2\\
+A5 & Bi-SSM + W-MHSA, cộng trực tiếp & Hai nhánh, không có cổng (RQ2) & S1, S2\\
+A6 & Hybrid FGTN-Mamba có cổng sigmoid (tầng 4) & Mô hình đề xuất cốt lõi (RQ1--RQ2) & S1, S2\\
+A7 & A6 trên tầng 3 + tầng 4 & Đóng góp của đa tỉ lệ (RQ3) & S1, S2\\
+A8 & A7 + ACRN (pipeline đầy đủ) & Đóng góp của ngữ cảnh actor--cảnh (RQ4) & S1, S2\\
+A9 & A8 với BCE / focal / trọng số lớp / focal + trọng số & Đóng góp của hàm mất mát (RQ4) & Chưa có\\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+Cặp A0 $\rightarrow$ A1 trả lời câu hỏi có cần neck không, còn A1 $\rightarrow$ A6 trả lời câu hỏi một neck tiêu chuẩn đặt ở cùng vị trí đã đủ chưa. A2, A3, A4 thử từng nhánh riêng lẻ: A2 $\rightarrow$ A3 cho biết quét ngược (dùng các khung hình sau khung hình khóa) có giá trị không; A3 và A4 là hai nhánh dài hạn và ngắn hạn khi đứng một mình. A5 và A6 cùng có hai nhánh, chỉ khác ở việc cộng với tỷ lệ cố định 0,5/0,5 hay dùng cổng sigmoid, nên chênh lệch giữa chúng là đóng góp của cổng. A6 $\rightarrow$ A7 đo đóng góp của đa tỉ lệ, A7 $\rightarrow$ A8 đo đóng góp của ACRN, còn A9 so sánh bốn cấu hình hàm mất mát trên kiến trúc A8.
+
+\section{Các mô hình so sánh}
+\label{sec:baselines}
+
+Trên bộ dữ liệu phân xưởng, pipeline đề xuất được so sánh với năm mô hình trong hồ sơ thực nghiệm (\cref{tab:main-results}): SlowFast-R50 \cite{feichtenhofer2019slowfast}, baseline hai giai đoạn kinh điển với backbone tích chập 3D hai luồng; YOWOv2-Nano \cite{yang2023yowov2}, phiên bản nhỏ nhất của pipeline one-stage thời gian thực YOWOv2; EfficientViT3D-b1 và FastViT3D-SA12, biến thể 3D của các backbone hiệu quả EfficientViT-B1 \cite{cai2023efficientvit} và FastViT-SA12 \cite{vasu2023fastvit}; và chính pipeline đề xuất khi bỏ ACRN.
+
 \section{Tiêu chí chấp nhận cải tiến}
 \label{sec:acceptance}
 
-\begin{itemize}
-  \item Hybrid FGTN-Mamba phải cải thiện mAP trung bình hoặc AP của các lớp khó một cách ổn định qua hạt giống so với A0, A1 và A2.
-  \item Lợi ích không được chỉ đến từ tăng tham số: cần baseline có cùng số tham số hoặc biên độ chính xác--chi phí.
-  \item Nếu mAP bão hòa, ưu tiên kiểm tra theo camera, tập mẫu âm khó, recall lớp hiếm và sai số hiệu chỉnh hơn là chênh lệch mAP tổng.
-  \item Tốc độ triển khai phải báo cả độ trễ nhìn trước của quét hai chiều, không chỉ thông lượng của riêng mô hình.
-  \item Mọi số liệu trên AVA phải tái tạo được bằng bộ đánh giá chính thức và lưu đủ hiện vật (cấu hình, nhật ký, checkpoint) để người khác chạy lại.
-\end{itemize}
+Hybrid FGTN-Mamba (A6) phải cải thiện mAP ổn định qua các hạt giống so với A0, A1 và từng nhánh riêng lẻ (A2--A4) trên cả S1 và S2, trong đó mức cải thiện so với toán tử tiêu chuẩn tại cùng vị trí (A1) cần đạt tối thiểu 3 điểm mAP. Lợi ích không được chỉ đến từ tăng tham số; tốc độ triển khai phải báo cả độ trễ nhìn trước của quét hai chiều; và mọi số liệu phải tái tạo được từ cấu hình, nhật ký và checkpoint đã lưu.
+
+\section*{Tiểu kết chương}
+\addcontentsline{toc}{section}{Tiểu kết chương}
+
+Chương này đã mô tả bộ dữ liệu phân xưởng với bốn hành vi mục tiêu, hai cách chia dữ liệu S1 (ngẫu nhiên) và S2 (theo camera), bộ dữ liệu AVA~v2.2 cùng lần chạy kiểm chứng trên tập con, cấu hình huấn luyện, giao thức đánh giá, ma trận ablation mười cấu hình và năm mô hình so sánh. Tiêu chí chấp nhận cải tiến, trong đó có ngưỡng tối thiểu 3 điểm mAP so với neck tiêu chuẩn tại cùng vị trí, được xác định trước khi đối chiếu với kết quả ở \cref{ch:results}.

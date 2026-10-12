@@ -3,48 +3,47 @@
 
 \section*{1. Lý do chọn đề tài}
 
-Camera giám sát đã trở thành hạ tầng phổ biến trong các phân xưởng sản xuất, nhưng phần lớn hệ thống hiện nay chỉ phục vụ ghi hình và truy vết sau sự cố. Việc theo dõi thủ công theo thời gian thực không mở rộng được khi số lượng camera tăng lên, trong khi các hành vi như sử dụng điện thoại tại vị trí vận hành, ngủ gục trên bàn, gác chân lên bàn hoặc thao tác trong vùng nguy hiểm làm gia tăng rủi ro an toàn lao động và ảnh hưởng tới kỷ luật sản xuất. Nhu cầu đặt ra là một hệ thống có khả năng trả lời đồng thời ba câu hỏi \emph{ai}, \emph{đang làm gì} và \emph{vào thời điểm nào} từ luồng video, với độ trễ đủ nhỏ để cảnh báo khi sự kiện còn đang diễn ra.
+Camera giám sát đã phổ biến trong các phân xưởng sản xuất, nhưng phần lớn hệ thống chỉ phục vụ ghi hình và truy vết sau sự cố. Giám sát thủ công khó mở rộng khi số camera tăng, trong khi các hành vi như sử dụng điện thoại tại vị trí vận hành, ngủ gục trên bàn, gác chân lên bàn hoặc thao tác trong vùng nguy hiểm làm gia tăng rủi ro an toàn lao động. Ảnh tĩnh hoặc nhãn gán cho toàn bộ đoạn video không trả lời được câu hỏi ``ai đang làm gì, vào lúc nào''; bài toán cần được giải ở mức từng người và từng thời điểm, với độ trễ đủ nhỏ để cảnh báo khi sự việc còn đang diễn ra.
 
-Về mặt kỹ thuật, bài toán này thuộc lớp \emph{phát hiện hành động không--thời gian} (spatio-temporal action detection, STAD): tại mỗi khung hình khóa, mô hình phải định vị từng người và gán cho người đó một hoặc nhiều nhãn hành vi dựa trên một đoạn video lân cận. Đặc thù của miền ứng dụng là các hành vi cần nhận biết trải trên hai thang thời gian đối lập: các trạng thái kéo dài, ít chuyển động (ngủ gục, gác chân) đòi hỏi quan sát dài để xác nhận, trong khi các thao tác nhanh (đưa điện thoại lên, chạm vào thiết bị) chỉ xuất hiện trong vài khung hình. Các toán tử mô hình hóa thời gian phổ biến, gồm tích chập 3D, self-attention toàn cục, attention cửa sổ và mô hình không gian trạng thái, mỗi loại chỉ đáp ứng tốt một trong hai thang thời gian này, hoặc phải đánh đổi bằng chi phí tính toán tăng nhanh theo độ dài đoạn video.
-
-Xuất phát từ khoảng trống đó, luận văn tập trung vào việc thiết kế một khối mô hình hóa thời gian (temporal neck) có khả năng kết hợp phụ thuộc dài hạn và biến đổi ngắn hạn với chi phí tuyến tính theo độ dài chuỗi, đặt được vào pipeline STAD hiện đại mà không phải thay đổi backbone đã tiền huấn luyện.
+Về kỹ thuật, đây là bài toán \emph{phát hiện hành động không--thời gian} (spatio-temporal action detection, STAD). Đặc thù của miền ứng dụng là các hành vi trải trên hai thang thời gian đối lập: trạng thái kéo dài, ít chuyển động cần quan sát dài để xác nhận, còn thao tác nhanh chỉ xuất hiện trong vài khung hình. Các toán tử thời gian phổ biến (tích chập 3D, self-attention toàn cục hoặc theo cửa sổ, mô hình không gian trạng thái) thường chỉ đáp ứng tốt một trong hai thang thời gian, hoặc phải trả chi phí tăng nhanh theo độ dài đoạn video. Luận văn vì vậy tập trung thiết kế một temporal neck kết hợp được phụ thuộc dài hạn và biến đổi ngắn hạn với chi phí tuyến tính, đặt được vào pipeline STAD mà không phải sửa backbone tiền huấn luyện.
 
 \section*{2. Mục tiêu nghiên cứu}
 
-Mục tiêu tổng quát của luận văn là xây dựng và đánh giá một temporal neck lai, gọi là \emph{Hybrid FGTN-Mamba}, cho bài toán STAD theo từng người. Các mục tiêu cụ thể gồm:
+Mục tiêu tổng quát là xây dựng và đánh giá một hệ thống phát hiện hành vi không được phép theo từng người trên video camera phân xưởng, với thành phần trung tâm là temporal neck lai \emph{Hybrid FGTN-Mamba}. Các mục tiêu cụ thể gồm:
 \begin{enumerate}[label=(\roman*)]
-  \item Thiết kế khối Hybrid FGTN-Mamba gồm nhánh mô hình không gian trạng thái chọn lọc hai chiều (toàn cục, chi phí $O(T)$), nhánh self-attention trong cửa sổ thời gian (cục bộ) và cổng sigmoid định tuyến theo nội dung; phân tích các tính chất về độ phức tạp của khối.
-  \item Cài đặt khối dưới dạng neck tương thích với MMAction2, đặt sau backbone Video Swin-Tiny và trước 3D RoIAlign, bảo toàn khả năng nạp trọng số tiền huấn luyện.
-  \item Huấn luyện và đánh giá pipeline trên bộ dữ liệu công khai AVA~v2.2 theo độ đo frame-mAP@IoU~0,5, ghi nhận đầy đủ cấu hình, nhật ký và tài nguyên để kết quả có thể tái lập.
-  \item Cài đặt các thành phần hỗ trợ (đặc trưng đa tỉ lệ, mạng quan hệ actor--cảnh ACRN, hàm mất mát focal kết hợp trọng số lớp) và xây dựng kế hoạch ablation để tách đóng góp của từng thành phần.
+  \item thiết kế khối Hybrid FGTN-Mamba gồm nhánh SSM chọn lọc hai chiều, nhánh self-attention trong cửa sổ thời gian và cổng sigmoid định tuyến theo nội dung;
+  \item xây dựng pipeline STAD hoàn chỉnh: Video Swin-Tiny $\rightarrow$ Hybrid FGTN-Mamba trên hai tầng đặc trưng $\rightarrow$ multi-scale RoI $\rightarrow$ ACRN $\rightarrow$ head sigmoid đa nhãn;
+  \item đánh giá trên bộ dữ liệu riêng của phân xưởng và bộ dữ liệu công khai AVA~v2.2, so sánh với SlowFast, YOWOv2, FastViT3D và EfficientViT3D;
+  \item tách đóng góp của từng thành phần bằng ablation nhiều hạt giống trên hai cách chia dữ liệu, trong đó có cách chia theo camera.
 \end{enumerate}
 
 \section*{3. Đối tượng và phạm vi nghiên cứu}
 
-\textbf{Đối tượng nghiên cứu} là các cơ chế mô hình hóa phụ thuộc thời gian trong pipeline STAD hai giai đoạn (person proposal $\rightarrow$ phân loại hành vi theo vùng), cụ thể là mô hình không gian trạng thái chọn lọc, attention cục bộ và cơ chế hợp nhất có cổng.
+\textbf{Đối tượng nghiên cứu} là các cơ chế mô hình hóa thời gian trong pipeline STAD hai giai đoạn (person proposal $\rightarrow$ phân loại hành vi theo vùng), cụ thể là mô hình không gian trạng thái chọn lọc, attention cục bộ và cơ chế hợp nhất có cổng, cùng các thành phần tích hợp đa tỉ lệ và quan hệ actor--cảnh.
 
 \textbf{Phạm vi nghiên cứu} được giới hạn như sau:
 \begin{itemize}
-  \item Thiết lập \emph{closed-set, supervised}: tập nhãn cố định, có giám sát đầy đủ; không xét open-vocabulary hay zero-shot.
-  \item Dữ liệu đánh giá là một tập con của AVA~v2.2 \cite{gu2018ava} có thể huấn luyện trên một GPU; bộ dữ liệu riêng cho phân xưởng được dùng làm bối cảnh động cơ và định hướng thiết kế, chưa được thu thập đủ để đưa vào đánh giá trong luận văn này.
-  \item Person proposal được lấy từ bộ đề xuất công bố sẵn của AVA (FAIR, recall 93,9\%); luận văn không huấn luyện lại bộ phát hiện người.
-  \item Kết quả thực nghiệm được báo cáo cho cấu hình Hybrid FGTN-Mamba một tỉ lệ; ba thành phần hỗ trợ đã được cài đặt nhưng chưa có số liệu, và được trình bày như kế hoạch đánh giá.
+  \item thiết lập \emph{closed-set, supervised}: tập nhãn cố định, có giám sát đầy đủ; không xét open-vocabulary hay zero-shot;
+  \item bốn hành vi mục tiêu (sử dụng điện thoại, ngủ trên bàn, gác chân lên bàn, hành vi nguy hiểm) trên bộ dữ liệu riêng thu từ nhiều camera; AVA~v2.2 \cite{gu2018ava} được dùng làm chuẩn đánh giá công khai;
+  \item person proposal lấy từ bộ phát hiện người có sẵn (với AVA là bộ đề xuất công bố của FAIR); luận văn không huấn luyện lại bộ phát hiện người;
+  \item tài nguyên tính toán hạn chế, nên một số thí nghiệm (ablation hàm mất mát, AP theo từng hành vi, độ lệch chuẩn giữa các hạt giống) chưa hoàn thành và được nêu rõ trong phần hạn chế.
 \end{itemize}
 
 \section*{4. Phương pháp nghiên cứu}
 
-Luận văn kết hợp ba phương pháp: (i) \emph{nghiên cứu tài liệu} để hệ thống hóa các họ phương pháp STAD và xác định hạn chế chung; (ii) \emph{thiết kế và phân tích lý thuyết} để xây dựng khối Hybrid FGTN-Mamba, phân tích độ phức tạp và lý giải vai trò của từng thành phần; (iii) \emph{thực nghiệm} trên bộ dữ liệu công khai với quy trình huấn luyện, đánh giá và ghi nhật ký chuẩn của MMAction2, đi kèm bảng truy nguồn để mọi con số trong luận văn đối chiếu được với nhật ký hoặc cấu hình.
+Luận văn kết hợp nghiên cứu tài liệu để hệ thống hóa các họ phương pháp STAD và hạn chế chung; thiết kế và phân tích lý thuyết khối đề xuất, gồm độ phức tạp tính toán; và thực nghiệm với giao thức ablation mỗi lần chỉ thay đổi một yếu tố, ba hạt giống cho mỗi cấu hình và hai cách chia dữ liệu.
 
 \section*{5. Đóng góp của luận văn}
 
 \begin{enumerate}[label=(\arabic*)]
-  \item Đề xuất Hybrid FGTN-Mamba, khối temporal neck lai bidirectional selective SSM--windowed MHSA với cổng sigmoid theo kênh và bước thời gian, đặt ở vị trí hậu-backbone, tiền-RoI trong pipeline STAD; phân tích độ phức tạp cho thấy chi phí theo độ dài chuỗi là $O(TC + TWC)$ thay vì $O(T^2C)$ của attention toàn cục.
-  \item Cài đặt mã nguồn tự chứa cho khối trên nền MMAction2 (\code{projects/fgtn\_ava}), hỗ trợ bốn chế độ nhánh để chạy ablation từ một module duy nhất và tương thích với bản đồ đặc trưng đa tỉ lệ.
-  \item Kết quả thực nghiệm trên tập con AVA~v2.2: frame-mAP@0,5 tốt nhất 8,50\% sau 10 epoch trên một GPU, kèm phân tích theo nhóm hành vi, đường cong huấn luyện, tài nguyên và các giới hạn của thiết lập.
-  \item Cài đặt và tích hợp ba thành phần hỗ trợ (đa tỉ lệ, ACRN, focal + trọng số lớp) cùng ma trận ablation để đánh giá trong giai đoạn tiếp theo.
+  \item Đề xuất Hybrid FGTN-Mamba: bidirectional selective SSM cho phụ thuộc dài hạn và windowed temporal attention cho chuyển tiếp ngắn hạn, hợp nhất bằng cổng sigmoid theo kênh và bước thời gian, với chi phí $O(TC + TWC)$ theo độ dài chuỗi.
+  \item Đặt khối tại vị trí hậu-backbone, tiền-RoI và áp dụng độc lập trên hai tầng đặc trưng với tham số riêng, giúp làm giàu đặc trưng thời gian trước khi trích đặc trưng từng người mà không phải sửa backbone tiền huấn luyện.
+  \item Tích hợp multi-scale RoI, ACRN, focal loss có trọng số lớp, ngưỡng theo lớp và logic theo track thành pipeline cảnh báo hoàn chỉnh theo từng người, cài đặt tự chứa trên MMAction2 (\path{projects/fgtn_ava}).
+  \item Kết quả thực nghiệm: trên dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP, Precision = Recall = 81,82\% tại ngưỡng 0,5, trên 20 khung hình/giây, cao hơn FastViT3D-SA12 5,17 điểm và EfficientViT3D-b1 10,07 điểm; ablation ba hạt giống trên hai cách chia định lượng đóng góp của từng nhánh, cổng, đa tỉ lệ và ACRN; trên AVA~v2.2, hồ sơ thực nghiệm ghi nhận 39,1 mAP.
 \end{enumerate}
+Luận văn không tuyên bố mô hình không gian trạng thái, attention cục bộ, đặc trưng đa tỉ lệ hay ACRN là các khái niệm mới; điểm mới nằm ở vị trí đặt, cách tham số hóa theo tầng và chuỗi tích hợp cho bài toán STAD theo từng người (\cref{sec:novelty}).
 
 \section*{6. Bố cục luận văn}
 
-Ngoài phần Mở đầu và Kết luận, luận văn gồm năm chương. \Cref{ch:problem} phát biểu bài toán, đặc thù của miền ứng dụng, mục tiêu và các câu hỏi nghiên cứu. \Cref{ch:related} trình bày cơ sở lý thuyết và tổng quan các họ phương pháp liên quan, từ đó rút ra bảy hạn chế chung. \Cref{ch:method} mô tả chi tiết Hybrid FGTN-Mamba, vị trí đặt khối, phân tích độ phức tạp và ba thành phần hỗ trợ. \Cref{ch:experiments} trình bày dữ liệu, cấu hình huấn luyện, giao thức đánh giá và ma trận ablation. \Cref{ch:results} báo cáo kết quả, thảo luận và nêu các hạn chế. Phụ lục cung cấp cấu hình huấn luyện đầy đủ, trích đoạn nhật ký, mã nguồn khối đề xuất và bảng truy nguồn số liệu.
+Ngoài Mở đầu và Kết luận, luận văn gồm năm chương: \cref{ch:problem} phát biểu bài toán, mục tiêu và câu hỏi nghiên cứu; \cref{ch:related} trình bày cơ sở lý thuyết và các công trình liên quan; \cref{ch:method} mô tả phương pháp đề xuất; \cref{ch:experiments} trình bày dữ liệu và thiết kế thực nghiệm; \cref{ch:results} báo cáo kết quả, thảo luận và các hạn chế.
 \clearpage

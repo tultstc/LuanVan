@@ -4,41 +4,43 @@
 \section{Bối cảnh ứng dụng và động cơ nghiên cứu}
 \label{sec:context}
 
-Một phân xưởng có thể đồng thời chứa nhiều người, nhiều máy và nhiều khu vực làm việc với mức rủi ro khác nhau. Cùng một tư thế cơ thể có thể mang ý nghĩa hành vi khác nhau tùy theo vị trí và vật thể xung quanh: cúi đầu có thể là kiểm tra chi tiết sản phẩm, nhìn điện thoại hoặc bắt đầu ngủ gục; đưa tay ra phía trước có thể là thao tác đúng quy trình hoặc chạm vào vùng nguy hiểm. Vì vậy, phân loại một ảnh tĩnh hoặc gán một nhãn cho toàn bộ đoạn video không đủ để trả lời câu hỏi ``ai đang làm gì, ở đâu và vào thời điểm nào''. Bài toán phải được đặt ở mức \emph{từng người} và \emph{từng thời điểm}.
+Một phân xưởng có thể đồng thời chứa nhiều người, nhiều máy và nhiều khu vực với mức rủi ro khác nhau. Cùng một tư thế có thể mang ý nghĩa khác nhau tùy theo vị trí và vật thể xung quanh: cúi đầu có thể là kiểm tra sản phẩm, nhìn điện thoại hoặc bắt đầu ngủ gục; đưa tay ra phía trước có thể là thao tác đúng quy trình hoặc chạm vào vùng nguy hiểm. Vì vậy, bài toán phải được đặt ở mức \emph{từng người} và \emph{từng thời điểm}, không phải phân loại ảnh tĩnh hay gán một nhãn cho cả đoạn video.
 
-Luận văn lấy bốn hành vi mục tiêu trong phân xưởng làm bối cảnh thiết kế: sử dụng điện thoại (\path{use_mobilephone}), ngủ trên bàn (\path{sleep_on_table}), gác chân lên bàn (\path{feet_on_table}) và hành vi nguy hiểm (\path{dangerous_action}). Bốn hành vi này được phân tích trong \cref{sec:behaviours} để rút ra yêu cầu đối với toán tử thời gian. Do bộ dữ liệu riêng cho phân xưởng chưa được thu thập đầy đủ trong thời gian thực hiện luận văn, phần thực nghiệm được tiến hành trên bộ dữ liệu công khai AVA~v2.2 \cite{gu2018ava}, vốn có cùng cấu trúc bài toán (khung hình khóa, hộp người, nhãn đa hành vi) và là chuẩn đánh giá phổ biến nhất của STAD.
+Luận văn tập trung vào bốn hành vi mục tiêu: sử dụng điện thoại (\path{use_mobilephone}), ngủ trên bàn (\path{sleep_on_table}), gác chân lên bàn (\path{feet_on_table}) và hành vi nguy hiểm (\path{dangerous_action}). Thực nghiệm được tiến hành trên bộ dữ liệu riêng thu từ camera của phân xưởng, gán nhãn theo từng người tại các khung hình khóa (\cref{sec:factory-data}), và trên bộ dữ liệu công khai AVA~v2.2 \cite{gu2018ava}, vốn có cùng cấu trúc bài toán và là chuẩn đánh giá phổ biến nhất của STAD.
 
 \section{Phát biểu bài toán}
 \label{sec:formulation}
 
-Trong định dạng AVA \cite{gu2018ava}, chú thích được gán tại các \emph{khung hình khóa} (keyframe) cách nhau một giây. Tại mỗi khung hình khóa, mỗi người được mô tả bằng một hộp bao $b = (x_1, y_1, x_2, y_2)$ và một tập nhãn hành vi $\mathcal{Y} \subseteq \{1, \dots, K\}$; một người có thể mang nhiều nhãn đồng thời (ví dụ ``đứng'' và ``nói chuyện''). Cho một đoạn video $V \in \R^{3 \times T_0 \times H_0 \times W_0}$ gồm $T_0$ khung hình lấy đối xứng quanh khung hình khóa và một tập $N$ hộp người đề xuất $\{b_k\}_{k=1}^{N}$, mô hình cần trả ra, với mỗi hộp $b_k$, một vectơ xác suất đa nhãn $\mat{p}_k \in [0,1]^K$, trong đó $p_{k,c}$ là xác suất người trong hộp $b_k$ đang thực hiện hành vi $c$.
+Theo định dạng AVA \cite{gu2018ava}, chú thích được gán tại các \emph{khung hình khóa} (keyframe). Tại mỗi khung hình khóa, mỗi người được mô tả bằng một hộp bao $b = (x_1, y_1, x_2, y_2)$ và một tập nhãn hành vi $\mathcal{Y} \subseteq \{1, \dots, K\}$; một người có thể mang nhiều nhãn đồng thời. Cho đoạn video $V \in \R^{3 \times T_0 \times H_0 \times W_0}$ lấy đối xứng quanh khung hình khóa và $N$ hộp người đề xuất $\{b_k\}_{k=1}^{N}$, mô hình cần trả ra với mỗi hộp $b_k$ một vectơ xác suất đa nhãn $\mat{p}_k \in [0,1]^K$, trong đó $p_{k,c}$ là xác suất người trong hộp $b_k$ đang thực hiện hành vi $c$. Với bộ dữ liệu phân xưởng $K = 4$; với AVA $K = 80$.
 
 Pipeline hai giai đoạn phổ biến \cite{gu2018ava,feichtenhofer2019slowfast,mmaction2} thực hiện chuỗi biến đổi
 \begin{equation}
-V \xrightarrow{\text{backbone}} F \in \R^{C \times T \times H \times W}
-  \xrightarrow{\text{RoIAlign}(b_k)} r_k \in \R^{C \times 1 \times h \times w}
-  \xrightarrow{\text{head}} \mat{p}_k = \sigma(\mat{W} \Pool(r_k) + \mat{b}),
+\begin{aligned}
+V &\xrightarrow{\text{backbone}} F \in \R^{C \times T \times H \times W}
+  \xrightarrow{\text{RoIAlign}(b_k)} r_k \in \R^{C \times 1 \times h \times w}\\
+  &\xrightarrow{\text{head}} \mat{p}_k = \sigma(\mat{W} \Pool(r_k) + \mat{b}),
+\end{aligned}
 \label{eq:pipeline}
 \end{equation}
-trong đó $\sigma$ là hàm sigmoid áp dụng độc lập trên từng lớp. Luận văn chèn một toán tử thời gian $\Phi$ vào giữa backbone và RoIAlign, $F \mapsto \Phi(F)$, sao cho mỗi vị trí không gian của $F$ được làm giàu bằng thông tin dọc trục thời gian trước khi vùng người được cắt ra.
+trong đó $\sigma$ là hàm sigmoid áp dụng độc lập trên từng lớp. Luận văn chèn một toán tử thời gian $\Phi$ vào giữa backbone và RoIAlign, $F \mapsto \Phi(F)$, để mỗi vị trí không gian của $F$ được làm giàu bằng thông tin dọc trục thời gian trước khi vùng người được cắt ra.
 
 \section{Độ đo đánh giá}
 \label{sec:metric}
 
-Chất lượng phát hiện được đánh giá bằng \emph{frame-mAP} tại ngưỡng IoU~0,5 theo giao thức chính thức của AVA \cite{gu2018ava}. Với mỗi lớp $c$, các dự đoán trên toàn tập kiểm định được sắp xếp theo điểm $p_{k,c}$ giảm dần; một dự đoán được coi là đúng nếu hộp của nó có IoU $\geq 0{,}5$ với một hộp nhãn thật chưa được ghép và hộp đó mang nhãn $c$. Độ chính xác trung bình của lớp $c$ là diện tích dưới đường Precision--Recall,
+Chất lượng phát hiện được đánh giá bằng \emph{frame-mAP} tại ngưỡng IoU~0,5 theo giao thức chính thức của AVA \cite{gu2018ava}. Với mỗi lớp $c$, các dự đoán được sắp xếp theo điểm $p_{k,c}$ giảm dần; một dự đoán là đúng nếu hộp của nó có IoU $\geq 0{,}5$ với một hộp nhãn thật chưa được ghép mang nhãn $c$. Khi đó
 \begin{equation}
 \mathrm{AP}_c = \int_0^1 P_c(R)\,\mathrm{d}R, \qquad
 \mAP = \frac{1}{|\mathcal{C}_{\text{eval}}|} \sum_{c \in \mathcal{C}_{\text{eval}}} \mathrm{AP}_c,
 \label{eq:map}
 \end{equation}
-trong đó $\mathcal{C}_{\text{eval}}$ là tập 60 lớp được đánh giá của AVA~v2.2 (trong tổng số 80 lớp có nhãn). Bộ đánh giá \code{AVAMetric} của MMAction2 \cite{mmaction2} cài đặt đúng giao thức này và đồng thời báo cáo mAP theo ba nhóm hành vi của AVA: \emph{chuyển động của người} (person movement), \emph{thao tác với vật thể} (object manipulation) và \emph{tương tác giữa người} (person interaction). Các chỉ số precision/recall tại một ngưỡng sigmoid cố định chỉ được dùng làm chỉ số phụ trong quá trình huấn luyện, vì chúng phụ thuộc mạnh vào hiệu chỉnh ngưỡng.
+với $\mathcal{C}_{\text{eval}}$ là bốn lớp mục tiêu trên dữ liệu phân xưởng và 60 lớp được đánh giá của AVA~v2.2. Bộ đánh giá \code{AVAMetric} của MMAction2 \cite{mmaction2} cài đặt giao thức này và báo cáo thêm mAP theo ba nhóm hành vi của AVA. Precision và Recall tại một ngưỡng cố định phụ thuộc mạnh vào hiệu chỉnh ngưỡng nên chỉ là chỉ số phụ; tuy vậy, chúng phản ánh trực tiếp hành vi của hệ cảnh báo tại một điểm vận hành, nên luận văn báo cáo hai chỉ số này tại ngưỡng 0,5, cùng tốc độ xử lý và bộ nhớ GPU.
 
-\section{Đặc thù của các hành vi mục tiêu và yêu cầu đối với toán tử thời gian}
+\section{Đặc thù của các hành vi mục tiêu}
 \label{sec:behaviours}
 
-Bốn hành vi mục tiêu trong phân xưởng có đặc điểm khác nhau rõ rệt về thang thời gian và tín hiệu nhận dạng (\cref{tab:behaviours}).
+Bốn hành vi mục tiêu khác nhau rõ rệt về thang thời gian và tín hiệu nhận dạng (\cref{tab:behaviours}).
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \caption{Đặc thù của bốn hành vi mục tiêu và yêu cầu kéo theo}
 \label{tab:behaviours}
@@ -47,32 +49,33 @@ Bốn hành vi mục tiêu trong phân xưởng có đặc điểm khác nhau r�
 \textbf{Hành vi} & \textbf{Đặc điểm tín hiệu} & \textbf{Yêu cầu đối với mô hình}\\
 \midrule
 Sử dụng điện thoại & Vật thể nhỏ, thường bị bàn tay che khuất; pha đưa điện thoại lên diễn ra nhanh & Giữ chi tiết không gian ở độ phân giải cao; nhận ra biến đổi ngắn hạn giữa các khung liền kề\\
-Ngủ trên bàn & Chuyển động rất nhỏ, kéo dài nhiều giây; tín hiệu nằm ở diễn biến đầu--thân và quan hệ với mặt bàn & Tích lũy trạng thái qua toàn bộ đoạn video; ngữ cảnh cảnh vật quanh người\\
+Ngủ trên bàn & Chuyển động rất nhỏ, kéo dài nhiều giây; quan hệ đầu--thân với mặt bàn & Tích lũy trạng thái qua toàn bộ đoạn video; ngữ cảnh cảnh vật quanh người\\
 Gác chân lên bàn & Gần như tĩnh; cần quan sát toàn thân, bàn chân và bề mặt đỡ & Trường tiếp nhận không gian rộng; xác nhận trạng thái bền vững theo thời gian\\
 Hành vi nguy hiểm & Thay đổi nhanh, đa dạng, phụ thuộc thiết bị xung quanh & Giữ chi tiết cục bộ theo thời gian; quan hệ với thiết bị trong cảnh\\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Bốn hành vi tạo ra hai thang thời gian đối lập. \code{sleep\_on\_table} và \code{feet\_on\_table} cần quan sát dài để phân biệt trạng thái bền vững với một tư thế tạm thời, trong khi \code{dangerous\_action} và pha chuyển tiếp của \code{use\_mobilephone} có thể chỉ kéo dài vài khung hình. Một toán tử thời gian duy nhất với trường tiếp nhận cố định buộc phải thỏa hiệp giữa hai yêu cầu này. Đây là động cơ trực tiếp cho thiết kế hai nhánh của Hybrid FGTN-Mamba (\cref{ch:method}): một nhánh truyền trạng thái trên toàn bộ trục thời gian và một nhánh so khớp trực tiếp các khung hình liền kề, được hợp nhất bằng cổng học được thay vì bằng tỷ lệ cố định.
+Bốn hành vi tạo ra hai thang thời gian đối lập: \path{sleep_on_table} và \path{feet_on_table} cần quan sát dài để phân biệt trạng thái bền vững với tư thế tạm thời, trong khi \path{dangerous_action} và pha chuyển tiếp của \path{use_mobilephone} có thể chỉ kéo dài vài khung hình. Một toán tử thời gian với trường tiếp nhận cố định buộc phải thỏa hiệp giữa hai yêu cầu này. Đây là động cơ trực tiếp cho thiết kế hai nhánh của Hybrid FGTN-Mamba (\cref{ch:method}): một nhánh truyền trạng thái trên toàn bộ trục thời gian, một nhánh so khớp trực tiếp các khung hình liền kề, hợp nhất bằng cổng học được thay vì tỷ lệ cố định.
 
-Nhận xét trên cũng áp dụng cho AVA: nhóm \emph{chuyển động của người} (đi, đứng, ngồi, nằm) gồm các trạng thái bền vững; nhóm \emph{thao tác với vật thể} (cầm, uống, viết, nghe điện thoại) phụ thuộc vào vật thể nhỏ và các pha ngắn; nhóm \emph{tương tác giữa người} (nói chuyện, nghe, nhìn người khác) phụ thuộc ngữ cảnh. Việc phân tích kết quả theo ba nhóm này (\cref{ch:results}) do đó phản ánh được các yêu cầu đã nêu.
+Nhận xét trên cũng áp dụng cho AVA: nhóm \emph{chuyển động của người} (đi, đứng, ngồi, nằm) gồm các trạng thái bền vững; nhóm \emph{thao tác với vật thể} (cầm, uống, viết, nghe điện thoại) phụ thuộc vật thể nhỏ và các pha ngắn; nhóm \emph{tương tác giữa người} (nói chuyện, nghe, nhìn người khác) phụ thuộc ngữ cảnh. Vì vậy, kết quả theo ba nhóm này trên AVA (\cref{sec:ava-subset}) phản ánh được các yêu cầu đã nêu cho bài toán phân xưởng.
 
 \section{Mục tiêu nghiên cứu}
 \label{sec:objectives}
 
 \begin{enumerate}[label=M\arabic*.,leftmargin=1.2cm]
-  \item Thiết kế một temporal neck hậu-backbone kết hợp phụ thuộc dài hạn và biến đổi ngắn hạn với chi phí tăng tuyến tính theo độ dài đoạn video.
+  \item Thiết kế một temporal neck hậu-backbone kết hợp phụ thuộc dài hạn và biến đổi ngắn hạn với chi phí tuyến tính theo độ dài đoạn video.
   \item Giữ khả năng nạp trọng số tiền huấn luyện của Video Swin bằng cách không sửa cấu trúc bên trong backbone.
-  \item Cho phép áp dụng temporal neck độc lập trên nhiều tầng đặc trưng để tín hiệu nhỏ không bị mất trước 3D RoIAlign.
+  \item Áp dụng temporal neck độc lập trên nhiều tầng đặc trưng để tín hiệu nhỏ không bị mất trước 3D RoIAlign.
   \item Bổ sung ngữ cảnh actor--cảnh bằng ACRN và kiểm soát mất cân bằng lớp bằng hàm mất mát hai cấp.
-  \item Đánh giá trên bộ dữ liệu công khai với giao thức chuẩn, tách rõ kết quả thực nghiệm của đề tài khỏi số liệu tham chiếu từ công trình khác.
+  \item Đánh giá trên dữ liệu phân xưởng và AVA~v2.2 với nhiều hạt giống và cách chia theo camera; tách rõ kết quả của đề tài khỏi số liệu tham chiếu.
+  \item Duy trì tốc độ xử lý đủ cho giám sát theo thời gian thực.
 \end{enumerate}
 
 \section{Câu hỏi nghiên cứu}
 \label{sec:rq}
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \caption{Câu hỏi nghiên cứu và bằng chứng cần thu thập}
 \label{tab:rq}
@@ -80,28 +83,34 @@ Nhận xét trên cũng áp dụng cho AVA: nhóm \emph{chuyển động của n
 \toprule
 \textbf{Mã} & \textbf{Câu hỏi} & \textbf{Bằng chứng}\\
 \midrule
-RQ1 & Pipeline Video Swin-T + Hybrid FGTN-Mamba học được gì trên AVA~v2.2 và hội tụ như thế nào? & mAP tổng và theo nhóm qua các epoch; hàm mất mát; VRAM; thời gian\\
-RQ2 & Mỗi nhánh (Bi-SSM, local MHSA) và cổng sigmoid đóng góp bao nhiêu? & Ablation \code{mamba\_only} / \code{attn\_only} / \code{no\_gate} / \code{hybrid}\\
-RQ3 & Đặt khối trên hai tầng đặc trưng có tốt hơn một tầng? & Cặp một tỉ lệ $\leftrightarrow$ đa tỉ lệ cùng neck\\
-RQ4 & ACRN và hàm mất mát hai cấp có cải thiện lớp phụ thuộc cảnh và lớp hiếm? & $\Delta$AP theo lớp; recall lớp hiếm\\
-RQ5 & Kết quả có tái lập được trên AVA đầy đủ và trên camera mới? & Nhiều hạt giống; chia theo video; bộ đánh giá chính thức\\
+RQ1 & Có cần temporal neck tại vị trí hậu-backbone, tiền-RoI không, và một neck tiêu chuẩn (temporal MHSA toàn cục) đã đủ chưa? & Ablation A0 $\rightarrow$ A1 $\rightarrow$ A6 trên hai cách chia dữ liệu\\
+RQ2 & Mỗi nhánh (Bi-SSM, W-MHSA), hướng quét và cổng sigmoid đóng góp bao nhiêu? & A2--A6: SSM một chiều $\leftrightarrow$ hai chiều; từng nhánh riêng lẻ; cộng trực tiếp $\leftrightarrow$ cổng\\
+RQ3 & Áp dụng khối trên hai tầng đặc trưng (đa tỉ lệ) có tốt hơn một tầng? & A6 $\rightarrow$ A7\\
+RQ4 & ACRN và hàm mất mát hai cấp có cải thiện các hành vi phụ thuộc cảnh và lớp hiếm? & A7 $\rightarrow$ A8; A9 (BCE / focal / trọng số lớp / focal + trọng số)\\
+RQ5 & Kết quả có giữ được trên camera chưa thấy khi huấn luyện và trên bộ dữ liệu công khai? & Cách chia theo camera (S2); ba hạt giống; AVA~v2.2\\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Trong phạm vi luận văn, RQ1 được trả lời bằng thực nghiệm (\cref{ch:results}); RQ2--RQ5 được chuẩn bị đầy đủ về mã nguồn, cấu hình và giao thức (\cref{ch:experiments}) nhưng chưa có số liệu, và được xếp vào hướng phát triển.
+Mã A0--A9 là các cấu hình trong ma trận ablation (\cref{tab:ablation}). RQ1--RQ3 được trả lời bằng thực nghiệm trên cả hai cách chia dữ liệu; RQ4 được trả lời cho ACRN, còn phần hàm mất mát (A9) chưa có số liệu; RQ5 được trả lời một phần (\cref{sec:rq-answers}).
 
 \section{Đóng góp và mức độ mới}
 \label{sec:novelty}
 
-Đóng góp của luận văn nằm ở mức \emph{thiết kế và tích hợp}. Luận văn không tuyên bố rằng mô hình không gian trạng thái, attention cục bộ, đặc trưng đa tỉ lệ hay ACRN là các khái niệm mới: SSM đã được dùng cho video trong VideoMamba và Video Mamba Suite \cite{li2024videomamba,chen2024videomambasuite}; ACRN được đề xuất từ năm 2018 \cite{sun2018acrn}; FPN và MViTv2 đã chứng minh lợi ích của biểu diễn đa tỉ lệ \cite{lin2017fpn,li2022mvitv2}. Điểm mới của đề tài là: (i) đặt một khối lai bidirectional selective SSM--windowed temporal attention có cổng tại vị trí hậu-backbone, tiền-RoI của pipeline STAD theo từng người; (ii) cổng được học theo từng kênh \emph{và} từng bước thời gian, cho phép cùng một kênh chuyển giữa chế độ dài hạn và ngắn hạn trong cùng một đoạn video; (iii) tham số riêng theo từng tầng đặc trưng; (iv) toàn bộ được cài đặt tự chứa trên MMAction2 với bốn chế độ nhánh để ablation.
+Đóng góp của luận văn nằm ở mức \emph{thiết kế và tích hợp}. Luận văn không tuyên bố mô hình không gian trạng thái, attention cục bộ, đặc trưng đa tỉ lệ hay ACRN là các khái niệm mới: SSM đã được dùng cho video trong VideoMamba và Video Mamba Suite \cite{li2024videomamba,chen2024videomambasuite}, ACRN được đề xuất từ năm 2018 \cite{sun2018acrn}, còn FPN và MViTv2 đã chứng minh lợi ích của biểu diễn đa tỉ lệ \cite{lin2017fpn,li2022mvitv2}. Điểm mới nằm ở vị trí đặt, cách tham số hóa theo tầng và chuỗi tích hợp cho STAD theo từng người:
+\begin{enumerate}[label=(\roman*)]
+  \item khối lai hai nhánh: bidirectional selective SSM truyền trạng thái trên toàn bộ trục thời gian với chi phí tuyến tính theo $T$, windowed temporal attention với $W = 5$ giữ trực tiếp các chuyển tiếp cục bộ;
+  \item cổng sigmoid học tỷ trọng giữa hai nhánh theo nội dung, theo từng kênh \emph{và} từng bước thời gian, thay vì cộng với hệ số cố định;
+  \item vị trí hậu-backbone, tiền-RoI: không phải sửa Video Swin tiền huấn luyện mà vẫn giữ ngữ cảnh cảnh vật trước khi cắt vùng người;
+  \item áp dụng độc lập trên hai tầng đặc trưng với tham số riêng, rồi nối multi-scale RoI và ACRN thành pipeline Video Swin $\rightarrow$ Hybrid FGTN-Mamba đa tầng $\rightarrow$ multi-scale RoI $\rightarrow$ ACRN $\rightarrow$ head đa nhãn, cài đặt tự chứa trên MMAction2.
+\end{enumerate}
 
-\section{Ba mức bằng chứng}
+\section{Phân tầng bằng chứng}
 \label{sec:evidence}
 
-Để người đọc phân biệt rõ nguồn gốc của mỗi con số, luận văn phân tầng bằng chứng theo \cref{tab:evidence}. Mọi số liệu ở mức E1 đều có thể đối chiếu với dòng tương ứng trong nhật ký hoặc tệp cấu hình theo \cref{app:traceability}.
+Để người đọc phân biệt rõ nguồn gốc của mỗi con số, luận văn phân tầng bằng chứng theo \cref{tab:evidence}.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \caption{Phân tầng bằng chứng được dùng trong luận văn}
 \label{tab:evidence}
@@ -109,9 +118,15 @@ Trong phạm vi luận văn, RQ1 được trả lời bằng thực nghiệm (\c
 \toprule
 \textbf{Mức} & \textbf{Nội dung}\\
 \midrule
-E1 --- Có nhật ký & Kết quả trên tập con AVA~v2.2; cấu hình huấn luyện; bộ nhớ, thời gian từng bước được ghi trong \code{trainning.log}\\
-E2 --- Có mã, chưa có số liệu & Ba thành phần hỗ trợ (đa tỉ lệ, ACRN, focal + trọng số lớp) và các cấu hình ablation\\
-E3 --- Tham chiếu & Số liệu của A*, STAR, OV-STAD, ST-CLIP và các baseline công bố, trích từ bài báo gốc\\
+E1 --- Có nhật ký, mã nguồn & Lần chạy trên tập con AVA~v2.2 ghi trong \code{trainning.log}; cấu hình huấn luyện; số tham số tính từ mã nguồn\\
+E2 --- Hồ sơ thực nghiệm & Kết quả trên bộ dữ liệu phân xưởng (so sánh sáu mô hình; ablation A0--A8 trên hai cách chia, trung bình ba hạt giống; Precision, Recall, tốc độ, bộ nhớ GPU) và 39,1 mAP trên AVA~v2.2; nhật ký chi tiết không nằm trong kho mã\\
+E3 --- Có mã, chưa có số liệu & Ablation hàm mất mát (A9); AP theo từng hành vi; độ lệch chuẩn giữa các hạt giống; độ trễ đầu--cuối\\
+E4 --- Tham chiếu & Số liệu của A*, STAR, OV-STAD, ST-CLIP và các baseline công bố, trích từ bài báo gốc\\
 \bottomrule
 \end{tabularx}
 \end{table}
+
+\section*{Tiểu kết chương}
+\addcontentsline{toc}{section}{Tiểu kết chương}
+
+Chương này đã phát biểu bài toán phát hiện hành động không--thời gian theo từng người cho bốn hành vi mục tiêu trong phân xưởng, chỉ ra hai thang thời gian đối lập của các hành vi và yêu cầu kéo theo đối với toán tử thời gian, đồng thời xác lập độ đo đánh giá, sáu mục tiêu, năm câu hỏi nghiên cứu và cách phân tầng bằng chứng. \Cref{ch:related} tiếp theo trình bày cơ sở lý thuyết và các họ phương pháp liên quan để làm rõ khoảng trống mà thiết kế đề xuất nhắm tới.

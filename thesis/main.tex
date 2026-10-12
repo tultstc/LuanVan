@@ -1,5 +1,9 @@
 % Luận văn thạc sĩ — biên dịch bằng XeLaTeX (tectonic hoặc latexmk -xelatex), BibTeX kiểu IEEEtran.
-\documentclass[13pt,a4paper,oneside]{extreport}
+% Cỡ chữ 13pt: các lớp chuẩn và extreport không có tùy chọn 13pt (extreport bỏ qua và dùng 10pt),
+% nên dùng report 12pt rồi đặt lại cỡ chữ cơ sở bằng scrextend; fix-cm cho phép font toán CM ở mọi cỡ.
+\RequirePackage{fix-cm}
+\documentclass[12pt,a4paper,oneside]{report}
+\usepackage[fontsize=13pt]{scrextend}
 
 % ---------- Thể thức trình bày ----------
 \usepackage[left=3.5cm,right=2cm,top=2.5cm,bottom=2.5cm]{geometry}
@@ -20,6 +24,8 @@
 % ---------- Toán, bảng, hình ----------
 \usepackage{amsmath,amssymb,amsfonts,bm}
 \usepackage{booktabs,multirow,array,tabularx,longtable}
+% Cột X căn trái: tiếng Việt ít điểm ngắt từ, căn đều hai lề trong ô hẹp làm giãn chữ
+\renewcommand{\tabularxcolumn}[1]{>{\raggedright\arraybackslash}p{#1}}
 \usepackage{graphicx}
 \graphicspath{{figures/}}
 \usepackage[font=small,labelfont=bf,labelsep=period,justification=centering]{caption}
@@ -27,6 +33,16 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,shapes.geometric}
 \usepackage{xcolor}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+% Màu biểu đồ: hai sắc độ của cùng một gam xanh (S1 đậm, S2 nhạt) để vẫn phân biệt khi in đen trắng;
+% lưới và trục là xám nhạt, chữ dùng màu mực, không dùng màu của chuỗi số liệu.
+\definecolor{vzSone}{HTML}{184F95}
+\definecolor{vzStwo}{HTML}{5598E7}
+\definecolor{vzgrid}{HTML}{E1E0D9}
+\definecolor{vzaxis}{HTML}{C3C2B7}
+\definecolor{vzink}{HTML}{0B0B0B}
+\definecolor{vzinktwo}{HTML}{52514E}
 \usepackage{enumitem}
 \setlist{nosep,leftmargin=1.5cm}
 \usepackage{listings}
@@ -61,6 +77,14 @@
 \Crefname{chapter}{Chương}{Chương}
 \Crefname{section}{Mục}{Mục}
 \Crefname{appendix}{Phụ lục}{Phụ lục}
+% cleveref không có sẵn tiếng Việt: liên từ khi tham chiếu nhiều đối tượng (mặc định là "and", "to")
+\newcommand{\crefrangeconjunction}{--}
+\newcommand{\crefpairconjunction}{ và\nobreakspace}
+\newcommand{\crefmiddleconjunction}{, }
+\newcommand{\creflastconjunction}{ và\nobreakspace}
+\newcommand{\crefpairgroupconjunction}{ và\nobreakspace}
+\newcommand{\crefmiddlegroupconjunction}{, }
+\newcommand{\creflastgroupconjunction}{ và\nobreakspace}
 
 % ---------- Tên các danh mục theo tiếng Việt ----------
 \addto\captionsvietnamese{%
@@ -87,12 +111,14 @@
 \DeclareMathOperator{\BCE}{BCE}
 \newcommand{\mAP}{mAP}
 \newcommand{\code}[1]{\texttt{#1}}
+% Thông tin học viên cần tự bổ sung trước khi nộp (in màu đỏ để dễ tìm; xóa khi đã điền)
+\newcommand{\canbosung}[1]{\textcolor{red}{[#1]}}
 
 % ---------- Thông tin luận văn (điền trước khi nộp) ----------
-\newcommand{\thesisTitle}{PHÁT HIỆN HÀNH ĐỘNG KHÔNG--THỜI GIAN BẰNG TEMPORAL NECK LAI SELECTIVE STATE-SPACE VÀ LOCAL ATTENTION TRÊN VIDEO SWIN}
-\newcommand{\thesisTitleShort}{Hybrid FGTN-Mamba cho phát hiện hành động không--thời gian}
-\newcommand{\thesisAuthor}{[HỌ VÀ TÊN HỌC VIÊN]}
-\newcommand{\thesisAdvisor}{[HỌC HÀM, HỌC VỊ VÀ TÊN GIẢNG VIÊN HƯỚNG DẪN]}
+\newcommand{\thesisTitle}{PHÁT HIỆN VÀ CẢNH BÁO HÀNH VI KHÔNG ĐƯỢC PHÉP TRONG PHÂN XƯỞNG NHÀ MÁY}
+\newcommand{\thesisTitleShort}{Phát hiện và cảnh báo hành vi không được phép trong phân xưởng nhà máy}
+\newcommand{\thesisAuthor}{Lai Thanh Tú}
+\newcommand{\thesisAdvisor}{TS. Lê Đức Trọng}
 \newcommand{\thesisUniversity}{[TÊN TRƯỜNG ĐẠI HỌC]}
 \newcommand{\thesisFaculty}{[TÊN KHOA / VIỆN]}
 \newcommand{\thesisMajor}{[TÊN NGÀNH]}
@@ -100,14 +126,22 @@
 \newcommand{\thesisCity}{[THÀNH PHỐ]}
 \newcommand{\thesisYear}{2026}
 
+% ---------- Công tắc in các phần ----------
+% Bản hiện tại chỉ in từ TÓM TẮT đến TÀI LIỆU THAM KHẢO (khoảng 60 trang, không tính phụ lục).
+% Đổi ...false thành ...true để in lại bìa, lời cam đoan, lời cảm ơn hoặc phụ lục.
+\newif\ifinphandau \inphandaufalse  % bìa, lời cam đoan, lời cảm ơn
+\newif\ifinphuluc  \inphulucfalse   % phụ lục
+
 \begin{document}
 
 % ====================== PHẦN ĐẦU ======================
 \pagenumbering{roman}
-\input{frontmatter/cover}
-\setcounter{page}{2}
-\input{frontmatter/declaration}
-\input{frontmatter/acknowledgement}
+\ifinphandau
+  \input{frontmatter/cover}
+  \setcounter{page}{2}
+  \input{frontmatter/declaration}
+  \input{frontmatter/acknowledgement}
+\fi
 \input{frontmatter/abstract}
 
 \tableofcontents
@@ -139,9 +173,11 @@
 \bibliography{refs}
 
 % ====================== PHỤ LỤC ======================
-\clearpage
-\appendix
-\titleformat{\chapter}[block]{\centering\bfseries\large}{PHỤ LỤC \thechapter.}{0.5em}{\MakeUppercase}
-\input{appendix/appendix}
+\ifinphuluc
+  \clearpage
+  \appendix
+  \titleformat{\chapter}[block]{\centering\bfseries\large}{PHỤ LỤC \thechapter.}{0.5em}{\MakeUppercase}
+  \input{appendix/appendix}
+\fi
 
 \end{document}
