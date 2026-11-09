@@ -6,7 +6,8 @@ cd "$(dirname "$0")"
 ROOT=..
 mkdir -p appendix/src
 
-for f in fgtn_neck.py heads.py make_class_weight.py \
+for f in fgtn_neck.py heads.py make_class_weight.py selfcheck.py \
+         ava22_swin-tiny_fgtn_32x2x1-10e.py \
          ava22_swin-tiny_fgtn-ms-acrn-focal_32x2x1-10e.py; do
   cp "$ROOT/projects/fgtn_ava/$f" appendix/src/
 done

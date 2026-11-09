@@ -6,7 +6,8 @@
 \usepackage[fontsize=13pt]{scrextend}
 
 % ---------- Thể thức trình bày ----------
-\usepackage[left=3.5cm,right=2cm,top=2.5cm,bottom=2.5cm]{geometry}
+% Lề theo chuẩn trình bày luận văn: trên 3,5 cm, dưới 3 cm, trái 3,5 cm, phải 2 cm
+\usepackage[a4paper,top=3.5cm,bottom=3cm,left=3.5cm,right=2cm]{geometry}
 \usepackage{fontspec}
 \setmainfont{Times New Roman}
 % Nếu máy không có Times New Roman (ví dụ Overleaf), thay bằng: \setmainfont{TeX Gyre Termes}
@@ -15,7 +16,10 @@
   ItalicFont=*-italic,BoldItalicFont=*-bolditalic,Scale=MatchLowercase]
 \usepackage[vietnamese]{babel}
 \usepackage{setspace}
-\setstretch{1.3}
+% Giãn dòng 1,5 dòng như Word ("1.5 lines"): Times 13pt có dòng đơn ≈ 1,15 × 13pt ≈ 15pt,
+% nên 1,5 dòng ≈ 22,4pt; baselineskip gốc của LaTeX ở 13pt là 15,6pt → hệ số 22,4 / 15,6 ≈ 1,44.
+% Cách đoạn: 6pt trước mỗi đoạn (\parskip). setspace giữ bảng, hình và chú thích ở giãn dòng đơn.
+\setstretch{1.44}
 \usepackage{indentfirst}
 \setlength{\parindent}{1cm}
 \setlength{\parskip}{6pt}
@@ -28,7 +32,7 @@
 \renewcommand{\tabularxcolumn}[1]{>{\raggedright\arraybackslash}p{#1}}
 \usepackage{graphicx}
 \graphicspath{{figures/}}
-\usepackage[font=small,labelfont=bf,labelsep=period,justification=centering]{caption}
+\usepackage[labelsep=colon,justification=centering]{caption}
 \usepackage{subcaption}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,shapes.geometric}
@@ -49,16 +53,36 @@
 \lstset{basicstyle=\ttfamily\footnotesize,breaklines=true,frame=single,columns=fullflexible,
   keepspaces=true,showstringspaces=false,numbers=left,numberstyle=\tiny,xleftmargin=1.5em}
 \usepackage{float}
+\renewcommand\labelitemi{--}
 
-% ---------- Tiêu đề chương, mục ----------
+% ---------- Tiêu đề chương, mục (theo mẫu: kiểu mặc định của report) ----------
+% Đầu chương: dòng "Chương n" rồi tên chương; mục 1.1, 1.1.1 theo kiểu mặc định.
 \usepackage{titlesec}
-\titleformat{\chapter}[block]{\centering\bfseries\large}{CHƯƠNG \thechapter.}{0.5em}{\MakeUppercase}
-\titlespacing*{\chapter}{0pt}{0pt}{20pt}
-\titleformat{\section}{\bfseries\normalsize}{\thesection.}{0.5em}{}
-\titleformat{\subsection}{\bfseries\itshape\normalsize}{\thesubsection.}{0.5em}{}
-\titleformat{\subsubsection}{\itshape\normalsize}{\thesubsubsection.}{0.5em}{}
+\usepackage{titletoc}
 \setcounter{secnumdepth}{3}
 \setcounter{tocdepth}{2}
+% Tiêu đề mục lục và các danh mục: căn giữa, cỡ lớn
+\usepackage{tocloft}
+% Mục lục: dòng chương in đậm, có chữ "Chương n" phía trước (đặt sau tocloft để không bị ghi đè)
+\titlecontents{chapter}[0pt]{\vspace{1ex}}%
+  {\bfseries \chaptername\ \thecontentslabel\quad}{\bfseries}{\bfseries\hfill\contentspage}
+\renewcommand{\cfttoctitlefont}{\hspace*{\fill}\Huge\bfseries}
+\renewcommand{\cftaftertoctitle}{\hspace*{\fill}}
+\renewcommand{\cftlottitlefont}{\hspace*{\fill}\Huge\bfseries}
+\renewcommand{\cftafterlottitle}{\hspace*{\fill}}
+\renewcommand{\cftloftitlefont}{\hspace*{\fill}\Huge\bfseries}
+\renewcommand{\cftafterloftitle}{\hspace*{\fill}}
+% Danh mục hình, bảng: không thụt lề, ghi rõ "Hình n.m" / "Bảng n.m"
+\setlength{\cftfigindent}{0pt}
+\setlength{\cfttabindent}{0pt}
+\renewcommand{\cftfigpresnum}{Hình~}
+\renewcommand{\cfttabpresnum}{Bảng~}
+\setlength{\cftfignumwidth}{5.5em}
+\setlength{\cfttabnumwidth}{5.5em}
+% Cỡ chữ cho bìa
+\newcommand{\fz}[1]{\fontsize{#1}{1.2pt*#1}\selectfont}
+\newcommand{\mybig}{\fz{14}}
+\newcommand{\mylarge}{\fz{18}}
 
 % ---------- Tham chiếu ----------
 \usepackage[hidelinks,unicode]{hyperref}
@@ -88,11 +112,12 @@
 
 % ---------- Tên các danh mục theo tiếng Việt ----------
 \addto\captionsvietnamese{%
+  \renewcommand{\chaptername}{Chương}%
   \renewcommand{\contentsname}{MỤC LỤC}%
   \renewcommand{\listfigurename}{DANH MỤC HÌNH VẼ}%
   \renewcommand{\listtablename}{DANH MỤC BẢNG BIỂU}%
   \renewcommand{\bibname}{TÀI LIỆU THAM KHẢO}%
-  \renewcommand{\appendixname}{PHỤ LỤC}%
+  \renewcommand{\appendixname}{Phụ lục}%
   \renewcommand{\figurename}{Hình}%
   \renewcommand{\tablename}{Bảng}%
 }
@@ -116,29 +141,36 @@
 
 % ---------- Thông tin luận văn (điền trước khi nộp) ----------
 \newcommand{\thesisTitle}{PHÁT HIỆN VÀ CẢNH BÁO HÀNH VI KHÔNG ĐƯỢC PHÉP TRONG PHÂN XƯỞNG NHÀ MÁY}
+\newcommand{\thesisTitleCover}{PHÁT HIỆN VÀ CẢNH BÁO\\ HÀNH VI KHÔNG ĐƯỢC PHÉP\\ TRONG PHÂN XƯỞNG NHÀ MÁY}
 \newcommand{\thesisTitleShort}{Phát hiện và cảnh báo hành vi không được phép trong phân xưởng nhà máy}
 \newcommand{\thesisAuthor}{Lai Thanh Tú}
 \newcommand{\thesisAdvisor}{TS. Lê Đức Trọng}
-\newcommand{\thesisUniversity}{[TÊN TRƯỜNG ĐẠI HỌC]}
-\newcommand{\thesisFaculty}{[TÊN KHOA / VIỆN]}
+% Dùng trong lời văn (lời cảm ơn)
+\newcommand{\thesisUniversity}{Đại học Quốc gia Hà Nội}
+\newcommand{\thesisFaculty}{Trường Đại học Công nghệ}
+% Dòng đầu bìa và dòng cuối bìa: giữ y hệt mẫu Overleaf
+\newcommand{\coverHeader}{VIETNAM NATIONAL UNIVERSITY, HA NOI\\ UNIVERSITY OF ENGINEERING AND TECHNOLOGY}
+\newcommand{\coverCity}{HA NOI}
 \newcommand{\thesisMajor}{Khoa học máy tính}
 \newcommand{\thesisMajorCode}{[MÃ SỐ NGÀNH]}
-\newcommand{\thesisCity}{[THÀNH PHỐ]}
+\newcommand{\thesisCity}{Hà Nội}
 \newcommand{\thesisYear}{2026}
 
 % ---------- Công tắc in các phần ----------
-% Bản hiện tại chỉ in từ TÓM TẮT đến TÀI LIỆU THAM KHẢO (khoảng 60 trang, không tính phụ lục).
-% Đổi ...false thành ...true để in lại bìa, lời cam đoan, lời cảm ơn hoặc phụ lục.
-\newif\ifinphandau \inphandaufalse  % bìa, lời cam đoan, lời cảm ơn
-\newif\ifinphuluc  \inphulucfalse   % phụ lục
+% Theo mẫu: in bìa, bìa phụ, lời cam đoan, xác nhận của người hướng dẫn, lời cảm ơn.
+% Đổi \inphandautrue thành \inphandaufalse để bắt đầu từ LỜI NÓI ĐẦU; \inphuluctrue để in phụ lục.
+\newif\ifinphandau \inphandautrue   % bìa, bìa phụ, lời cam đoan, xác nhận, lời cảm ơn
+\newif\ifinphuluc  \inphuluctrue    % phụ lục
 
 \begin{document}
 
 % ====================== PHẦN ĐẦU ======================
-\pagenumbering{roman}
 \ifinphandau
   \input{frontmatter/cover}
-  \setcounter{page}{2}
+\fi
+\pagenumbering{roman}
+\setcounter{page}{1}
+\ifinphandau
   \input{frontmatter/declaration}
   \input{frontmatter/acknowledgement}
 \fi
@@ -146,8 +178,12 @@
 
 \tableofcontents
 \clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{\listfigurename}
 \listoffigures
 \clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{\listtablename}
 \listoftables
 \clearpage
 \input{frontmatter/abbreviations}
@@ -176,7 +212,7 @@
 \ifinphuluc
   \clearpage
   \appendix
-  \titleformat{\chapter}[block]{\centering\bfseries\large}{PHỤ LỤC \thechapter.}{0.5em}{\MakeUppercase}
+  \renewcommand{\chaptername}{Phụ lục}
   \input{appendix/appendix}
 \fi
 

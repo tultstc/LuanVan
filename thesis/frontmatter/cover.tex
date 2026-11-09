@@ -1,24 +1,56 @@
-% Trang bìa
+% Bìa chính và bìa phụ theo mẫu Overleaf: khung đôi, căn giữa, logo Trường ĐH Công nghệ trên bìa chính.
+\newcommand{\khungbia}{%
+  \begin{tikzpicture}[overlay,remember picture]
+    \draw[line width=3pt]
+      ($(current page.north west)+(25mm,-25mm)$) rectangle
+      ($(current page.south east)+(-15mm,25mm)$);
+    \draw[line width=1pt]
+      ($(current page.north west)+(26.5mm,-26.5mm)$) rectangle
+      ($(current page.south east)+(-16.5mm,26.5mm)$);
+  \end{tikzpicture}}
+% Vùng chữ của bìa nằm gọn trong khung (lề 1 inch sát khung nên thu hẹp lại)
+\newenvironment{noidungbia}
+  {\par\nointerlineskip\vspace*{1.2cm}\noindent\hfill
+   \begin{minipage}[t][\dimexpr\textheight-2.6cm\relax][t]{0.86\textwidth}\centering\vspace{0pt}}
+  {\end{minipage}\hfill\null}
+
+% ---------- Bìa chính ----------
 \begin{titlepage}
-\begin{center}
-\setstretch{1.5}
-{\bfseries \thesisUniversity}\\
-{\bfseries \thesisFaculty}\\[0.4cm]
-\rule{0.3\textwidth}{0.4pt}\\[3cm]
-
-{\bfseries\large \MakeUppercase{\thesisAuthor}}\\[2.5cm]
-
-{\bfseries\Large \thesisTitle}\\[2.5cm]
-
-{\bfseries LUẬN VĂN THẠC SĨ}\\[0.3cm]
-Ngành: \thesisMajor\\
-Mã số: \thesisMajorCode\\[2cm]
-
-\begin{tabular}{rl}
-Người hướng dẫn khoa học: & \thesisAdvisor
-\end{tabular}
-
+\centering
+\khungbia
+\begin{noidungbia}
+\makebox[\linewidth][c]{\parbox{\dimexpr\paperwidth-2in\relax}{\centering\large\bfseries \coverHeader}}\par
+\vspace{2cm}
+\includegraphics[width=0.2\linewidth]{Logo_UET.png}\par
+\bigskip\bigskip
+{\mybig\bfseries \thesisAuthor\par}
 \vfill
-{\bfseries \thesisCity, \thesisYear}
-\end{center}
+{\mylarge\bfseries \thesisTitleCover\par}
+\vfill\vfill
+{\mybig\bfseries LUẬN VĂN THẠC SĨ\par\bigskip
+Ngành: \thesisMajor\par}
+\vfill
+{\bfseries \coverCity\ - \thesisYear\par}
+\end{noidungbia}
+\end{titlepage}
+
+% ---------- Bìa phụ ----------
+\begin{titlepage}
+\centering
+\khungbia
+\begin{noidungbia}
+\makebox[\linewidth][c]{\parbox{\dimexpr\paperwidth-2in\relax}{\centering\large\bfseries \coverHeader}}\par
+\vfill
+{\mybig\bfseries \thesisAuthor\par}
+\vfill
+{\mylarge\bfseries \thesisTitleCover\par}
+\vfill
+{\bfseries LUẬN VĂN THẠC SĨ\\
+Ngành: \thesisMajor\\
+Mã số: \thesisMajorCode\par}
+\vfill
+{\mybig\bfseries Người hướng dẫn khoa học: \thesisAdvisor\par}
+\vfill\vfill
+{\bfseries \coverCity\ - \thesisYear\par}
+\end{noidungbia}
 \end{titlepage}
