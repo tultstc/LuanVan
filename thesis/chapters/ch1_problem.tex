@@ -44,14 +44,15 @@ Bốn hành vi mục tiêu khác nhau rõ rệt về thang thời gian và tín 
 \centering
 \caption{Đặc thù của bốn hành vi mục tiêu và yêu cầu kéo theo}
 \label{tab:behaviours}
-\begin{tabularx}{\textwidth}{lXX}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{1.6cm}XX}
 \toprule
-\textbf{Hành vi} & \textbf{Đặc điểm tín hiệu} & \textbf{Yêu cầu đối với mô hình}\\
+\textbf{Hành vi} & \textbf{Thang thời gian} & \textbf{Tín hiệu nhận dạng} & \textbf{Yêu cầu đối với mô hình}\\
 \midrule
-Sử dụng điện thoại & Vật thể nhỏ, thường bị bàn tay che khuất; pha đưa điện thoại lên diễn ra nhanh & Giữ chi tiết không gian ở độ phân giải cao; nhận ra biến đổi ngắn hạn giữa các khung liền kề\\
-Ngủ trên bàn & Chuyển động rất nhỏ, kéo dài nhiều giây; quan hệ đầu--thân với mặt bàn & Tích lũy trạng thái qua toàn bộ đoạn video; ngữ cảnh cảnh vật quanh người\\
-Gác chân lên bàn & Gần như tĩnh; cần quan sát toàn thân, bàn chân và bề mặt đỡ & Trường tiếp nhận không gian rộng; xác nhận trạng thái bền vững theo thời gian\\
-Hành vi nguy hiểm & Thay đổi nhanh, đa dạng, phụ thuộc thiết bị xung quanh & Giữ chi tiết cục bộ theo thời gian; quan hệ với thiết bị trong cảnh\\
+\texttt{sleep\_on\_table} & Dài hạn & Chuyển động rất nhỏ, kéo dài nhiều giây; quan hệ đầu--thân với mặt bàn & Tích lũy trạng thái qua toàn bộ đoạn video; ngữ cảnh cảnh vật quanh người\\
+\texttt{feet\_on\_table} & Dài hạn & Gần như tĩnh; cần quan sát toàn thân, bàn chân và bề mặt đỡ & Trường tiếp nhận không gian rộng; xác nhận trạng thái bền vững theo thời gian\\
+\texttt{use\_mobilephone} & Ngắn hạn & Vật thể nhỏ, thường bị bàn tay che khuất; pha đưa điện thoại lên diễn ra nhanh & Giữ chi tiết ở độ phân giải cao; nhận ra biến đổi ngắn hạn giữa các khung liền kề\\
+\texttt{dangerous\_action} & Ngắn hạn & Thay đổi nhanh, đa dạng, phụ thuộc thiết bị xung quanh & Giữ chi tiết cục bộ theo thời gian; quan hệ với thiết bị trong cảnh\\
 \bottomrule
 \end{tabularx}
 \end{table}

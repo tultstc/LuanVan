@@ -248,7 +248,7 @@ w_c = \frac{\tilde{w}_c}{\frac{1}{K}\sum_{c'} \tilde{w}_{c'}}, \qquad
   \item So $p_{k,c}$ với $\tau_c$; chỉ phát sự kiện khi cùng actor vượt ngưỡng $m$ trong $n$ khung hình khóa liên tiếp, giảm cảnh báo chớp tắt.
   \item Ghép sự kiện theo định danh track, lưu thời điểm, hộp, lớp, điểm và ảnh minh chứng; áp dụng thời gian chờ (cooldown) để tránh lặp cảnh báo.
 \end{enumerate}
-Các tham số $m/n$, cooldown và $\tau_c$ thuộc lớp nghiệp vụ, không được tối ưu trên tập kiểm tra. Độ trễ đầu--cuối gồm giải mã, bộ phát hiện người, bộ đệm nhìn trước của quét hai chiều (tối thiểu nửa đoạn video), mô hình và gửi cảnh báo; thời gian suy luận của riêng mô hình không đại diện cho toàn hệ thống. \Cref{tab:shapes} tóm tắt kích thước tensor qua pipeline.
+Các tham số $m/n$, cooldown và $\tau_c$ thuộc lớp nghiệp vụ, không được tối ưu trên tập kiểm tra. Độ trễ đầu--cuối gồm giải mã, bộ phát hiện người, bộ đệm nhìn trước của quét hai chiều (tối thiểu nửa đoạn video), mô hình và gửi cảnh báo; thời gian suy luận của riêng mô hình không đại diện cho toàn hệ thống. Một cài đặt minh họa của luồng này trên video được trình bày ở \cref{sec:demo}. \Cref{tab:shapes} tóm tắt kích thước tensor qua pipeline.
 
 \begin{table}[H]
 \centering
