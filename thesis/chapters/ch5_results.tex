@@ -1,12 +1,12 @@
 \chapter{Kết quả và thảo luận}
 \label{ch:results}
 
-Chương này trình bày kết quả của pipeline đề xuất trên bộ dữ liệu phân xưởng và AVA~v2.2, đồng thời phân tích đóng góp của từng thành phần qua ablation trên hai cách chia dữ liệu. Các kết quả được thảo luận theo chất lượng phát hiện, khả năng tổng quát hóa và chi phí tính toán. Các công trình công bố được dùng làm mốc tham chiếu tại \cref{sec:reference}.
+Chương này trình bày kết quả của pipeline đề xuất trên bộ dữ liệu phân xưởng và AVA~v2.2, đồng thời phân tích đóng góp của từng thành phần qua các thí nghiệm ablation trên hai cách chia dữ liệu. Kết quả được thảo luận theo chất lượng phát hiện, khả năng tổng quát hóa và chi phí tính toán còn các công trình đã công bố được dùng làm mốc tham chiếu tại \cref{sec:reference}.
 
 \section{Kết quả chính trên bộ dữ liệu phân xưởng}
 \label{sec:main-results}
 
-\Cref{tab:main-results} so sánh pipeline đầy đủ với các mô hình trong hồ sơ thực nghiệm, trên cách chia ngẫu nhiên của các lượt chạy ban đầu. Pipeline đề xuất đạt 89,83\% mAP, cao hơn mô hình mạnh nhất còn lại là FastViT3D-SA12 5,17 điểm và EfficientViT3D-b1 10,07 điểm; khoảng cách với YOWOv2-Nano (31,28 điểm) và SlowFast-R50 (60,56 điểm) lớn hơn nhiều. Khi bỏ ACRN, pipeline còn 83,60\%, tức ACRN đóng góp 6,23 điểm trong cặp lượt chạy này. Cấu hình không ACRN tương ứng A7; trung bình ba hạt giống của A7 và A8 trên S1 là 83,71\% và 89,60\% (\cref{tab:ablation-results}), rất gần hai lượt chạy trong hồ sơ.
+\Cref{tab:main-results} so sánh pipeline đầy đủ với các mô hình trong hồ sơ thực nghiệm trên cách chia ngẫu nhiên của các lượt chạy ban đầu. Pipeline đề xuất đạt 89,83\% mAP, cao hơn mô hình mạnh nhất còn lại là FastViT3D-SA12 5,17 điểm và cao hơn EfficientViT3D-b1 10,07 điểm còn khoảng cách với YOWOv2-Nano (31,28 điểm) và SlowFast-R50 (60,56 điểm) lớn hơn nhiều. Khi bỏ ACRN, pipeline chỉ còn 83,60\%, nghĩa là ACRN đóng góp 6,23 điểm trong cặp lượt chạy này. Cấu hình không có ACRN tương ứng với A7 và trung bình ba hạt giống của A7 và A8 trên S1 lần lượt là 83,71\% và 89,60\% (\cref{tab:ablation-results}), rất gần với hai lượt chạy trong hồ sơ.
 
 \begin{table}[htbp]
 \centering
@@ -26,7 +26,7 @@ FastViT3D-SA12 \cite{vasu2023fastvit} & 84,66 & $-5{,}17$\\
 \end{tabularx}
 \end{table}
 
-Về chỉ số vận hành (\cref{tab:operating}), Precision và Recall tại ngưỡng 0,5 cùng bằng 81,82\%: tại điểm vận hành này, ở mức từng người và từng khung hình khóa, khoảng 18\% dự đoán dương là sai và khoảng 18\% hành vi thật bị bỏ sót. Ngưỡng theo lớp và logic theo track (\cref{sec:loss,sec:inference}) cho phép dịch điểm vận hành theo yêu cầu nghiệp vụ, ví dụ ưu tiên recall với \path{dangerous_action}. Tốc độ trên 20 khung hình/giây với khoảng 10~GB bộ nhớ GPU cho thấy tiềm năng xử lý theo thời gian thực (M6). Tuy nhiên, báo cáo chưa nêu đầy đủ điều kiện và phạm vi đo FPS, nên chưa thể dùng thông lượng này để kết luận về độ trễ đầu--cuối, vốn còn phụ thuộc bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều.
+Về chỉ số vận hành (\cref{tab:operating}), Precision và Recall tại ngưỡng 0,5 cùng bằng 81,82\%, nghĩa là tại điểm vận hành này, xét ở mức từng người và từng khung hình khóa, khoảng 18\% dự đoán dương là sai và khoảng 18\% hành vi thật bị bỏ sót. Ngưỡng theo lớp và logic theo track (\cref{sec:loss,sec:inference}) cho phép dịch chuyển điểm vận hành theo yêu cầu nghiệp vụ, chẳng hạn ưu tiên recall với \path{dangerous_action}. Tốc độ trên 20 khung hình/giây với khoảng 10~GB bộ nhớ GPU cho thấy tiềm năng xử lý theo thời gian thực (M6). Tuy nhiên, báo cáo chưa nêu đầy đủ điều kiện và phạm vi đo FPS nên chưa thể dùng thông lượng này để kết luận về độ trễ đầu--cuối, vốn còn phụ thuộc vào bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều.
 
 \begin{table}[htbp]
 \centering
@@ -47,7 +47,7 @@ Tốc độ xử lý; bộ nhớ GPU & Trên 20 khung hình/giây; khoảng 10~G
 \subsection{Kết quả theo lớp trong báo cáo bổ sung}
 \label{sec:factory-class-report}
 
-Hình kết quả tại epoch 20 trong báo cáo bổ sung \cite{baocao210726} cung cấp AP của bốn hành vi như \cref{tab:factory-class-report}. Trung bình bốn giá trị hiển thị là 99,825\%, làm tròn thành 99,83\%, phù hợp với mAP tổng của loạt kết quả trong báo cáo. Loạt kết quả này được giữ riêng với mức 89,83\% trong \cref{tab:main-results}; không dùng AP của lượt chạy này để suy ra AP cho các cấu hình ablation trên S1 hoặc S2.
+Hình kết quả tại epoch 20 trong báo cáo bổ sung cho biết AP của bốn hành vi như trong \cref{tab:factory-class-report}. Trung bình bốn giá trị hiển thị là 99,825\%, làm tròn thành 99,83\%, khớp với mAP tổng của loạt kết quả trong báo cáo. Loạt kết quả này được tách riêng khỏi mức 89,83\% trong \cref{tab:main-results} và AP của lượt chạy này không được dùng để suy ra AP cho các cấu hình ablation trên S1 hoặc S2.
 
 \begin{table}[H]
 \centering
@@ -65,12 +65,12 @@ Hình kết quả tại epoch 20 trong báo cáo bổ sung \cite{baocao210726} c
 \end{tabularx}
 \end{table}
 
-Với \path{sleep_on_table}, phần văn bản nguồn ghi 98,5\% còn hình ghi 99,9\%; bảng dùng số trong hình, cần đối chiếu nhật ký đánh giá.
+Với \path{sleep_on_table}, phần văn bản nguồn ghi 98,5\% còn hình ghi 99,9\%. Bảng dùng số trong hình nhưng giá trị này vẫn cần được đối chiếu với nhật ký đánh giá.
 
 \section{Ablation: đóng góp của từng thành phần}
 \label{sec:ablation-results}
 
-\Cref{tab:ablation-results} và \cref{fig:ablation} trình bày mAP của chín cấu hình A0--A8 (\cref{tab:ablation}); mỗi giá trị là trung bình ba hạt giống, trên hai cách chia S1 (ngẫu nhiên) và S2 (giữ riêng hai camera để kiểm tra).
+\Cref{tab:ablation-results} và \cref{fig:ablation} trình bày mAP của chín cấu hình A0--A8 (\cref{tab:ablation}) trên hai cách chia S1 (ngẫu nhiên) và S2 (giữ riêng hai camera để kiểm tra), trong đó mỗi giá trị là trung bình của ba hạt giống.
 
 \begin{table}[H]
 \centering
@@ -146,26 +146,26 @@ A8 & A7 + ACRN & \textbf{89,60} & \textbf{78,15} & $+5{,}89$ & $+3{,}90$ & 11,45
 
 \subsection{Có cần temporal neck và neck tiêu chuẩn đã đủ chưa (RQ1)}
 
-Thêm temporal MHSA toàn cục tại vị trí hậu-backbone, tiền-RoI (A0 $\rightarrow$ A1) tăng mAP 3,17 điểm trên S1 và 3,43 điểm trên S2: mô hình hóa trục thời gian trước khi cắt vùng người là cần thiết, ngay cả khi Video Swin đã có attention không--thời gian bên trong. Tuy nhiên, neck tiêu chuẩn chưa đủ: ở cùng vị trí, Hybrid FGTN-Mamba (A6) cao hơn A1 4,24 điểm trên S1 và 4,42 điểm trên S2; so với không dùng neck, mức tăng là 7,41 và 7,85 điểm.
+Việc thêm temporal MHSA toàn cục tại vị trí hậu-backbone, tiền-RoI (A0 $\rightarrow$ A1) làm mAP tăng 3,17 điểm trên S1 và 3,43 điểm trên S2. Như vậy, mô hình hóa trục thời gian trước khi cắt vùng người là cần thiết, ngay cả khi bên trong Video Swin đã có attention không--thời gian. Tuy nhiên, neck tiêu chuẩn vẫn chưa đủ vì ở cùng vị trí, Hybrid FGTN-Mamba (A6) cao hơn A1 4,24 điểm trên S1 và 4,42 điểm trên S2 còn so với khi không dùng neck thì mức tăng là 7,41 và 7,85 điểm.
 
 \subsection{Vai trò của từng nhánh, hướng quét và cổng (RQ2)}
 
 \begin{itemize}
-  \item \emph{Quét một chiều và hai chiều.} SSM một chiều (A2) đạt mức tương đương MHSA toàn cục (75,31 so với 75,62 trên S1; 67,80 so với 67,83 trên S2) với chi phí tuyến tính theo $T$. Thêm quét ngược (A2 $\rightarrow$ A3) tăng 1,73 điểm (S1) và 1,58 điểm (S2): các khung hình sau khung hình khóa mang thông tin hữu ích, đổi lại hệ thống trực tuyến phải chịu độ trễ nhìn trước (\cref{sec:inference}).
-  \item \emph{Hai nhánh khi đứng riêng.} Bi-SSM (A3) cao hơn W-MHSA cục bộ (A4) 0,77 điểm (S1) và 1,08 điểm (S2), phù hợp với việc một nửa số hành vi mục tiêu là trạng thái kéo dài. Cả hai nhánh khi đứng riêng đều tốt hơn MHSA toàn cục (A1), gợi ý rằng thiên lệch cục bộ có ích khi dữ liệu huấn luyện hạn chế.
-  \item \emph{Hai nhánh bổ sung cho nhau.} Cộng trực tiếp hai nhánh (A5) cao hơn nhánh mạnh hơn khi đứng riêng (A3) 1,06 điểm (S1) và 1,02 điểm (S2): nhánh cục bộ mang thông tin mà Bi-SSM chưa nắm bắt.
-  \item \emph{Cổng sigmoid.} Thay tỷ lệ cố định 0,5/0,5 bằng cổng học theo nội dung (A5 $\rightarrow$ A6) tăng thêm 1,76 điểm (S1) và 1,85 điểm (S2); mức tăng nhất quán trên hai cách chia cho thấy lợi ích của cổng không phụ thuộc việc cảnh kiểm tra đã xuất hiện khi huấn luyện.
+  \item \emph{quét một chiều và hai chiều}: SSM một chiều (A2) đạt mức tương đương MHSA toàn cục (75,31 so với 75,62 trên S1; 67,80 so với 67,83 trên S2) với chi phí tuyến tính theo $T$. Khi thêm quét ngược (A2 $\rightarrow$ A3), mAP tăng 1,73 điểm (S1) và 1,58 điểm (S2), tức các khung hình sau khung hình khóa mang thông tin hữu ích, đổi lại hệ thống trực tuyến phải chịu độ trễ nhìn trước (\cref{sec:inference});
+  \item \emph{hai nhánh khi đứng riêng}: Bi-SSM (A3) cao hơn W-MHSA cục bộ (A4) 0,77 điểm (S1) và 1,08 điểm (S2), phù hợp với việc một nửa số hành vi mục tiêu là trạng thái kéo dài. Cả hai nhánh khi đứng riêng đều tốt hơn MHSA toàn cục (A1), gợi ý rằng thiên lệch cục bộ có ích khi dữ liệu huấn luyện còn hạn chế;
+  \item \emph{hai nhánh bổ sung cho nhau}: cộng trực tiếp hai nhánh (A5) cho kết quả cao hơn nhánh mạnh hơn khi đứng riêng (A3) 1,06 điểm (S1) và 1,02 điểm (S2), nghĩa là nhánh cục bộ mang thông tin mà Bi-SSM chưa nắm bắt được;
+  \item \emph{cổng sigmoid}: thay tỷ lệ cố định 0,5/0,5 bằng cổng học theo nội dung (A5 $\rightarrow$ A6) giúp mAP tăng thêm 1,76 điểm (S1) và 1,85 điểm (S2). Mức tăng nhất quán trên hai cách chia cho thấy lợi ích của cổng không phụ thuộc vào việc cảnh kiểm tra đã xuất hiện khi huấn luyện.
 \end{itemize}
-Chuỗi tăng A2 $\rightarrow$ A3 $\rightarrow$ A5 $\rightarrow$ A6 lặp lại theo cùng thứ tự trên cả S1 và S2; riêng các chênh lệch cỡ một điểm hoặc nhỏ hơn (A1 so với A2, A3 so với A4) cần diễn giải thận trọng cho tới khi có độ lệch chuẩn giữa các hạt giống.
+Chuỗi tăng A2 $\rightarrow$ A3 $\rightarrow$ A5 $\rightarrow$ A6 lặp lại theo cùng thứ tự trên cả S1 và S2. Riêng các chênh lệch cỡ một điểm hoặc nhỏ hơn (A1 so với A2, A3 so với A4) cần được diễn giải thận trọng cho tới khi có độ lệch chuẩn giữa các hạt giống.
 
 \subsection{Đặc trưng đa tỉ lệ và ACRN (RQ3, RQ4)}
 
-Áp dụng Hybrid FGTN-Mamba trên cả tầng 3 và tầng 4 (A6 $\rightarrow$ A7) tăng 3,85 điểm trên S1 và 2,00 điểm trên S2, xác nhận vai trò của độ phân giải cao hơn với tín hiệu nhỏ như điện thoại, bàn tay, bàn chân (L3). Thêm ACRN (A7 $\rightarrow$ A8) cho mức tăng lớn nhất, 5,89 và 3,90 điểm, phù hợp với việc các hành vi mục tiêu phụ thuộc quan hệ giữa người với bàn, ghế, thiết bị (L4). Từ A0 đến A8, tổng mức tăng là 17,15 điểm (S1) và 13,75 điểm (S2).
+Khi áp dụng Hybrid FGTN-Mamba trên cả tầng 3 và tầng 4 (A6 $\rightarrow$ A7), mAP tăng 3,85 điểm trên S1 và 2,00 điểm trên S2, xác nhận vai trò của độ phân giải cao hơn đối với các tín hiệu nhỏ như điện thoại, bàn tay hay bàn chân (L3). Việc thêm ACRN (A7 $\rightarrow$ A8) đem lại mức tăng lớn nhất là 5,89 và 3,90 điểm, phù hợp với việc các hành vi mục tiêu phụ thuộc vào quan hệ giữa người với bàn, ghế và thiết bị (L4). Tính từ A0 đến A8, tổng mức tăng là 17,15 điểm (S1) và 13,75 điểm (S2).
 
 \section{Tổng quát hóa sang camera mới}
 \label{sec:cross-camera}
 
-Với mọi cấu hình, mAP trên S2 thấp hơn S1 (cột cuối \cref{tab:ablation-results}). Với A0--A6, khoảng cách ổn định ở mức 7,5--8,1 điểm (khoảng 10\% giá trị tương đối), tức temporal neck không làm mô hình phụ thuộc nhiều hơn vào cảnh đã thấy. Khoảng cách tăng lên 9,46 điểm ở A7 và 11,45 điểm ở A8: một phần mức tăng của đa tỉ lệ và ACRN trên S1 đến từ tín hiệu gắn với cảnh hoặc camera cụ thể, điều dễ hiểu với ACRN vốn học trực tiếp bố cục cảnh. Dù vậy, hai thành phần này vẫn cải thiện rõ trên S2 và thứ tự giữa chín cấu hình được giữ nguyên. Vì hệ thống khi triển khai thường gặp camera mới, 78,15\% trên S2 là ước lượng thận trọng hơn cho hiệu năng vận hành, còn 89,60--89,83\% trên S1 là cận trên khi cảnh kiểm tra đã xuất hiện trong dữ liệu huấn luyện.
+Với mọi cấu hình, mAP trên S2 đều thấp hơn trên S1 (cột cuối của \cref{tab:ablation-results}). Ở các cấu hình A0--A6, khoảng cách này ổn định ở mức 7,5--8,1 điểm (khoảng 10\% giá trị tương đối), tức temporal neck không làm mô hình phụ thuộc nhiều hơn vào những cảnh đã thấy. Khoảng cách tăng lên 9,46 điểm ở A7 và 11,45 điểm ở A8, cho thấy một phần mức tăng của đa tỉ lệ và ACRN trên S1 đến từ các tín hiệu gắn với cảnh hoặc camera cụ thể. Điều này cũng dễ hiểu với ACRN vì thành phần này học trực tiếp bố cục cảnh. Dù vậy, hai thành phần này vẫn cải thiện rõ trên S2 và thứ tự giữa chín cấu hình được giữ nguyên. Do hệ thống khi triển khai thường phải làm việc với camera mới, mức 78,15\% trên S2 là ước lượng thận trọng hơn cho hiệu năng vận hành còn mức 89,60--89,83\% trên S1 là cận trên khi cảnh kiểm tra đã xuất hiện trong dữ liệu huấn luyện.
 
 \section{Kết quả trên AVA v2.2}
 \label{sec:ava-results}
@@ -174,14 +174,14 @@ Với mọi cấu hình, mAP trên S2 thấp hơn S1 (cột cuối \cref{tab:abl
 
 % Số liệu AVA cập nhật thành 38,1 theo yêu cầu học viên ngày 12/10/2026;
 % báo cáo nguồn Báo cáo 210726.docx giữ nguyên giá trị 39,1.
-Trên AVA~v2.2 trong thiết lập closed-set, pipeline Video Swin-Tiny kết hợp Hybrid FGTN-Mamba đa tỉ lệ và ACRN đạt 38,1 mAP (\cref{tab:reference}). Kết quả này bổ sung đánh giá trên dữ liệu công khai cho các thực nghiệm trên dữ liệu phân xưởng, cho thấy pipeline có khả năng mô hình hóa hành động trong những cảnh đa dạng hơn phạm vi ứng dụng ban đầu.
+Trên AVA~v2.2 trong thiết lập closed-set, pipeline gồm Video Swin-Tiny kết hợp Hybrid FGTN-Mamba đa tỉ lệ và ACRN đạt 38,1 mAP (\cref{tab:reference}). Kết quả này bổ sung một đánh giá trên dữ liệu công khai cho các thực nghiệm trên dữ liệu phân xưởng và cho thấy pipeline có khả năng mô hình hóa hành động trong những cảnh đa dạng hơn phạm vi ứng dụng ban đầu.
 
-So với mốc STAR/L đạt 39,2 mAP \cite{gritsenko2024star}, kết quả của pipeline thấp hơn 1,1 điểm. Tuy nhiên, STAR/L sử dụng tiền huấn luyện CLIP $\rightarrow$ Kinetics-700 và đầu vào 320~px; các phương pháp trong bảng còn khác nhau về backbone, dữ liệu tiền huấn luyện và giao thức đánh giá. Vì vậy, khoảng cách này dùng để định vị mức hiệu năng của pipeline, còn đóng góp riêng của Hybrid FGTN-Mamba, đa tỉ lệ và ACRN được đánh giá qua các cặp ablation trên dữ liệu phân xưởng (\cref{sec:ablation-results}). Kết quả tổng hợp trên AVA chưa cho phép định lượng riêng mức tăng của từng thành phần trên bộ dữ liệu này.
+So với mốc 39,2 mAP của STAR/L \cite{gritsenko2024star}, kết quả của pipeline thấp hơn 1,1 điểm. Tuy nhiên, STAR/L dùng tiền huấn luyện CLIP $\rightarrow$ Kinetics-700 với đầu vào 320~px, trong khi các phương pháp trong bảng còn khác nhau về backbone, dữ liệu tiền huấn luyện và giao thức đánh giá. Vì vậy, khoảng cách này được dùng để định vị mức hiệu năng của pipeline còn đóng góp riêng của Hybrid FGTN-Mamba, đa tỉ lệ và ACRN được đánh giá qua các cặp ablation trên dữ liệu phân xưởng (\cref{sec:ablation-results}). Kết quả tổng hợp trên AVA chưa cho phép định lượng riêng mức tăng của từng thành phần trên bộ dữ liệu này.
 
 \section{Mốc tham chiếu trên AVA}
 \label{sec:reference}
 
-\Cref{tab:reference} đặt kết quả 38,1 mAP của pipeline đầy đủ bên cạnh các mốc công bố trên AVA của những phương pháp ở \cref{ch:related}. Nhóm closed-set, nhóm open-vocabulary và nhóm zero-shot có phạm vi lớp cùng điều kiện đánh giá khác nhau, nên cần đọc kết quả theo từng giao thức.
+\Cref{tab:reference} đặt kết quả 38,1 mAP của pipeline đầy đủ bên cạnh các mốc đã công bố trên AVA của những phương pháp được nêu ở \cref{ch:related}. Các nhóm closed-set, open-vocabulary và zero-shot khác nhau cả về phạm vi lớp lẫn điều kiện đánh giá nên kết quả cần được đọc theo từng giao thức.
 
 \begin{table}[H]
 \centering
@@ -225,9 +225,9 @@ A8 & Đa tỉ lệ tầng 3 + 4 + ACRN + focal loss\\
 \end{tabularx}
 \end{table}
 
-Quy trình suy luận gồm bốn bước: (i) bộ phát hiện người YOLO26-x (huấn luyện trên COCO) chạy mỗi 8 khung hình; (ii) với mỗi khung hình khóa, lấy đoạn 32 khung hình, bước 2, quanh khung khóa và đổi kích thước về $384 \times 256$; (iii) mô hình hành vi chạy bằng PyTorch trên GPU với kernel selective scan CUDA của Mamba; (iv) xuất nhãn hành vi kèm điểm cho từng người. Cùng mô hình được xuất sang ONNX; sai khác đầu ra so với PyTorch không vượt quá $5{,}4 \cdot 10^{-4}$, cho thấy có thể chuyển sang các bộ suy luận tối ưu khi triển khai.
+Quy trình suy luận gồm bốn bước: (i) bộ phát hiện người YOLO26-x (huấn luyện trên COCO) chạy cứ 8 khung hình một lần; (ii) với mỗi khung hình khóa, lấy đoạn 32 khung hình với bước 2 quanh khung khóa rồi đổi kích thước về $384 \times 256$; (iii) mô hình hành vi chạy bằng PyTorch trên GPU với kernel selective scan CUDA của Mamba; (iv) xuất nhãn hành vi kèm điểm cho từng người. Cùng mô hình này cũng được xuất sang ONNX với sai khác đầu ra so với PyTorch không vượt quá $5{,}4 \cdot 10^{-4}$, cho thấy có thể chuyển sang các bộ suy luận tối ưu khi triển khai.
 
-Đầu vào là video ghép từ các clip thuộc tập kiểm tra của một phép chia theo video, gồm các tình huống dùng điện thoại, gác chân lên bàn và đánh nhau; cả ba mô hình chưa thấy các clip này khi huấn luyện. Các checkpoint dùng cho minh họa được huấn luyện tối đa 3 epoch với một hạt giống, nên phần này chỉ mang tính định tính: nó cho thấy pipeline chạy được đầu--cuối trên video, từ phát hiện người tới nhãn hành vi, và không thay thế số liệu định lượng trong \cref{tab:main-results,tab:ablation-results}. \Cref{fig:demo} trình bày cùng một khung hình qua ba mô hình.
+Đầu vào là video ghép từ các clip thuộc tập kiểm tra của một phép chia theo video, gồm các tình huống dùng điện thoại, gác chân lên bàn và đánh nhau mà cả ba mô hình đều chưa thấy khi huấn luyện. Do các checkpoint dùng cho minh họa được huấn luyện tối đa 3 epoch với một hạt giống, phần này chỉ mang tính định tính. Phần minh họa cho thấy pipeline chạy được đầu--cuối trên video, từ phát hiện người tới nhãn hành vi, nhưng không thay thế số liệu định lượng trong \cref{tab:main-results,tab:ablation-results}. \Cref{fig:demo} trình bày cùng một khung hình qua ba mô hình.
 
 \begin{figure}[H]
 \centering
@@ -253,19 +253,19 @@ Quy trình suy luận gồm bốn bước: (i) bộ phát hiện người YOLO26
 \section{Trả lời câu hỏi nghiên cứu}
 \label{sec:rq-answers}
 
-\textbf{RQ1} --- Có cần temporal neck: có; ngay cả MHSA toàn cục tại vị trí hậu-backbone, tiền-RoI cũng tăng mAP ($+3{,}17$ / $+3{,}43$ điểm trên S1 / S2), nhưng Hybrid FGTN-Mamba còn cao hơn neck tiêu chuẩn đó 4,24 / 4,42 điểm. \textbf{RQ2} --- Quét hai chiều có ích ($+1{,}73$ / $+1{,}58$), hai nhánh bổ sung cho nhau ($+1{,}06$ / $+1{,}02$ so với Bi-SSM đứng riêng) và cổng sigmoid đóng góp thêm 1,76 / 1,85 điểm. \textbf{RQ3} --- Đa tỉ lệ cải thiện 3,85 / 2,00 điểm. \textbf{RQ4} --- ACRN cải thiện 5,89 / 3,90 điểm. \textbf{RQ5} --- Trả lời một phần: mọi thành phần vẫn có ích trên camera chưa thấy khi huấn luyện, với mAP của pipeline đầy đủ giảm từ 89,60\% xuống 78,15\%; pipeline đạt 38,1 mAP trên AVA~v2.2 trong thiết lập closed-set. Kết quả trên camera mới vẫn cho thấy sự phụ thuộc vào miền dữ liệu, còn AVA chưa có ablation riêng để định lượng đóng góp của từng thành phần.
+\textbf{RQ1} --- Temporal neck là cần thiết vì ngay cả MHSA toàn cục tại vị trí hậu-backbone, tiền-RoI cũng làm tăng mAP ($+3{,}17$ / $+3{,}43$ điểm trên S1 / S2) nhưng Hybrid FGTN-Mamba còn cao hơn neck tiêu chuẩn đó 4,24 / 4,42 điểm. \textbf{RQ2} --- Quét hai chiều có ích ($+1{,}73$ / $+1{,}58$), hai nhánh bổ sung cho nhau ($+1{,}06$ / $+1{,}02$ so với Bi-SSM đứng riêng) và cổng sigmoid đóng góp thêm 1,76 / 1,85 điểm. \textbf{RQ3} --- Đa tỉ lệ cải thiện 3,85 / 2,00 điểm. \textbf{RQ4} --- ACRN cải thiện 5,89 / 3,90 điểm. \textbf{RQ5} --- Mới trả lời được một phần. Mọi thành phần vẫn có ích trên camera chưa thấy khi huấn luyện, dù mAP của pipeline đầy đủ giảm từ 89,60\% xuống 78,15\%. Trên AVA~v2.2 trong thiết lập closed-set, pipeline đạt 38,1 mAP. Tuy vậy, kết quả trên camera mới vẫn cho thấy sự phụ thuộc vào miền dữ liệu còn AVA chưa có ablation riêng để định lượng đóng góp của từng thành phần.
 
 \section{Hạn chế của nghiên cứu}
 \label{sec:limitations}
 
 \begin{itemize}
-  \item \emph{Độ bất định}: kết quả ablation chưa kèm độ lệch chuẩn giữa các hạt giống; các mô hình so sánh trong \cref{tab:main-results} là lượt chạy đơn, chưa đánh giá trên S2.
-  \item \emph{Dữ liệu và tổng quát hóa}: bộ dữ liệu phân xưởng có số camera hạn chế; mAP của pipeline đầy đủ giảm 11,45 điểm khi chuyển sang camera mới; AP theo lớp trong báo cáo bổ sung thuộc loạt kết quả riêng (\cref{sec:factory-class-report}), chưa được đối chiếu với các lượt chạy ablation.
-  \item \emph{Thực nghiệm trên AVA}: kết quả của pipeline đầy đủ chưa kèm ablation riêng cho từng thành phần trên AVA.
-  \item \emph{Khoảng cách tới triển khai}: độ trễ đầu--cuối (gồm bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều) chưa được đo; pipeline vẫn phụ thuộc person proposal và thiết lập closed-set.
+  \item \emph{độ bất định}: kết quả ablation chưa kèm độ lệch chuẩn giữa các hạt giống còn các mô hình so sánh trong \cref{tab:main-results} chỉ là lượt chạy đơn và chưa được đánh giá trên S2;
+  \item \emph{dữ liệu và tổng quát hóa}: bộ dữ liệu phân xưởng có số camera hạn chế và mAP của pipeline đầy đủ giảm 11,45 điểm khi chuyển sang camera mới. Ngoài ra, AP theo lớp trong báo cáo bổ sung thuộc một loạt kết quả riêng (\cref{sec:factory-class-report}) và chưa được đối chiếu với các lượt chạy ablation;
+  \item \emph{thực nghiệm trên AVA}: kết quả của pipeline đầy đủ chưa kèm ablation riêng cho từng thành phần trên AVA;
+  \item \emph{khoảng cách tới triển khai}: độ trễ đầu--cuối (gồm bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều) chưa được đo và pipeline vẫn phụ thuộc vào person proposal cũng như thiết lập closed-set.
 \end{itemize}
 
-\section*{Tiểu kết chương}
-\addcontentsline{toc}{section}{Tiểu kết chương}
+\section*{Kết luận chương 5}
+\addcontentsline{toc}{section}{Kết luận chương 5}
 
-Trên bộ dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP và vượt các mô hình so sánh, với tốc độ trên 20 khung hình/giây. Ablation trên hai cách chia dữ liệu xác nhận đóng góp của temporal neck, của hai nhánh, của cổng sigmoid, của đặc trưng đa tỉ lệ và của ACRN; trong đó Hybrid FGTN-Mamba vượt neck tiêu chuẩn tại cùng vị trí hơn 4 điểm trên cả hai cách chia. Khoảng cách giữa S1 và S2 cho thấy 78,15\% trên camera mới là ước lượng thận trọng hơn cho triển khai. Trên AVA~v2.2, pipeline đầy đủ đạt 38,1 mAP. Minh họa suy luận trên video với bộ phát hiện người YOLO26-x cho thấy pipeline chạy được đầu--cuối và xuất được sang ONNX. Độ bất định giữa các hạt giống, khả năng tổng quát hóa và độ trễ đầu--cuối là những vấn đề cần tiếp tục đánh giá.
+Trên bộ dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP với tốc độ trên 20 khung hình/giây và vượt các mô hình so sánh. Các thí nghiệm ablation trên hai cách chia dữ liệu xác nhận đóng góp của temporal neck, hai nhánh, cổng sigmoid, đặc trưng đa tỉ lệ và ACRN, trong đó Hybrid FGTN-Mamba vượt neck tiêu chuẩn tại cùng vị trí hơn 4 điểm trên cả hai cách chia. Khoảng cách giữa S1 và S2 cho thấy mức 78,15\% trên camera mới là ước lượng thận trọng hơn cho triển khai. Trên AVA~v2.2, pipeline đầy đủ đạt 38,1 mAP. Phần minh họa suy luận trên video với bộ phát hiện người YOLO26-x cho thấy pipeline chạy được đầu--cuối và xuất được sang ONNX. Độ bất định giữa các hạt giống, khả năng tổng quát hóa và độ trễ đầu--cuối là những vấn đề cần được tiếp tục đánh giá.

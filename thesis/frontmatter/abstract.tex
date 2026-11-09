@@ -1,17 +1,21 @@
-\chapter*{TÓM TẮT}
-\addcontentsline{toc}{chapter}{TÓM TẮT}
+\newpage
+\begin{center}
+  \textbf{\large LỜI NÓI ĐẦU}
+\end{center}
 
-Luận văn nghiên cứu bài toán phát hiện và cảnh báo hành vi không được phép trong phân xưởng nhà máy dưới dạng phát hiện hành động không--thời gian (STAD) theo từng người: tại mỗi khung hình khóa, hệ thống định vị từng người và gán một hoặc nhiều nhãn hành vi kèm điểm tin cậy. Bốn hành vi mục tiêu trải trên hai thang thời gian đối lập: các trạng thái kéo dài, ít chuyển động (ngủ trên bàn, gác chân lên bàn) và các hành vi ngắn, gắn với vật thể nhỏ (sử dụng điện thoại, hành vi nguy hiểm), nên một toán tử thời gian duy nhất khó phục vụ tốt cả hai.
+Luận văn nghiên cứu bài toán phát hiện và cảnh báo hành vi không được phép trong phân xưởng nhà máy dưới dạng phát hiện hành động không--thời gian (STAD) theo từng người, tức là tại mỗi khung hình khóa hệ thống phải định vị được từng người và gán cho người đó một hoặc nhiều nhãn hành vi kèm điểm tin cậy. Bốn hành vi mục tiêu nằm trên hai thang thời gian trái ngược nhau. Ngủ trên bàn hay gác chân lên bàn là những trạng thái kéo dài và ít chuyển động còn sử dụng điện thoại hay hành vi nguy hiểm lại diễn ra ngắn và gắn với vật thể nhỏ nên khó có một toán tử thời gian duy nhất làm tốt được cả hai.
 
-Luận văn đề xuất \emph{Hybrid FGTN-Mamba}, một temporal neck đặt sau backbone Video Swin-Tiny và trước 3D RoIAlign, gồm nhánh mô hình không gian trạng thái chọn lọc hai chiều (dài hạn, chi phí tuyến tính theo $T$) và nhánh self-attention trong cửa sổ $W=5$ (ngắn hạn), hợp nhất bằng cổng sigmoid học theo từng kênh và từng bước thời gian. Khối được áp dụng độc lập trên hai tầng đặc trưng; đặc trưng vùng người của hai tầng được nối lại (multi-scale RoI) rồi đi qua ACRN và head sigmoid đa nhãn, huấn luyện bằng focal loss kết hợp trọng số lớp.
+Từ đó, luận văn đề xuất \emph{Hybrid FGTN-Mamba}, một khối temporal neck đặt sau backbone Video Swin-Tiny và trước 3D RoIAlign. Khối gồm một nhánh mô hình không gian trạng thái chọn lọc quét hai chiều để nắm phụ thuộc dài hạn với chi phí tuyến tính theo $T$ và một nhánh self-attention trong cửa sổ $W=5$ để giữ biến đổi ngắn hạn, hai nhánh được hợp nhất bằng cổng sigmoid học theo từng kênh và từng bước thời gian. Khối được áp dụng độc lập trên hai tầng đặc trưng, sau đó đặc trưng vùng người của hai tầng được nối lại (multi-scale RoI) rồi đi qua ACRN và head sigmoid đa nhãn được huấn luyện bằng focal loss kết hợp trọng số lớp.
 
-Trên bộ dữ liệu riêng của phân xưởng, pipeline đầy đủ đạt 89,83\% \mAP{}, Precision = Recall = 81,82\% tại ngưỡng 0,5, trên 20 khung hình/giây với khoảng 10~GB bộ nhớ GPU, cao hơn FastViT3D-SA12 5,17 điểm và EfficientViT3D-b1 10,07 điểm. Ablation chín cấu hình, ba hạt giống, trên hai cách chia dữ liệu (ngẫu nhiên và giữ riêng hai camera để kiểm tra) cho thấy tại cùng vị trí, Hybrid FGTN-Mamba cao hơn temporal MHSA toàn cục 4,24 và 4,42 điểm; cổng sigmoid, đa tỉ lệ và ACRN đều đóng góp. Trên hai camera chưa thấy khi huấn luyện, pipeline đầy đủ đạt 78,15\% \mAP{}, là ước lượng thận trọng cho vận hành. Trên AVA~v2.2, pipeline đầy đủ đạt 38,1 \mAP{} trong thiết lập closed-set. Độ lệch chuẩn giữa các hạt giống còn cần được bổ sung.
+Trên bộ dữ liệu riêng của phân xưởng, pipeline đầy đủ đạt 89,83\% \mAP{} với Precision = Recall = 81,82\% tại ngưỡng 0,5, chạy trên 20 khung hình/giây và dùng khoảng 10~GB bộ nhớ GPU, cao hơn FastViT3D-SA12 5,17 điểm và EfficientViT3D-b1 10,07 điểm. Các thí nghiệm ablation gồm chín cấu hình, mỗi cấu hình chạy ba hạt giống trên hai cách chia dữ liệu (chia ngẫu nhiên và giữ riêng hai camera để kiểm tra). Kết quả cho thấy khi đặt ở cùng vị trí, Hybrid FGTN-Mamba cao hơn temporal MHSA toàn cục 4,24 và 4,42 điểm, đồng thời cổng sigmoid, đặc trưng đa tỉ lệ và ACRN đều có đóng góp. Trên hai camera không xuất hiện khi huấn luyện, pipeline đầy đủ đạt 78,15\% \mAP{} và đây có thể coi là ước lượng thận trọng cho điều kiện vận hành thực tế. Trên AVA~v2.2, pipeline đạt 38,1 \mAP{} ở thiết lập closed-set. Độ lệch chuẩn giữa các hạt giống hiện vẫn cần được bổ sung.
 
 \textbf{Từ khóa:} phát hiện hành động không--thời gian; giám sát an toàn phân xưởng; Hybrid FGTN-Mamba; mô hình không gian trạng thái chọn lọc; ACRN; Video Swin Transformer.
 
 \clearpage
-\chapter*{ABSTRACT}
-\addcontentsline{toc}{chapter}{ABSTRACT}
+\newpage
+\begin{center}
+  \textbf{\large ABSTRACT}
+\end{center}
 
 This thesis addresses the detection of prohibited behaviours on a factory floor as person-level spatio-temporal action detection (STAD): at every keyframe, the system localises each person and assigns one or several behaviour labels with a confidence score. The four target behaviours span two opposite temporal scales, long and almost static states (sleeping on the table, feet on the table) and short behaviours tied to small objects (using a mobile phone, dangerous actions), so a single temporal operator struggles to serve both.
 

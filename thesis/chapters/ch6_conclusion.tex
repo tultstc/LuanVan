@@ -4,30 +4,32 @@
 
 \section*{1. Kết luận}
 
-Luận văn giải bài toán phát hiện và cảnh báo hành vi không được phép trong phân xưởng nhà máy dưới dạng phát hiện hành động không--thời gian theo từng người, với bốn hành vi mục tiêu trải trên hai thang thời gian đối lập, và đề xuất Hybrid FGTN-Mamba, một temporal neck lai đặt sau Video Swin-Tiny và trước 3D RoIAlign. Các kết quả chính như sau.
+Luận văn đã giải bài toán phát hiện và cảnh báo hành vi không được phép trong phân xưởng nhà máy dưới dạng phát hiện hành động không--thời gian theo từng người, trong đó bốn hành vi mục tiêu nằm trên hai thang thời gian trái ngược nhau. Để giải quyết bài toán này, luận văn đề xuất Hybrid FGTN-Mamba, một khối temporal neck lai đặt sau Video Swin-Tiny và trước 3D RoIAlign. Các kết quả chính có thể tóm tắt như sau.
 
 \begin{enumerate}
-  \item \textbf{Về phương pháp.} Khối gồm nhánh SSM chọn lọc hai chiều (dài hạn), nhánh self-attention trong cửa sổ $W = 5$ (ngắn hạn) và cổng sigmoid theo từng kênh và bước thời gian, với chi phí tuyến tính theo độ dài chuỗi. Khối được áp dụng độc lập trên tầng 3 và tầng 4, kết hợp multi-scale RoI, ACRN, focal loss có trọng số lớp và logic cảnh báo theo track thành pipeline hoàn chỉnh trên MMAction2, giữ nguyên trọng số tiền huấn luyện của backbone.
-  \item \textbf{Về thực nghiệm trên dữ liệu phân xưởng.} Pipeline đầy đủ đạt 89,83\% mAP, Precision = Recall = 81,82\% tại ngưỡng 0,5, trên 20 khung hình/giây với khoảng 10~GB bộ nhớ GPU; cao hơn FastViT3D-SA12 5,17 điểm, EfficientViT3D-b1 10,07 điểm và vượt xa YOWOv2-Nano, SlowFast-R50. Ablation chín cấu hình, ba hạt giống, trên hai cách chia dữ liệu cho thấy Hybrid FGTN-Mamba tốt hơn temporal MHSA toàn cục tại cùng vị trí 4,24 / 4,42 điểm; quét hai chiều, sự kết hợp hai nhánh và cổng sigmoid đều đóng góp; đa tỉ lệ và ACRN tăng thêm lần lượt 3,85 / 2,00 và 5,89 / 3,90 điểm (S1 / S2).
-  \item \textbf{Về tổng quát hóa và dữ liệu công khai.} Pipeline đầy đủ đạt 78,15\% mAP trên camera chưa thấy khi huấn luyện và 38,1 mAP trên AVA~v2.2 trong thiết lập closed-set. Thứ tự giữa các cấu hình được giữ nguyên trên camera mới.
+  \item \textbf{Về phương pháp.} Khối đề xuất gồm một nhánh SSM chọn lọc quét hai chiều cho phụ thuộc dài hạn, một nhánh self-attention trong cửa sổ $W = 5$ cho biến đổi ngắn hạn và một cổng sigmoid tính theo từng kênh và từng bước thời gian, chi phí tính toán tuyến tính theo độ dài chuỗi. Khối được áp dụng độc lập trên tầng 3 và tầng 4 rồi ghép cùng multi-scale RoI, ACRN, focal loss có trọng số lớp và logic cảnh báo theo track thành một pipeline hoàn chỉnh trên MMAction2 mà vẫn giữ nguyên trọng số tiền huấn luyện của backbone.
+  \item \textbf{Về thực nghiệm trên dữ liệu phân xưởng.} Pipeline đầy đủ đạt 89,83\% mAP với Precision = Recall = 81,82\% tại ngưỡng 0,5, chạy trên 20 khung hình/giây và dùng khoảng 10~GB bộ nhớ GPU. Kết quả này cao hơn FastViT3D-SA12 5,17 điểm, cao hơn EfficientViT3D-b1 10,07 điểm và vượt xa YOWOv2-Nano cũng như SlowFast-R50. Các thí nghiệm ablation gồm chín cấu hình, mỗi cấu hình chạy ba hạt giống trên hai cách chia dữ liệu, cho thấy ở cùng vị trí Hybrid FGTN-Mamba tốt hơn temporal MHSA toàn cục 4,24 / 4,42 điểm. Việc quét hai chiều, kết hợp hai nhánh và dùng cổng sigmoid đều có đóng góp còn đặc trưng đa tỉ lệ và ACRN tăng thêm lần lượt 3,85 / 2,00 và 5,89 / 3,90 điểm (S1 / S2).
+  \item \textbf{Về khả năng tổng quát hóa và dữ liệu công khai.} Trên camera không xuất hiện khi huấn luyện, pipeline đầy đủ đạt 78,15\% mAP và thứ tự giữa các cấu hình vẫn được giữ nguyên. Trên AVA~v2.2, pipeline đạt 38,1 mAP ở thiết lập closed-set.
 \end{enumerate}
 
-Các mục tiêu M1, M2, M3, M4 và M6 (\cref{sec:objectives}) đã đạt; M5 đạt phần lớn, còn thiếu độ lệch chuẩn giữa các hạt giống và nhật ký chi tiết của các lượt chạy trong hồ sơ.
+Đối chiếu với \cref{sec:objectives}, các mục tiêu M1, M2, M3, M4 và M6 đã đạt được. Mục tiêu M5 đạt được phần lớn nhưng vẫn còn thiếu độ lệch chuẩn giữa các hạt giống và nhật ký chi tiết của các lượt chạy trong hồ sơ.
 
 \section*{2. Hạn chế}
 
+Bên cạnh các kết quả trên, luận văn vẫn còn một số hạn chế:
 \begin{itemize}
-  \item Độ lệch chuẩn giữa các hạt giống chưa được báo cáo; AP theo từng hành vi trong báo cáo bổ sung thuộc loạt kết quả riêng, chưa đối chiếu với các lượt chạy ablation (\cref{sec:factory-class-report}).
-  \item mAP giảm đáng kể khi chuyển sang camera mới (89,60\% xuống 78,15\%); bộ dữ liệu phân xưởng còn ít camera.
-  \item Pipeline phụ thuộc person proposal và thiết lập closed-set; độ trễ đầu--cuối của hệ thống cảnh báo chưa được đo.
+  \item độ lệch chuẩn giữa các hạt giống chưa được báo cáo và AP theo từng hành vi trong báo cáo bổ sung thuộc một loạt kết quả riêng, chưa được đối chiếu với các lượt chạy ablation (\cref{sec:factory-class-report});
+  \item mAP giảm đáng kể khi chuyển sang camera mới (từ 89,60\% xuống 78,15\%) do bộ dữ liệu phân xưởng còn ít camera;
+  \item pipeline còn phụ thuộc vào person proposal và thiết lập closed-set, đồng thời độ trễ đầu--cuối của hệ thống cảnh báo chưa được đo.
 \end{itemize}
 
 \section*{3. Hướng phát triển}
 
+Từ những hạn chế trên, các hướng phát triển tiếp theo của luận văn gồm:
 \begin{enumerate}
-  \item \textbf{Ngắn hạn:} báo cáo độ lệch chuẩn và AP theo từng hành vi cho mỗi cấu hình ablation; thay đổi các siêu tham số chính (cửa sổ $W$, số khối, số đầu attention) để chứng minh lựa chọn hiện tại là tối ưu; phân tích phân bố cổng $g$ theo từng hành vi; đính kèm nhật ký và cấu hình của các lượt chạy trong hồ sơ.
-  \item \textbf{Trung hạn:} mở rộng dữ liệu phân xưởng với nhiều camera hơn để thu hẹp khoảng cách giữa hai cách chia; thử neck với backbone khác và bổ sung positional bias cho nhánh cục bộ.
-  \item \textbf{Ứng dụng:} đo độ trễ đầu--cuối; xây dựng chế độ suy luận nhân quả hoặc nhìn trước giới hạn để giảm độ trễ cảnh báo; hiệu chỉnh ngưỡng theo lớp và logic $m/n$ với cooldown trên dữ liệu kiểm định; tích hợp theo dõi (tracking) và lưu ảnh minh chứng.
-  \item \textbf{Dài hạn:} thay person proposal bằng truy vấn end-to-end theo hướng STAR; mở rộng tập lớp bằng căn chỉnh vùng--văn bản (open-vocabulary) trong khi giữ Hybrid FGTN-Mamba làm bộ mô hình hóa thời gian.
+  \item \textbf{ngắn hạn:} báo cáo độ lệch chuẩn và AP theo từng hành vi cho mỗi cấu hình ablation, thay đổi các siêu tham số chính (cửa sổ $W$, số khối, số đầu attention) để chứng minh lựa chọn hiện tại là tối ưu, phân tích phân bố cổng $g$ theo từng hành vi và đính kèm nhật ký cùng cấu hình của các lượt chạy vào hồ sơ;
+  \item \textbf{trung hạn:} mở rộng dữ liệu phân xưởng với nhiều camera hơn để thu hẹp khoảng cách giữa hai cách chia, thử neck với các backbone khác và bổ sung positional bias cho nhánh cục bộ;
+  \item \textbf{ứng dụng:} đo độ trễ đầu--cuối, xây dựng chế độ suy luận nhân quả hoặc chỉ nhìn trước trong giới hạn để giảm độ trễ cảnh báo, hiệu chỉnh ngưỡng theo lớp và logic $m/n$ với cooldown trên dữ liệu kiểm định, tích hợp theo dõi (tracking) và lưu ảnh minh chứng;
+  \item \textbf{dài hạn:} thay person proposal bằng truy vấn end-to-end theo hướng STAR và mở rộng tập lớp bằng căn chỉnh vùng--văn bản (open-vocabulary) trong khi vẫn giữ Hybrid FGTN-Mamba làm bộ mô hình hóa thời gian.
 \end{enumerate}
 \clearpage
