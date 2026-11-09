@@ -204,6 +204,52 @@ Hybrid FGTN-Mamba đa tỉ lệ + ACRN (đề xuất) & AVA v2.2, closed-set & \
 \end{tabularx}
 \end{table}
 
+\section{Minh họa suy luận trên video}
+\label{sec:demo}
+
+Để minh họa hành vi của mô hình trên video liên tục, luận văn chạy suy luận với ba mô hình A0, A5 và A8 (\cref{tab:demo-models}).
+
+\begin{table}[H]
+\centering
+\caption{Ba mô hình dùng trong minh họa suy luận trên video}
+\label{tab:demo-models}
+\small
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Mô hình} & \textbf{Cấu hình}\\
+\midrule
+A0 & Video Swin-T tầng 4, không neck\\
+A5 & Bi-SSM + W-MHSA, cộng trực tiếp 0,5 / 0,5, tầng 4 (repo: \code{A5\_hybrid})\\
+A8 & Đa tỉ lệ tầng 3 + 4 + ACRN + focal loss\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Quy trình suy luận gồm bốn bước: (i) bộ phát hiện người YOLO26-x (huấn luyện trên COCO) chạy mỗi 8 khung hình; (ii) với mỗi khung hình khóa, lấy đoạn 32 khung hình, bước 2, quanh khung khóa và đổi kích thước về $384 \times 256$; (iii) mô hình hành vi chạy bằng PyTorch trên GPU với kernel selective scan CUDA của Mamba; (iv) xuất nhãn hành vi kèm điểm cho từng người. Cùng mô hình được xuất sang ONNX; sai khác đầu ra so với PyTorch không vượt quá $5{,}4 \cdot 10^{-4}$, cho thấy có thể chuyển sang các bộ suy luận tối ưu khi triển khai.
+
+Đầu vào là video ghép từ các clip thuộc tập kiểm tra của một phép chia theo video, gồm các tình huống dùng điện thoại, gác chân lên bàn và đánh nhau; cả ba mô hình chưa thấy các clip này khi huấn luyện. Các checkpoint dùng cho minh họa được huấn luyện tối đa 3 epoch với một hạt giống, nên phần này chỉ mang tính định tính: nó cho thấy pipeline chạy được đầu--cuối trên video, từ phát hiện người tới nhãn hành vi, và không thay thế số liệu định lượng trong \cref{tab:main-results,tab:ablation-results}. \Cref{fig:demo} trình bày cùng một khung hình qua ba mô hình.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{demo_A0.png}
+  \caption{A0}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{demo_A5.png}
+  \caption{A5}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{demo_A8.png}
+  \caption{A8}
+\end{subfigure}
+\caption[Minh họa suy luận trên video: A0, A5, A8]{Minh họa suy luận trên video với ba mô hình A0, A5 và A8 tại cùng một khung hình; hộp là người do YOLO26-x phát hiện, nhãn kèm điểm là đầu ra của mô hình hành vi. Checkpoint huấn luyện $\leq 3$ epoch, một hạt giống; hình chỉ mang tính định tính.}
+\label{fig:demo}
+\end{figure}
+
 \section{Trả lời câu hỏi nghiên cứu}
 \label{sec:rq-answers}
 
@@ -222,4 +268,4 @@ Hybrid FGTN-Mamba đa tỉ lệ + ACRN (đề xuất) & AVA v2.2, closed-set & \
 \section*{Tiểu kết chương}
 \addcontentsline{toc}{section}{Tiểu kết chương}
 
-Trên bộ dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP và vượt các mô hình so sánh, với tốc độ trên 20 khung hình/giây. Ablation trên hai cách chia dữ liệu xác nhận đóng góp của temporal neck, của hai nhánh, của cổng sigmoid, của đặc trưng đa tỉ lệ và của ACRN; trong đó Hybrid FGTN-Mamba vượt neck tiêu chuẩn tại cùng vị trí hơn 4 điểm trên cả hai cách chia. Khoảng cách giữa S1 và S2 cho thấy 78,15\% trên camera mới là ước lượng thận trọng hơn cho triển khai. Trên AVA~v2.2, pipeline đầy đủ đạt 38,1 mAP. Độ bất định giữa các hạt giống, khả năng tổng quát hóa và độ trễ đầu--cuối là những vấn đề cần tiếp tục đánh giá.
+Trên bộ dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP và vượt các mô hình so sánh, với tốc độ trên 20 khung hình/giây. Ablation trên hai cách chia dữ liệu xác nhận đóng góp của temporal neck, của hai nhánh, của cổng sigmoid, của đặc trưng đa tỉ lệ và của ACRN; trong đó Hybrid FGTN-Mamba vượt neck tiêu chuẩn tại cùng vị trí hơn 4 điểm trên cả hai cách chia. Khoảng cách giữa S1 và S2 cho thấy 78,15\% trên camera mới là ước lượng thận trọng hơn cho triển khai. Trên AVA~v2.2, pipeline đầy đủ đạt 38,1 mAP. Minh họa suy luận trên video với bộ phát hiện người YOLO26-x cho thấy pipeline chạy được đầu--cuối và xuất được sang ONNX. Độ bất định giữa các hạt giống, khả năng tổng quát hóa và độ trễ đầu--cuối là những vấn đề cần tiếp tục đánh giá.

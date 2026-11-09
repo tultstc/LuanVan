@@ -96,8 +96,9 @@ Phần cứng & Báo cáo chưa nêu model và số lượng GPU\\
 \begin{enumerate}
   \item Mỗi cặp so sánh chỉ thay đổi đúng một yếu tố; dữ liệu, cách chia, proposal, tăng cường dữ liệu, bộ tối ưu, số epoch và bộ đánh giá giữ nguyên.
   \item Mỗi cấu hình chạy ba hạt giống; báo cáo trung bình (kèm độ lệch chuẩn khi đã tổng hợp) trên cả S1 và S2.
-  \item Cùng với mAP, báo cáo Precision và Recall tại ngưỡng 0,5, tốc độ xử lý và bộ nhớ GPU; thời gian suy luận đo trên cùng GPU, cùng độ phân giải và $T$.
-  \item Với pipeline dựa trên proposal, chạy thêm cấu hình dùng hộp nhãn thật làm cận trên để tách lỗi định vị khỏi lỗi phân loại.
+  \item Cùng với mAP, báo cáo Precision và Recall tại ngưỡng 0,5, tốc độ xử lý và bộ nhớ GPU.
+  % Tạm bỏ theo slide bảo vệ (09/11/2026): chưa có kết quả với hộp nhãn thật.
+  % \item Với pipeline dựa trên proposal, chạy thêm cấu hình dùng hộp nhãn thật làm cận trên để tách lỗi định vị khỏi lỗi phân loại.
   \item So sánh với các mô hình có kiến trúc khác phản ánh hiệu năng của toàn pipeline; đóng góp của temporal neck chỉ được kết luận từ các cặp ablation trong cùng pipeline. Số liệu công bố của STAR, OV-STAD, ST-CLIP chỉ dùng để định vị khoảng hiệu năng.
 \end{enumerate}
 
