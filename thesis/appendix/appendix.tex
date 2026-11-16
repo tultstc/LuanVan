@@ -74,7 +74,7 @@ Trong cặp A6 $\rightarrow$ A7, hàm mất mát cần giữ giống nhau; khi s
 \chapter{Bảng truy nguồn số liệu}
 \label{app:traceability}
 
-Mỗi con số thực nghiệm trong luận văn được ghi kèm nguồn trong kho mã, trong kết quả huấn luyện và đánh giá của luận văn hoặc trong tài liệu được trích dẫn (\cref{tab:trace}).
+Mỗi con số thực nghiệm trong luận văn được ghi kèm nguồn trong kho mã, trong nhật ký huấn luyện và đánh giá của luận văn hoặc trong tài liệu được trích dẫn (\cref{tab:trace}). Các đường dẫn \path{logs/} và \path{work_dirs/} là thư mục nhật ký và kết quả của các lượt chạy, được lưu kèm kho mã; mã nguồn nằm trong \path{projects/fgtn_ava/}.
 
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{4.1cm}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{7.4cm}@{}}
 \caption{Truy nguồn các số liệu trong luận văn}
@@ -88,14 +88,14 @@ Mỗi con số thực nghiệm trong luận văn được ghi kèm nguồn trong
 \midrule
 \endhead
 Phân bố lượt gán nhãn của bộ dữ liệu phân xưởng & \cref{tab:factory-stats} (24.614 lượt) & Thống kê tệp nhãn của bộ dữ liệu phân xưởng\\
-Cấu hình huấn luyện trên dữ liệu phân xưởng & \cref{tab:factory-config} & Cấu hình các lượt huấn luyện trên dữ liệu phân xưởng\\
-mAP pipeline đầy đủ trên dữ liệu phân xưởng & 89,83\% & Kết quả đánh giá pipeline đầy đủ trên S1 (\cref{tab:main-results})\\
-mAP các mô hình so sánh & \cref{tab:main-results} & Kết quả đánh giá từng mô hình trên S1\\
-Precision, Recall tại ngưỡng 0,5 & 81,82\% & Kết quả đánh giá pipeline đầy đủ\\
-Tốc độ xử lý; bộ nhớ GPU & $>$ 20 khung hình/giây; $\approx 10$~GB & Đo khi chạy pipeline đầy đủ (\cref{tab:operating})\\
-mAP ablation A0--A8 trên S1, S2 & \cref{tab:ablation-results} & Kết quả đánh giá các cấu hình ablation, trung bình ba seed\\
-Khoảng cách S1 $-$ S2; mAP trên camera mới & 7,51--11,45 điểm; 78,15\% & Tính từ \cref{tab:ablation-results}\\
-mAP trên AVA~v2.2 (pipeline đầy đủ) & 38,1 & Đánh giá trên tập val AVA~v2.2; xem \cref{sec:ava-results}\\
+Phép chia theo video nguồn; rò rỉ của phân chia gốc & \cref{tab:vsplit}; 2.891/3.831 khung hình khóa & \path{make_hpd_split.py} (seed 42) chạy trên tệp nhãn gốc; đối chiếu cặp (video, khung hình khóa) giữa \path{train.csv} và \path{val.csv}\\
+Cấu hình huấn luyện trên dữ liệu phân xưởng & \cref{tab:factory-config} & \path{hpd_swin-tiny_fgtn_debias_wandb.py}, \path{hpd_swin-tiny_fgtn-ms-acrn_debias_wandb.py}; dòng lệnh và learning rate trong nhật ký huấn luyện\\
+AP theo lớp, mAP theo epoch của A0, A6, A8, A6-gốc, A6+AVA & \cref{tab:main-results,tab:epochs,tab:ablation-results} & Nhật ký console \path{logs/debias.log}, \path{logs/a8.log}, \path{logs/train_hpd.log}, \path{logs/night.log} (khối ``Per-class results'' sau mỗi epoch kiểm định) và nhật ký MMEngine trong \path{work_dirs/hpd*/<cấu hình>/<thời điểm>/}\\
+Thăm dò che người, che bối cảnh, bỏ chuyển động & \cref{tab:probe} & \path{probe_scene.py}; dòng \code{PROBE\_SUMMARY} trong \path{logs/night.log} và \path{logs/probe_A5_ep2.log}\\
+Chỉ số đầu--cuối với YOLO26-x & \cref{tab:operating} & \path{demo_video.py --dump} trên 23 video kiểm định (tệp JSON trong \path{work_dirs/torch_val/<mô hình>/}); tính bằng \path{eval_e2e.py} (ghép với nhãn bằng \code{score\_frame} của \path{score_val_demos.py}); \cref{fig:demo} vẽ bằng \path{render_demo_fig.py}\\
+Đánh giá logic cảnh báo & \cref{tab:alert-eval} & \path{alert.py} chạy trên cùng các tệp JSON, $m/n = 2/3$, cooldown 5~s, ngưỡng 0,5\\
+Thời gian suy luận, bộ nhớ GPU, thời gian mỗi epoch & \cref{tab:cost} & Trung vị trường \code{time} và giá trị lớn nhất của \code{memory} ở các dòng \code{Epoch(val)}/\code{Epoch(train)} trong nhật ký MMEngine; khoảng cách giữa các dòng kết quả kiểm định\\
+mAP trên tập con AVA~v2.2 (A0, A6) & \cref{tab:ava-subset} & Nhật ký \path{logs/train_ablation.log} (\path{work_dirs/subset/A0_noneck}, \path{work_dirs/subset/A5_hybrid}); AP theo lớp trong cùng nhật ký\\
 Bước giảm mẫu tầng 4 của Swin-T & 32 & Patch $(2,4,4)$ và ba lần gộp patch; \path{fgtn_ava/README.md} ghi $(B, 768, 16, H/32, W/32)$\\
 Số tham số ACRN, neck tầng 3 & $\approx 14{,}6$M; 3,57M & Tính từ kích thước lớp trong \code{ACRNHead} và \code{FGTNNeckAVA(384)}\\
 Mốc A*, STAR, OV-STAD, ST-CLIP & \cref{tab:reference} & Bài báo gốc \cite{kim2024astar,gritsenko2024star,wu2024ovstad,huang2025stclip}\\
