@@ -6,16 +6,16 @@
 
 Phụ lục này in nguyên văn hai tệp cấu hình MMAction2 trong kho mã \path{projects/fgtn_ava}. Các cấu hình ablation A0--A7 được tạo từ hai tệp này bằng một khóa ghi đè duy nhất cho mỗi cấu hình (\cref{app:ablation-map}).
 
-\section{Cấu hình một tỉ lệ (tầng 4) --- cơ sở của A0--A6}
+\section{Cấu hình chỉ dùng tầng 4 --- cơ sở của A0--A6}
 \label{app:config-single}
 
-Tệp \path{ava22_swin-tiny_fgtn_32x2x1-10e.py}: Video Swin-Tiny tiền huấn luyện Kinetics-400, khối Hybrid FGTN-Mamba trên tầng 4, \code{SingleRoIExtractor3D} với \code{featmap\_stride = 32} và head sigmoid đa nhãn.
+Cấu hình này không dùng tầng 3 và ACRN. Tệp \path{ava22_swin-tiny_fgtn_32x2x1-10e.py}: Video Swin-Tiny tiền huấn luyện Kinetics-400, khối Hybrid FGTN-Mamba trên tầng 4, bộ trích đặc trưng vùng \code{SingleRoIExtractor3D} với \code{featmap\_stride = 32} và head sigmoid đa nhãn.
 \lstinputlisting[language=Python]{appendix/src/ava22_swin-tiny_fgtn_32x2x1-10e.py}
 
 \section{Cấu hình pipeline đầy đủ --- A8}
 \label{app:config-full}
 
-Tệp \path{ava22_swin-tiny_fgtn-ms-acrn-focal_32x2x1-10e.py} kế thừa cấu hình một tỉ lệ và bổ sung ba thành phần: đặc trưng đa tỉ lệ (tầng 3 và tầng 4, \code{in\_channels = (384, 768)}), ACRN (\code{ACRNHead} làm \code{shared\_head}) và head focal có trọng số lớp.
+Tệp \path{ava22_swin-tiny_fgtn-ms-acrn-focal_32x2x1-10e.py} kế thừa cấu hình chỉ dùng tầng 4 và bổ sung ba thành phần: đặc trưng đa tỉ lệ (tầng 3 và tầng 4, \code{in\_channels = (384, 768)}), ACRN (\code{ACRNHead} làm \code{shared\_head}) và head focal có trọng số lớp.
 \lstinputlisting[language=Python]{appendix/src/ava22_swin-tiny_fgtn-ms-acrn-focal_32x2x1-10e.py}
 
 \chapter{Mã nguồn khối đề xuất}
@@ -38,7 +38,7 @@ Tệp \path{make_class_weight.py}: tính $w_c \propto (1-\beta)/(1-\beta^{n_c})$
 
 \section{Kiểm tra trên CPU}
 
-Tệp \path{selfcheck.py}: kiểm tra kích thước tensor của neck ở bốn chế độ \code{branch\_mode}, của head và của hàm tính trọng số lớp mà không cần GPU hay MMAction2.
+Tệp \path{selfcheck.py}: kiểm tra kích thước tensor của neck ở bốn chế độ của tham số \code{branch\_mode}, của head và của hàm tính trọng số lớp mà không cần GPU hay MMAction2.
 \lstinputlisting[language=Python]{appendix/src/selfcheck.py}
 
 \chapter{Ánh xạ cấu hình ablation sang mã nguồn}
@@ -57,13 +57,13 @@ Tệp \path{selfcheck.py}: kiểm tra kích thước tensor của neck ở bốn
 \textbf{Mã} & \textbf{Cấu hình} & \textbf{Tệp cấu hình và khóa ghi đè (\code{--cfg-options})}\\
 \midrule
 \endhead
-A0 & Tầng 4, không neck & Một tỉ lệ; \path{model.neck=None}\\
-A1 & + temporal MHSA toàn cục & Một tỉ lệ; \path{model.neck.branch_mode=attn_only}, \path{model.neck.window_size=31} (cửa sổ phủ toàn bộ $T = 16$)\\
-A2 & + SSM một chiều & Một tỉ lệ; \path{branch_mode=mamba_only} và đặt \path{bimamba_type=none} trong \path{fgtn_neck.py} (chưa có khóa cấu hình)\\
-A3 & + Bi-SSM & Một tỉ lệ; \path{model.neck.branch_mode=mamba_only}\\
-A4 & + W-MHSA cục bộ ($W = 5$) & Một tỉ lệ; \path{model.neck.branch_mode=attn_only}\\
-A5 & Hai nhánh, cộng trực tiếp 0,5 / 0,5 & Một tỉ lệ; \path{model.neck.branch_mode=no_gate}\\
-A6 & Hybrid có cổng sigmoid (tầng 4) & Một tỉ lệ, giữ mặc định \path{branch_mode=hybrid}\\
+A0 & Tầng 4, không neck & Chỉ dùng tầng 4; \path{model.neck=None}\\
+A1 & + temporal MHSA toàn cục & Chỉ dùng tầng 4; \path{model.neck.branch_mode=attn_only}, \path{model.neck.window_size=31} (cửa sổ phủ toàn bộ $T = 16$)\\
+A2 & + SSM một chiều & Chỉ dùng tầng 4; \path{branch_mode=mamba_only} và đặt \path{bimamba_type=none} trong \path{fgtn_neck.py} (chưa có khóa cấu hình)\\
+A3 & + Bi-SSM & Chỉ dùng tầng 4; \path{model.neck.branch_mode=mamba_only}\\
+A4 & + W-MHSA cục bộ ($W = 5$) & Chỉ dùng tầng 4; \path{model.neck.branch_mode=attn_only}\\
+A5 & Hai nhánh, cộng trực tiếp 0,5 / 0,5 & Chỉ dùng tầng 4; \path{model.neck.branch_mode=no_gate}\\
+A6 & Hybrid có cổng sigmoid (tầng 4) & Chỉ dùng tầng 4, giữ mặc định \path{branch_mode=hybrid}\\
 A7 & A6 trên tầng 3 + 4 & Đầy đủ; \path{model.roi_head.shared_head=None} (bỏ ACRN)\\
 A8 & A7 + ACRN (pipeline đầy đủ) & Đầy đủ, giữ nguyên\\
 \bottomrule
@@ -74,7 +74,7 @@ Trong cặp A6 $\rightarrow$ A7, hàm mất mát cần giữ giống nhau; khi s
 \chapter{Bảng truy nguồn số liệu}
 \label{app:traceability}
 
-Mỗi con số thực nghiệm trong luận văn được đối chiếu với nguồn trong kho mã, trong hồ sơ thực nghiệm hoặc trong báo cáo bổ sung (\cref{tab:trace}).
+Mỗi con số thực nghiệm trong luận văn được ghi kèm nguồn trong kho mã, trong kết quả huấn luyện và đánh giá của luận văn hoặc trong tài liệu được trích dẫn (\cref{tab:trace}).
 
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{4.1cm}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{7.4cm}@{}}
 \caption{Truy nguồn các số liệu trong luận văn}
@@ -87,17 +87,15 @@ Mỗi con số thực nghiệm trong luận văn được đối chiếu với n
 \textbf{Số liệu} & \textbf{Giá trị} & \textbf{Nguồn}\\
 \midrule
 \endhead
-Phân bố lượt gán nhãn của bộ dữ liệu phân xưởng & \cref{tab:factory-stats} (24.614 lượt) & Báo cáo bổ sung: bảng thống kê nhãn\\
-Cấu hình huấn luyện trên dữ liệu phân xưởng & \cref{tab:factory-config} & Báo cáo bổ sung: mục cấu hình huấn luyện\\
-mAP pipeline đầy đủ trên dữ liệu phân xưởng & 89,83\% & Hồ sơ thực nghiệm: bảng so sánh mô hình (\cref{tab:main-results})\\
-mAP các mô hình so sánh & \cref{tab:main-results} & Hồ sơ thực nghiệm: bảng so sánh mô hình\\
-Precision, Recall tại ngưỡng 0,5 & 81,82\% & Hồ sơ thực nghiệm: đánh giá pipeline đầy đủ\\
-Tốc độ xử lý; bộ nhớ GPU & $>$ 20 khung hình/giây; $\approx 10$~GB & Hồ sơ thực nghiệm; điều kiện đo xem \cref{tab:operating}\\
-AP theo lớp tại epoch 20 & \cref{tab:factory-class-report} & Báo cáo bổ sung: hình kết quả tại epoch 20\\
-mAP ablation A0--A8 trên S1, S2 & \cref{tab:ablation-results} & Hồ sơ thực nghiệm: bảng tổng hợp ablation, trung bình ba hạt giống\\
+Phân bố lượt gán nhãn của bộ dữ liệu phân xưởng & \cref{tab:factory-stats} (24.614 lượt) & Thống kê tệp nhãn của bộ dữ liệu phân xưởng\\
+Cấu hình huấn luyện trên dữ liệu phân xưởng & \cref{tab:factory-config} & Cấu hình các lượt huấn luyện trên dữ liệu phân xưởng\\
+mAP pipeline đầy đủ trên dữ liệu phân xưởng & 89,83\% & Kết quả đánh giá pipeline đầy đủ trên S1 (\cref{tab:main-results})\\
+mAP các mô hình so sánh & \cref{tab:main-results} & Kết quả đánh giá từng mô hình trên S1\\
+Precision, Recall tại ngưỡng 0,5 & 81,82\% & Kết quả đánh giá pipeline đầy đủ\\
+Tốc độ xử lý; bộ nhớ GPU & $>$ 20 khung hình/giây; $\approx 10$~GB & Đo khi chạy pipeline đầy đủ (\cref{tab:operating})\\
+mAP ablation A0--A8 trên S1, S2 & \cref{tab:ablation-results} & Kết quả đánh giá các cấu hình ablation, trung bình ba seed\\
 Khoảng cách S1 $-$ S2; mAP trên camera mới & 7,51--11,45 điểm; 78,15\% & Tính từ \cref{tab:ablation-results}\\
-mAP trên AVA~v2.2 (pipeline đầy đủ) & 38,1 & Kết quả cập nhật theo học viên; xem \cref{sec:ava-record}\\
-Minh họa suy luận trên video & YOLO26-x; sai khác ONNX $\leq 5{,}4 \cdot 10^{-4}$ & Kho mã minh họa (checkpoint A0, \code{A5\_hybrid}, A8); xem \cref{sec:demo}\\
+mAP trên AVA~v2.2 (pipeline đầy đủ) & 38,1 & Đánh giá trên tập val AVA~v2.2; xem \cref{sec:ava-results}\\
 Bước giảm mẫu tầng 4 của Swin-T & 32 & Patch $(2,4,4)$ và ba lần gộp patch; \path{fgtn_ava/README.md} ghi $(B, 768, 16, H/32, W/32)$\\
 Số tham số ACRN, neck tầng 3 & $\approx 14{,}6$M; 3,57M & Tính từ kích thước lớp trong \code{ACRNHead} và \code{FGTNNeckAVA(384)}\\
 Mốc A*, STAR, OV-STAD, ST-CLIP & \cref{tab:reference} & Bài báo gốc \cite{kim2024astar,gritsenko2024star,wu2024ovstad,huang2025stclip}\\
@@ -117,7 +115,7 @@ pip install git+https://github.com/OpenGVLab/video-mamba-suite.git#subdirectory=
 # 2. CPU self-check (no mmaction / GPU required)
 python projects/fgtn_ava/selfcheck.py
 
-# 3. Single-scale Hybrid FGTN-Mamba (A6);
+# 3. Stage-4-only Hybrid FGTN-Mamba (A6);
 #    A0-A5 add one override each (Table C.1)
 SS=projects/fgtn_ava/ava22_swin-tiny_fgtn_32x2x1-10e.py
 # A6
