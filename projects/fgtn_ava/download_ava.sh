@@ -16,6 +16,7 @@
 #   SCALE=256           short side of extracted frames (0 = native resolution)
 #   JPEG_Q=3            jpg quality, 1 (best/largest) .. 5 (smaller)
 #   CLEAN=1             delete each source/cut video right after it is processed
+#   FF_THREADS=4        threads per ffmpeg process (NUM_JOBS of them run in parallel)
 #
 # Small-disk subset (~25-30 GB instead of ~700 GB): after `annotations proposals`,
 # run `python projects/fgtn_ava/make_subset.py` — the videos stage then only
@@ -30,6 +31,9 @@ NUM_JOBS=${NUM_JOBS:-4}
 SCALE=${SCALE:-256}
 JPEG_Q=${JPEG_Q:-3}
 CLEAN=${CLEAN:-0}
+# threads per ffmpeg: unbounded ffmpeg x NUM_JOBS exhausts container pid limits (EAGAIN)
+FF_THREADS=${FF_THREADS:-4}
+export FF_THREADS
 ANNO_DIR="${DATA_DIR}/annotations"
 VIDEO_DIR="${DATA_DIR}/videos"
 CUT_DIR="${DATA_DIR}/videos_15min"
@@ -79,50 +83,61 @@ stage_videos() {
     echo "downloaded: $(ls "${VIDEO_DIR}" | wc -l)/$(wc -l < "${list}")"
 }
 
+# cut_one / frames_one run per video under `xargs -P NUM_JOBS`. Output goes to a .part
+# name first and is renamed on success, so an interrupted run never leaves a half file
+# that the "already done" check would skip; CLEAN only deletes the input on success.
+cut_one() {
+    local video=$1 name=${1##*/}
+    local out_name="${CUT_DIR}/${name}" part="${CUT_DIR}/.part_${name}"
+    if [[ ! -f "${out_name}" ]]; then
+        echo "  cutting ${name}"
+        # note: harmless h264 warnings like 'mmco: unref short failure' are expected on AVA videos
+        ffmpeg -nostdin -y -threads "${FF_THREADS}" -ss 900 -t 901 -i "${video}" -r 30 \
+            -threads "${FF_THREADS}" -strict experimental "${part}" \
+            -loglevel error && mv "${part}" "${out_name}" || { echo "  FAILED cut ${name}"; return 1; }
+    fi
+    if [[ "${CLEAN}" == "1" ]]; then rm -f "${video}"; fi
+}
+
+frames_one() {
+    local video=$1 video_name=${1##*/}
+    video_name="${video_name%.*}"
+    local out_video_dir="${FRAME_DIR}/${video_name}" part="${FRAME_DIR}/.part_${video_name}"
+    if [[ ! -d "${out_video_dir}" ]]; then
+        echo "  extracting ${video_name}"
+        local vf=()
+        if [[ "${SCALE}" != "0" ]]; then
+            # resize short side to SCALE (the training pipeline resizes to 256 anyway)
+            vf=(-vf "scale='if(gt(a,1),-2,${SCALE})':'if(gt(a,1),${SCALE},-2)'")
+        fi
+        rm -rf "${part}" && mkdir -p "${part}"
+        # output -threads too: the mjpeg encoder otherwise spawns one thread per core
+        ffmpeg -nostdin -threads "${FF_THREADS}" -i "${video}" -r 30 "${vf[@]}" -q:v "${JPEG_Q}" \
+            -threads "${FF_THREADS}" -filter_threads "${FF_THREADS}" \
+            "${part}/img_%05d.jpg" -loglevel error && mv "${part}" "${out_video_dir}" \
+            || { echo "  FAILED frames ${video_name}"; return 1; }
+    fi
+    if [[ "${CLEAN}" == "1" ]]; then rm -f "${video}"; fi
+}
+
 stage_cut() {
     command -v ffmpeg >/dev/null || { echo "ffmpeg not found"; exit 1; }
-    echo "==> [cut] minute 15-30 of each video -> ${CUT_DIR}"
+    echo "==> [cut] minute 15-30 of each video -> ${CUT_DIR} (${NUM_JOBS} parallel)"
     mkdir -p "${CUT_DIR}"
-    local total done=0
-    total=$(ls "${VIDEO_DIR}" | wc -l)
-    for video in "${VIDEO_DIR}"/*; do
-        done=$((done + 1))
-        local out_name="${CUT_DIR}/${video##*/}"
-        if [[ ! -f "${out_name}" ]]; then
-            echo "  [${done}/${total}] cutting ${video##*/} (re-encodes 15 min, takes a few minutes)"
-            # note: harmless h264 warnings like 'mmco: unref short failure' are expected on AVA videos
-            ffmpeg -nostdin -ss 900 -t 901 -i "${video}" -r 30 -strict experimental "${out_name}" \
-                -loglevel error -stats
-        fi
-        if [[ "${CLEAN}" == "1" ]]; then rm -f "${video}"; fi
-    done
+    export -f cut_one
+    export CUT_DIR CLEAN
+    find "${VIDEO_DIR}" -maxdepth 1 -type f ! -name '.*' | sort \
+        | xargs -P "${NUM_JOBS}" -I{} bash -c 'cut_one "$1"' _ {}
 }
 
 stage_frames() {
     command -v ffmpeg >/dev/null || { echo "ffmpeg not found"; exit 1; }
-    local vf=()
-    if [[ "${SCALE}" != "0" ]]; then
-        # resize short side to SCALE (the training pipeline resizes to 256 anyway)
-        vf=(-vf "scale='if(gt(a,1),-2,${SCALE})':'if(gt(a,1),${SCALE},-2)'")
-    fi
-    echo "==> [frames] 30fps jpg (short side ${SCALE}, q:v ${JPEG_Q}) -> ${FRAME_DIR}"
+    echo "==> [frames] 30fps jpg (short side ${SCALE}, q:v ${JPEG_Q}) -> ${FRAME_DIR} (${NUM_JOBS} parallel)"
     mkdir -p "${FRAME_DIR}"
-    local total done=0
-    total=$(ls "${CUT_DIR}" | wc -l)
-    for video in "${CUT_DIR}"/*; do
-        done=$((done + 1))
-        local video_name="${video##*/}"
-        video_name="${video_name%.*}"
-        local out_video_dir="${FRAME_DIR}/${video_name}"
-        if [[ -d "${out_video_dir}" && -n "$(ls -A "${out_video_dir}" 2>/dev/null)" ]]; then
-            continue  # already extracted
-        fi
-        echo "  [${done}/${total}] extracting ${video_name}"
-        mkdir -p "${out_video_dir}"
-        ffmpeg -nostdin -i "${video}" -r 30 "${vf[@]}" -q:v "${JPEG_Q}" \
-            "${out_video_dir}/img_%05d.jpg" -loglevel error -stats
-        if [[ "${CLEAN}" == "1" ]]; then rm -f "${video}"; fi
-    done
+    export -f frames_one
+    export FRAME_DIR CLEAN SCALE JPEG_Q
+    find "${CUT_DIR}" -maxdepth 1 -type f ! -name '.*' | sort \
+        | xargs -P "${NUM_JOBS}" -I{} bash -c 'frames_one "$1"' _ {}
 }
 
 STAGES=("$@")
