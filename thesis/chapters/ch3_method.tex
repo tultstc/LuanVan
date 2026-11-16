@@ -26,7 +26,7 @@ V &\xrightarrow{\text{Swin-T}} \big(F^{(3)}, F^{(4)}\big)
 \end{aligned}
 \label{eq:flow}
 \end{equation}
-trong đó $F^{(3)} \in \R^{384 \times 16 \times 16 \times 16}$, $F^{(4)} \in \R^{768 \times 16 \times 8 \times 8}$, $\text{HFM}_s$ là ngăn xếp hai khối Hybrid FGTN-Mamba của tầng $s$, $r_k \in \R^{1152 \times 1 \times 8 \times 8}$ là đặc trưng RoI đa tỉ lệ và $c_k$ là đầu ra của ACRN. Biến thể một tỉ lệ (cấu hình A6 trong \cref{tab:ablation}) không dùng tầng 3 và ACRN nên chuỗi biến đổi rút gọn thành $V \rightarrow F^{(4)} \rightarrow \tilde{F}^{(4)} \rightarrow r_k \in \R^{768 \times 1 \times 8 \times 8} \rightarrow \mat{p}_k$.
+trong đó $F^{(3)} \in \R^{384 \times 16 \times 16 \times 16}$, $F^{(4)} \in \R^{768 \times 16 \times 8 \times 8}$, $\text{HFM}_s$ là ngăn xếp hai khối Hybrid FGTN-Mamba của tầng $s$, $r_k \in \R^{1152 \times 1 \times 8 \times 8}$ là đặc trưng RoI đa tỉ lệ và $c_k$ là đầu ra của ACRN. Biến thể chỉ dùng tầng 4 (cấu hình A6 trong \cref{tab:ablation}) không dùng tầng 3 và ACRN nên chuỗi biến đổi rút gọn thành $V \rightarrow F^{(4)} \rightarrow \tilde{F}^{(4)} \rightarrow r_k \in \R^{768 \times 1 \times 8 \times 8} \rightarrow \mat{p}_k$.
 
 \begin{figure}[H]
 \centering
@@ -67,8 +67,8 @@ trong đó $F^{(3)} \in \R^{384 \times 16 \times 16 \times 16}$, $F^{(4)} \in \R
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\textwidth]{fgtn_architecture.pdf}
-\caption[Biến thể một tỉ lệ và cấu trúc khối Hybrid FGTN-Mamba]{Biến thể một tỉ lệ và cấu trúc khối. (a) Pipeline một tỉ lệ: Video Swin-T $\rightarrow$ FGTN neck (hai khối Hybrid FGTN-Mamba) $\rightarrow$ RoIAlign3D $\rightarrow$ BBoxHead sigmoid đa nhãn; pipeline đầy đủ bổ sung nhánh tầng 3 và ACRN như \cref{fig:pipeline}. (b) Một khối Hybrid FGTN-Mamba: nhánh Bi-Mamba (selective scan hai chiều, $O(T)$), nhánh windowed MHSA (mặt nạ dải, $W = 5$) và cổng sigmoid theo kênh và bước thời gian, $\mathrm{out} = g \odot x_{\text{mamba}} + (1 - g) \odot x_{\text{attn}}$.}
+\includegraphics[width=0.8\textwidth]{fgtn_architecture.pdf}
+\caption[Biến thể chỉ dùng tầng 4 và cấu trúc khối Hybrid FGTN-Mamba]{Biến thể chỉ dùng tầng 4 và cấu trúc khối. (a) Pipeline chỉ dùng tầng 4: Video Swin-T $\rightarrow$ FGTN neck (hai khối Hybrid FGTN-Mamba) $\rightarrow$ RoIAlign3D $\rightarrow$ BBoxHead sigmoid đa nhãn; pipeline đầy đủ bổ sung nhánh tầng 3 và ACRN như \cref{fig:pipeline}. (b) Một khối Hybrid FGTN-Mamba: nhánh Bi-Mamba (selective scan hai chiều, $O(T)$), nhánh windowed MHSA (mặt nạ dải, $W = 5$) và cổng sigmoid theo kênh và bước thời gian, $\mathrm{out} = g \odot x_{\text{mamba}} + (1 - g) \odot x_{\text{attn}}$.}
 \label{fig:architecture}
 \end{figure}
 
@@ -142,6 +142,35 @@ trong đó DropPath \cite{huang2016droppath} loại bỏ ngẫu nhiên toàn b�
 
 Cùng một module cài đặt bốn chế độ thông qua tham số \code{branch\_mode} để phục vụ phần lớn ma trận ablation (\cref{tab:ablation}), cụ thể là \code{hybrid} theo \cref{eq:gate} (A6); \code{no\_gate} với $\mat{Z} = 0{,}5\,\mat{S} + 0{,}5\,\mat{A}_{\text{loc}}$ (A5); \code{mamba\_only} với $\mat{Z} = \mat{S}$ (A3); \code{attn\_only} với $\mat{Z} = \mat{A}_{\text{loc}}$ (A4). Temporal MHSA toàn cục (A1) là trường hợp riêng của \code{attn\_only} khi cửa sổ phủ toàn đoạn (\code{window\_size} $\geq 31$ với $T = 16$), baseline không có neck (A0) tương ứng với \code{model.neck = None} còn SSM một chiều (A2) dùng \code{bimamba\_type = "none"} của \code{mamba-ssm} và hiện chưa có khóa cấu hình tương ứng.
 
+\Cref{alg:block} tóm tắt lan truyền thuận của neck tại một tầng đặc trưng ở chế độ \code{hybrid} theo đúng thứ tự phép tính trong lớp \code{FGTNNeckAVA} và \code{HybridFGTNBlock}. Trong thuật toán, chiều cao và chiều rộng của bản đồ đặc trưng được ký hiệu $H_s$, $W_s$ để không nhầm với kích thước cửa sổ $W$ còn đầu ra trộn của hai nhánh được ký hiệu $\mat{O}$ (chính là $\mat{Z}$ trong \cref{eq:gate}) để không trùng với nhánh cổng $\mat{Z}$ bên trong Mamba. Ba điểm của cài đặt cần lưu ý khi đọc thuật toán. Thứ nhất, hai nhánh và cổng cùng đọc một đầu vào đã chuẩn hóa $\bar{\mat{X}}$ nên chúng độc lập với nhau và có thể tính song song, trong đó cổng được tính từ $\bar{\mat{X}}$ chứ không từ đầu ra của các nhánh. Thứ hai, phép chiếu $\mat{W}_{\text{in}}$ được áp dụng một lần cho mỗi token rồi kết quả được lật theo thời gian để đưa vào bộ quét ngược nên hai chiều quét dùng chung phép chiếu vào và phép chiếu ra nhưng có tích chập, phép chiếu chọn lọc, $\mat{A}_{\log}$ và $D$ riêng. Thứ ba, DropPath lấy một biến Bernoulli cho mỗi chuỗi, tức là cho mỗi vị trí không gian của mỗi đoạn video, rồi chia cho xác suất giữ $1-p$ để kỳ vọng của nhánh dư không đổi. Khi suy luận, bước này là phép đồng nhất nên đầu ra của khối là hàm tất định của đầu vào. Mặt nạ dải được cài đặt dưới dạng mặt nạ logic đưa vào \code{scaled\_dot\_product\_attention} của PyTorch, tương đương với việc cộng $0$ hoặc $-\infty$ như trong \cref{eq:local-attn}.
+
+\begin{algorithm}[htbp]
+\caption{Lan truyền thuận của neck Hybrid FGTN-Mamba tại một tầng đặc trưng (chế độ \code{hybrid})}
+\label{alg:block}
+\begin{algorithmic}[1]
+\Require bản đồ đặc trưng $F \in \R^{B \times C \times T \times H_s \times W_s}$; số khối $L = 2$; cửa sổ $W = 5$; số đầu $h = 4$; tỉ lệ DropPath $p = 0{,}1$
+\Ensure bản đồ $\tilde{F}$ cùng kích thước với $F$
+\State $\mat{X} \gets \mathrm{reshape}\big(\mathrm{permute}(F)\big) \in \R^{(B H_s W_s) \times C \times T}$ \Comment{\cref{eq:reshape}}
+\For{$\ell = 1, \dots, L$}
+  \State $\bar{\mat{X}} \gets \LN(\mat{X})$ trên chiều kênh tại từng bước, $\epsilon = 10^{-6}$
+  \State $[\mat{U};\ \mat{Z}] \gets \bar{\mat{X}}\mat{W}_{\text{in}}$ \Comment{chung cho hai chiều}
+  \State $\mat{S}^{\rightarrow} \gets \Scan_f(\mat{U}, \mat{Z})$ \Comment{\crefrange{eq:mamba-conv}{eq:mamba-gate}}
+  \State $\mat{S}^{\leftarrow} \gets \mathrm{flip}\big(\Scan_b(\mathrm{flip}(\mat{U}), \mathrm{flip}(\mat{Z}))\big)$
+  \State $\mat{S} \gets \tfrac{1}{2}\big(\mat{S}^{\rightarrow} + \mat{S}^{\leftarrow}\big)\mat{W}_{\text{out}}$ \Comment{\cref{eq:bimamba}}
+  \State $\mat{Q}, \mat{K}, \mat{V} \gets$ tách $\bar{\mat{X}}\mat{W}_{\text{qkv}}$ thành $h$ đầu, mỗi đầu $d = C/h$ chiều
+  \State $M_{ij} \gets 0$ khi $|i - j| \leq \lfloor W/2 \rfloor$; ngược lại $M_{ij} \gets -\infty$
+  \State $\mat{A}_{\text{loc}} \gets \softmax\big(\mat{Q}\mat{K}^{\top}/\sqrt{d} + \mat{M}\big)\mat{V}\,\mat{W}_{\text{proj}}$ \Comment{\cref{eq:local-attn}}
+  \State $\mat{G} \gets \sigma\big(\mathrm{Conv1d}_{1 \times 1}(\bar{\mat{X}})\big)$ \Comment{\cref{eq:gate}}
+  \State $\mat{O} \gets \mat{G} \odot \mat{S} + (\mat{1} - \mat{G}) \odot \mat{A}_{\text{loc}}$
+  \If{đang huấn luyện}
+    \State lấy $\xi_i \sim \mathrm{Bernoulli}(1 - p)$ cho mỗi chuỗi $i$ và đặt $\mat{O}_i \gets \xi_i \mat{O}_i / (1 - p)$
+  \EndIf
+  \State $\mat{X} \gets \mat{X} + \mat{O}$ \Comment{\cref{eq:residual}}
+\EndFor
+\State \Return $\tilde{F} \gets \mathrm{permute}^{-1}\big(\mathrm{reshape}^{-1}(\mat{X})\big)$
+\end{algorithmic}
+\end{algorithm}
+
 \section{Ổn định huấn luyện và cài đặt dự phòng}
 \label{sec:stability}
 
@@ -152,7 +181,7 @@ Pre-norm và residual cho phép khối học phần dư thay vì phải tái t�
 
 Xét chuỗi độ dài $T$, $C$ kênh, cửa sổ $W$, trạng thái $N$ và hệ số mở rộng $E$. Trong một khối, nhánh SSM tốn $O(T \cdot C \cdot EC)$ cho các phép chiếu, $O(T \cdot EC \cdot k)$ cho tích chập và $O(T \cdot EC \cdot N)$ cho selective scan mỗi chiều. Nhánh cục bộ tốn $O(T \cdot C^2)$ cho phép chiếu và $O(T \cdot W \cdot C)$ cho so khớp trong cửa sổ còn cổng tốn $O(T \cdot C^2)$. Do mọi số hạng đều tuyến tính theo $T$ nên tổng chi phí là $O\big(T(C^2 + CN + WC)\big)$ và phần phụ thuộc vào cấu trúc thời gian là $O(TC + TWC)$ thay vì $O(T^2 C)$ như attention toàn cục (\cref{tab:necks}). Chi phí của toàn neck được nhân với số chuỗi $B \cdot H \cdot W$ nên tầng 3 ($16 \times 16$) tốn gấp bốn lần tầng 4.
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \caption{So sánh các temporal neck tại cùng vị trí hậu-backbone}
 \label{tab:necks}
@@ -171,9 +200,9 @@ Hybrid FGTN-Mamba & Bi-SSM + W-MHSA + cổng & $O(TC + TWC)$ & Dài--ngắn tác
 
 \Cref{tab:params} tổng hợp số tham số theo cấu trúc của neck. Với $C = 768$, một khối có 6.957.312 tham số (nhánh Mamba 4.002.816, nhánh attention 2.362.368, cổng 590.592) và neck hai khối có 13.914.624 tham số, xấp xỉ một nửa backbone Video Swin-T (27.850.470). Pipeline đầy đủ có thêm khoảng 3,57 triệu tham số cho ngăn xếp tầng 3 và khoảng 14,6 triệu cho ACRN. Bên cạnh chi phí tuyến tính, khối còn đưa vào ba thiên lệch quy nạp phù hợp với bài toán là trạng thái có thứ tự cho diễn biến dài, so khớp cục bộ cho chuyển tiếp ngắn và bộ định tuyến theo nội dung.
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
-\caption{Số tham số theo cấu trúc của neck một tỉ lệ ($C = 768$, hai khối)}
+\caption{Số tham số theo cấu trúc của neck trong cấu hình chỉ dùng tầng 4 ($C = 768$, hai khối)}
 \label{tab:params}
 \begin{tabularx}{\textwidth}{Xrr}
 \toprule
@@ -191,6 +220,77 @@ Neck (hai khối) & & 13.914.624\\
 \bottomrule
 \end{tabularx}
 \end{table}
+
+\subsection{Đếm chi tiết số phép tính và bộ nhớ của một khối}
+\label{sec:complexity-detail}
+
+Để làm rõ các bậc độ phức tạp ở trên, phần này đếm số phép nhân--cộng (multiply-accumulate, MAC) của một khối trên \emph{một chuỗi} độ dài $T$. Số FLOP xấp xỉ gấp đôi số MAC còn chi phí của cả tầng bằng số MAC của một chuỗi nhân với số chuỗi $B \cdot H \cdot W$ và số khối. Ký hiệu $R = \lceil C/16 \rceil$ là hạng phép chiếu bước thời gian, $k = 4$ là kích thước nhân tích chập theo kênh, $h$ là số đầu attention và $w = \lfloor W/2 \rfloor$ là nửa cửa sổ. Các phép theo từng phần tử như LayerNorm, SiLU, sigmoid, softmax, phép trộn của cổng và phép cộng residual chỉ tốn $O(TC)$ hoặc $O(TEC)$ nên được bỏ qua trong phép đếm.
+
+Phần lớn chi phí nằm ở các phép chiếu tuyến tính áp dụng độc lập cho từng token. Phép chiếu vào $\mat{W}_{\text{in}}$ tốn $2E\,TC^2$ MAC, phép chiếu ra $\mat{W}_{\text{out}}$ tốn $E\,TC^2$, phép chiếu $\mat{W}_{\text{qkv}}$ và $\mat{W}_{\text{proj}}$ của nhánh cục bộ lần lượt tốn $3TC^2$ và $TC^2$ còn tích chập $1 \times 1$ của cổng tốn $TC^2$, do đó
+\begin{equation}
+\mathrm{MAC}_{\text{lin}} = (3E + 5)\,TC^2 \;\overset{E = 2}{=}\; 11\,TC^2.
+\label{eq:mac-lin}
+\end{equation}
+Hệ số 11 khớp với số tham số trong \cref{tab:params} vì mỗi trọng số của một phép chiếu được dùng đúng một lần cho mỗi token. Tổng quát, số tham số của một khối là
+\begin{equation}
+P_{\text{khối}}(C) = (3E + 5)\,C^2 + 2EC\,(k + 2R + 3N + 3) + 7C,
+\label{eq:params-block}
+\end{equation}
+trong đó số hạng thứ hai là hai bộ tham số quét (mỗi chiều gồm tích chập $EC(k+1)$, \code{x\_proj} $EC(R + 2N)$, \code{dt\_proj} $EC(R+1)$, $\mat{A}_{\log}$ có $EC \cdot N$ và $D$ có $EC$ phần tử) còn số hạng cuối gồm LayerNorm và các độ lệch của nhánh cục bộ và cổng. Với $C = 768$, \cref{eq:params-block} cho đúng 6.957.312 tham số như trong \cref{tab:params}. Với $C = 384$ ($R = 24$), một khối có 1.782.912 tham số và ngăn xếp hai khối của tầng 3 có 3.565.824 tham số, khớp với con số xấp xỉ 3,57 triệu đã nêu.
+
+Phần riêng của nhánh SSM theo mỗi chiều quét gồm tích chập theo kênh ($T \cdot EC \cdot k$), phép chiếu sinh $\Delta_t$, $\mat{B}_t$, $\mat{C}_t$ ($T \cdot EC \cdot (R + 2N)$), phép chiếu $\mat{W}_\Delta$ ($T \cdot R \cdot EC$) và bản thân phép quét. Mỗi bước quét cập nhật trạng thái $\mat{h}_t \in \R^{EC \times N}$ bằng một số hữu hạn phép nhân theo phần tử (tính $\exp(\Delta_t \mat{A})$, $\Delta_t \mat{B}_t u'_t$, phép cập nhật và tích $\mat{C}_t^{\top}\mat{h}_t$) nên chi phí quét là $O(T \cdot EC \cdot N)$ với hằng số nhỏ phụ thuộc vào kernel. Cộng hai chiều lại, ta có
+\begin{equation}
+\mathrm{MAC}_{\text{ssm}} = 2\,T \cdot EC\,(k + 2R + 2N) + O(2\,T \cdot EC \cdot N).
+\label{eq:mac-ssm}
+\end{equation}
+Phần so khớp của nhánh cục bộ gồm tích $\mat{Q}\mat{K}^{\top}$ và tích với $\mat{V}$, mỗi tích tốn $h \cdot d = C$ MAC cho một cặp token. Khi tính đầy đủ ma trận $T \times T$ rồi che như cài đặt hiện tại, chi phí là $2T^2C$. Khi chỉ tính các cặp nằm trong dải, số cặp hợp lệ là
+\begin{equation}
+P(T, w) = T(2w + 1) - w(w + 1) \leq TW,
+\label{eq:band-pairs}
+\end{equation}
+vì các hàng ở hai biên có ít hàng xóm hơn. Khi đó, chi phí giảm còn $2C \cdot P(T, w) \leq 2TWC$. Về bộ nhớ, ma trận trọng số attention của một chuỗi có $hT^2$ phần tử ở dạng đầy đủ và $h \cdot P(T, w)$ phần tử ở dạng dải còn các kích hoạt trung gian của các phép chiếu có kích thước $O(T \cdot EC)$. Trạng thái của SSM có $EC \cdot N$ phần tử cho mỗi chiều. Kernel CUDA của \code{mamba-ssm} giữ trạng thái này trong bộ nhớ trên chip và tính lại khi lan truyền ngược thay vì lưu toàn bộ tensor $T \times EC \times N$ \cite{gu2023mamba} nên bộ nhớ kích hoạt của nhánh SSM vẫn tuyến tính theo $T$.
+
+\begin{table}[htbp]
+\centering
+\caption{Số phép nhân--cộng và kích thước bộ nhớ chính của một khối trên một chuỗi, tính từ công thức với $T = 16$, $W = 5$ ($w = 2$), $h = 4$, $N = 16$, $E = 2$, $k = 4$}
+\label{tab:flops}
+\small
+\begin{tabularx}{\textwidth}{Xrr}
+\toprule
+\textbf{Đại lượng (mỗi chuỗi, mỗi khối)} & \textbf{Tầng 4, $C = 768$} & \textbf{Tầng 3, $C = 384$}\\
+\midrule
+Hạng $R = \lceil C/16 \rceil$; số chiều mỗi đầu $d = C/h$ & 48; 192 & 24; 96\\
+Phép chiếu tuyến tính $11\,TC^2$ & 103.809.024 & 25.952.256\\
+Phần riêng hai chiều quét $2\,T \cdot EC\,(k + 2R + 2N)$ & 6.488.064 & 2.064.384\\
+Đơn vị quét $T \cdot EC \cdot N$ (mỗi chiều) & 393.216 & 196.608\\
+So khớp attention đầy đủ $2T^2C$ & 393.216 & 196.608\\
+So khớp attention dải $2C \cdot P(16, 2)$, $P = 74$ & 113.664 & 56.832\\
+\midrule
+Ma trận trọng số attention đầy đủ $hT^2$ (phần tử) & 1.024 & 1.024\\
+Ma trận trọng số attention dải $h \cdot P(16, 2)$ (phần tử) & 296 & 296\\
+Trạng thái SSM $EC \cdot N$ mỗi chiều (phần tử) & 24.576 & 12.288\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\Cref{tab:flops} cho thấy hai điều. Thứ nhất, với thiết kế hiện tại ($T = 16$), so khớp attention đầy đủ chỉ chiếm khoảng 0,38\% chi phí phép chiếu ở tầng 4 và 0,76\% ở tầng 3. Chuyển sang dạng dải giảm phần so khớp đi $T^2 / P(16, 2) = 256/74 \approx 3{,}5$ lần (xấp xỉ $T/W = 3{,}2$ nếu bỏ qua hiệu ứng biên) nhưng tổng chi phí của khối chỉ giảm dưới 0,5\%. Đây là cơ sở định lượng cho lựa chọn tính đầy đủ ma trận $T \times T$ rồi che như đã nêu ở \cref{sec:local-branch}. Thứ hai, ưu thế của dạng dải chỉ trở nên đáng kể khi $T$ tăng. Từ $2T^2C > 4TC^2$, so khớp toàn cục vượt chi phí các phép chiếu của chính nhánh attention khi $T > 2C$, tức $T > 1536$ ở tầng 4 và $T > 768$ ở tầng 3. Tương tự, từ $2T^2C > 11TC^2$, so khớp toàn cục vượt toàn bộ phần phép chiếu của khối khi $T > 5{,}5\,C$. Về bộ nhớ, tỉ lệ giữa ma trận attention đầy đủ và dạng dải là $T^2/P(T, w) \approx T/W$ nên tăng tuyến tính theo $T$. Như vậy, nhận định ``tuyến tính theo $T$'' ở \cref{tab:necks} mô tả cách chi phí \emph{tăng} khi đoạn video dài ra chứ không có nghĩa là ở $T = 16$ khối rẻ hơn attention toàn cục một cách đáng kể. Ở độ dài này, chi phí bị chi phối bởi các phép chiếu bậc $C^2$ mà mọi temporal neck dạng Transformer đều phải trả.
+
+\section{Lý do lựa chọn các tham số thiết kế}
+\label{sec:design-rationale}
+
+Mục này trình bày lập luận thiết kế đằng sau các giá trị mặc định của module. Các giá trị này được chọn từ lập luận và từ giá trị mặc định của các cài đặt gốc, không được tinh chỉnh trên dữ liệu và không có ablation riêng cho từng tham số trong luận văn. Vì vậy, các lập luận dưới đây chỉ giải thích vì sao lựa chọn là hợp lý chứ không khẳng định đó là lựa chọn tối ưu.
+
+\paragraph{Cửa sổ $W = 5$.} Với đoạn 32 khung hình lấy mẫu cách nhau 2 khung hình gốc và patch embedding thời gian có bước 2, mỗi token tại neck đại diện cho 2 khung hình lấy mẫu, tương ứng 4 khung hình gốc. Cửa sổ 5 token do đó phủ 10 khung hình lấy mẫu, khoảng một phần ba đoạn video, đủ để chứa một pha chuyển tiếp ngắn như đưa điện thoại lên nhưng vẫn nhỏ hơn hẳn độ dài đoạn ($W < T = 16$) nên nhánh cục bộ thực sự cục bộ và không trùng vai trò với nhánh SSM. Kích thước lẻ giúp cửa sổ đối xứng quanh mỗi token ($w = 2$ về mỗi phía), phù hợp với việc đoạn video được lấy đối xứng quanh khung hình khóa. Khi $W$ tăng tới mức phủ toàn đoạn, nhánh này trở thành attention toàn cục như cấu hình A1.
+
+\paragraph{Hai khối.} Khi xếp chồng hai khối, trường tiếp nhận của riêng nhánh cục bộ mở rộng từ $2w + 1 = 5$ lên $4w + 1 = 9$ token và cổng có hai lần định tuyến, lần sau dựa trên đặc trưng đã được trộn ở lần trước. Mặt khác, theo \cref{eq:params-block}, mỗi khối ở tầng 4 thêm gần 7 triệu tham số nên hai khối đã chiếm khoảng một nửa số tham số của backbone. Với lượng dữ liệu nhỏ của bài toán phân xưởng, giữ neck nhỏ hơn backbone là lựa chọn thận trọng để hạn chế quá khớp.
+
+\paragraph{Bốn đầu attention.} Do $C$ phải chia hết cho $h$ nên $h = 4$ cho số chiều mỗi đầu $d = 192$ ở tầng 4 và $d = 96$ ở tầng 3, tức là mỗi đầu vẫn đủ rộng ở tầng có ít kênh hơn trong khi mô hình có nhiều không gian con học các kiểu chuyển động khác nhau. Theo \cref{eq:mac-lin}, số đầu không làm thay đổi chi phí phép chiếu và chi phí so khớp $2T^2C$ cũng không phụ thuộc $h$. Số đầu chỉ ảnh hưởng tới kích thước ma trận trọng số attention $hT^2$, vốn rất nhỏ ở $T = 16$.
+
+\paragraph{Kích thước trạng thái $N = 16$, $E = 2$ và $k = 4$.} Đây là các giá trị mặc định của khối Mamba gốc \cite{gu2023mamba} và của cài đặt \code{bimamba v2} \cite{chen2024videomambasuite}. Giữ nguyên các giá trị này giúp dùng được kernel CUDA đã được kiểm chứng rộng rãi và tránh đưa thêm siêu tham số cần tinh chỉnh. Theo \cref{eq:mac-ssm}, chi phí quét tăng tuyến tính theo $N$ nhưng ở thiết kế hiện tại vẫn nhỏ hơn nhiều so với phần phép chiếu (\cref{tab:flops}).
+
+\paragraph{DropPath $p = 0{,}1$.} DropPath là một cách điều chuẩn phù hợp với khối residual vì khi nhánh dư của một chuỗi bị loại bỏ, đầu ra của khối đúng bằng đầu vào và pipeline vẫn hoạt động như khi không có neck. Điều này khuyến khích neck chỉ học phần bổ sung thay vì thay thế đặc trưng của backbone. Neck dùng cùng một tỉ lệ $0{,}1$ cho cả hai khối, thấp hơn giá trị \code{drop\_path\_rate} $= 0{,}2$ đặt cho backbone trong cấu hình, vì neck chỉ có hai khối và việc loại bỏ quá thường xuyên sẽ làm giảm tín hiệu học của chính các nhánh mới.
+
+\paragraph{Chuẩn hóa trước.} Với pre-norm, đường residual từ $\mat{X}$ tới $\mat{Y}$ trong \cref{eq:residual} là phép đồng nhất không đi qua chuẩn hóa nào nên gradient truyền thẳng về backbone và thống kê của đặc trưng tiền huấn luyện được giữ nguyên khi các nhánh còn đóng góp nhỏ. Nếu dùng post-norm, LayerNorm sẽ nằm trên đường chính và làm thay đổi thang đo của đặc trưng đưa vào RoIAlign ngay từ đầu huấn luyện. Pre-norm cũng là cách bố trí thường cho huấn luyện ổn định hơn với các khối dạng Transformer \cite{xiong2020prenorm}.
 
 \section{Thành phần tích hợp 1: đặc trưng đa tỉ lệ}
 \label{sec:multiscale}
@@ -250,6 +350,53 @@ sau đó được chuẩn hóa để có trung bình bằng 1 và cắt trên t�
 \end{enumerate}
 Các tham số $m/n$, cooldown và $\tau_c$ thuộc lớp nghiệp vụ và không được tối ưu trên tập kiểm tra. Độ trễ đầu--cuối bao gồm thời gian giải mã, bộ phát hiện người, bộ đệm nhìn trước của quét hai chiều (tối thiểu nửa đoạn video), mô hình và gửi cảnh báo nên thời gian suy luận của riêng mô hình không đại diện cho toàn hệ thống. Một cài đặt minh họa của luồng này trên video được trình bày ở \cref{sec:demo}. \Cref{tab:shapes} tóm tắt kích thước tensor qua pipeline.
 
+\Cref{alg:pipeline} mô tả hình thức bước 2 cho một đoạn video. Các dòng trước vòng lặp chạy một lần cho mỗi đoạn còn các dòng trong vòng lặp chạy cho từng proposal. Trong cài đặt, vòng lặp này không chạy tuần tự mà được thực hiện theo lô trên mọi RoI của lô dữ liệu. Bản đồ cảnh mà ACRN dùng cho mỗi proposal là bản đồ của chính đoạn video chứa proposal đó. Biến thể chỉ dùng tầng 4 bỏ nhánh tầng 3 và ACRN, cắt RoI trực tiếp trên $\Pool_T(\tilde{F}^{(4)})$ với tỷ lệ $1/32$ rồi đưa $r_k \in \R^{768 \times 1 \times 8 \times 8}$ thẳng vào head.
+
+\begin{algorithm}[htbp]
+\caption{Lan truyền thuận của pipeline đầy đủ cho một đoạn video}
+\label{alg:pipeline}
+\begin{algorithmic}[1]
+\Require đoạn video $V \in \R^{3 \times 32 \times 256 \times 256}$; các person proposal $\{b_k\}_{k=1}^{N}$ tại khung hình khóa
+\Ensure xác suất $\mat{p}_k \in [0,1]^{K}$ cho từng proposal
+\State $(F^{(3)}, F^{(4)}) \gets \text{Swin-T}(V)$ với \code{out\_indices} $= (2, 3)$
+\For{$s \in \{3, 4\}$}
+  \State $\tilde{F}^{(s)} \gets \text{HFM}_s(F^{(s)})$ theo \cref{alg:block} với tham số riêng của tầng $s$
+\EndFor
+\State $\hat{F} \gets \Concat\big[\Pool_T(\tilde{F}^{(3)}),\ \Pool_T(\uparrow_2 \tilde{F}^{(4)})\big] \in \R^{1152 \times 1 \times 16 \times 16}$
+\For{$k = 1, \dots, N$}
+  \State $r_k \gets \RoIAlign(\hat{F}, b_k)$ với tỷ lệ $1/16$ và lưới $8 \times 8$ \Comment{\cref{eq:multiscale}}
+  \State $c_k \gets \mathrm{ACRN}(r_k, \hat{F}) \in \R^{1152 \times 1 \times 16 \times 16}$ \Comment{\cref{eq:acrn}}
+  \State $\mat{v}_k \gets$ gộp $c_k$ theo thời gian và không gian thành vectơ $1152$ chiều
+  \State $\mat{s}_k \gets \mat{W}_{\text{cls}}\mat{v}_k + \mat{b}_{\text{cls}} \in \R^{K+1}$
+  \State $\mat{p}_k \gets \sigma(\mat{s}_k)$ trên $K$ cột hành vi, bỏ cột nền
+\EndFor
+\State \Return $\{\mat{p}_k\}_{k=1}^{N}$
+\end{algorithmic}
+\end{algorithm}
+
+Diễn giải theo từng bước trong \cref{tab:shapes}, patch embedding với nhân $(2, 4, 4)$ giảm trục thời gian từ 32 xuống 16 và lưới không gian từ $256 \times 256$ xuống $64 \times 64$, đồng thời chiếu lên 96 kênh. Ba lần gộp patch (patch merging) sau đó mỗi lần giảm một nửa chiều cao, chiều rộng và tăng gấp đôi số kênh nhưng không động tới trục thời gian nên $T = 16$ được giữ nguyên tới tầng 4, với tầng 3 có $384$ kênh trên lưới $16 \times 16$ và tầng 4 có $768$ kênh trên lưới $8 \times 8$. Neck định dạng lại mỗi tầng thành $B \cdot 256$ hoặc $B \cdot 64$ chuỗi độ dài 16 theo \cref{eq:reshape} rồi trả về đúng kích thước ban đầu nên bộ trích RoI không cần biết có neck hay không. Tại bộ trích RoI, bản đồ tầng 4 được nội suy về lưới $16 \times 16$ của tầng 3, cả hai được gộp trung bình theo thời gian và nối theo kênh thành $384 + 768 = 1152$ kênh. Bản đồ này vừa là nguồn để cắt RoI $8 \times 8$ cho từng proposal vừa là bản đồ cảnh của ACRN. Trong ACRN, đặc trưng RoI được gộp cực đại thành một vectơ $1152$ chiều, lát lên lưới $16 \times 16$ và nối với bản đồ cảnh thành $2304$ kênh. Tích chập $1 \times 1 \times 1$ đưa số kênh về $1152$ còn tích chập $1 \times 3 \times 3$ giữ nguyên lưới $16 \times 16$. Cuối cùng, head gộp đặc trưng này thành một vectơ, áp dụng dropout với tỉ lệ $0{,}5$ khi huấn luyện và một lớp tuyến tính cho $K + 1$ logit, trong đó cột nền không được dùng trong hàm mất mát.
+
+\Cref{alg:alert} mô tả hình thức bước 3 và bước 4 cho từng khung hình khóa. Mỗi cặp track--lớp giữ một bộ đệm $n$ kết quả so ngưỡng gần nhất và một mốc thời gian cảnh báo gần nhất. Sự kiện chỉ được phát khi ít nhất $m$ trong $n$ khung hình khóa liên tiếp của cùng một track vượt ngưỡng $\tau_c$ và khoảng cách tới lần cảnh báo trước của cùng cặp track--lớp không nhỏ hơn thời gian chờ $\Delta_{\text{cd}}$. Với $m > 1$, một điểm số vọt lên ở một khung hình khóa đơn lẻ không đủ để phát cảnh báo nhưng đổi lại, sự kiện được phát chậm hơn khung hình khóa vượt ngưỡng đầu tiên ít nhất $m - 1$ khoảng cách giữa các khung hình khóa, cộng thêm độ trễ nhìn trước của quét hai chiều. Thuật toán chỉ nêu cấu trúc của logic. Các giá trị $\tau_c$, $m$, $n$ và $\Delta_{\text{cd}}$ là tham số nghiệp vụ, được đặt theo yêu cầu vận hành của từng phân xưởng và không được tinh chỉnh trong luận văn.
+
+\begin{algorithm}[htbp]
+\caption{Logic cảnh báo theo track tại một khung hình khóa}
+\label{alg:alert}
+\begin{algorithmic}[1]
+\Require thời điểm khung hình khóa $t$; tập track $\mathcal{A}_t$, mỗi track $a$ có hộp $b_a$ và xác suất $p_{a,c}$ từ \cref{alg:pipeline}; ngưỡng $\tau_c$; tham số $m \leq n$; thời gian chờ $\Delta_{\text{cd}}$; bộ đệm $\mathcal{H}_{a,c}$ chứa tối đa $n$ kết quả gần nhất; mốc cảnh báo gần nhất $t^{\text{last}}_{a,c}$ (khởi tạo $-\infty$)
+\Ensure tập sự kiện $\mathcal{E}_t$
+\State $\mathcal{E}_t \gets \emptyset$
+\For{mỗi track $a \in \mathcal{A}_t$ và mỗi lớp $c$}
+  \State $v \gets 1$ nếu $p_{a,c} \geq \tau_c$; ngược lại $v \gets 0$
+  \State thêm $v$ vào $\mathcal{H}_{a,c}$ và bỏ phần tử cũ nhất nếu $\mathcal{H}_{a,c}$ có hơn $n$ phần tử
+  \If{$\sum_{v' \in \mathcal{H}_{a,c}} v' \geq m$ và $t - t^{\text{last}}_{a,c} \geq \Delta_{\text{cd}}$}
+    \State thêm $(t, a, b_a, c, p_{a,c}, \text{ảnh minh chứng})$ vào $\mathcal{E}_t$
+    \State $t^{\text{last}}_{a,c} \gets t$
+  \EndIf
+\EndFor
+\State \Return $\mathcal{E}_t$
+\end{algorithmic}
+\end{algorithm}
+
 \begin{table}[H]
 \centering
 \caption{Chuỗi kích thước đặc trưng với ảnh cắt $256 \times 256$, 32 khung hình đầu vào}
@@ -264,7 +411,7 @@ Patch embedding $(2, 4, 4)$ & $B \times 96 \times 16 \times 64 \times 64$ & $T =
 Swin tầng 3 & $B \times 384 \times 16 \times 16 \times 16$ & Chỉ trong pipeline đa tỉ lệ\\
 Swin tầng 4 & $B \times 768 \times 16 \times 8 \times 8$ & Cả hai biến thể\\
 Neck (mỗi tầng) & giữ nguyên kích thước & Mô hình hóa thời gian theo từng vị trí\\
-RoI tầng 4 (một tỉ lệ) & $N \times 768 \times 1 \times 8 \times 8$ & Gộp trung bình theo $T$ trước khi cắt\\
+RoI (chỉ dùng tầng 4) & $N \times 768 \times 1 \times 8 \times 8$ & Gộp trung bình theo $T$ trước khi cắt\\
 RoI đa tỉ lệ & $N \times 1152 \times 1 \times 8 \times 8$ & Nối $384 + 768$ tại tỷ lệ $1/16$\\
 ACRN & $N \times 1152 \times 1 \times 16 \times 16$ & Lưới cảnh tầng 3\\
 Head & $N \times (K + 1)$ & $K$ lớp $+$ nền ($K = 4$ hoặc 80)\\
@@ -280,7 +427,7 @@ Head & $N \times (K + 1)$ & $K$ lớp $+$ nền ($K = 4$ hoặc 80)\\
   \item \emph{tầng lấn át}, khi tầng 4 lấn át tầng 3 trong cấu hình đa tỉ lệ, được giám sát bằng cách đo chuẩn đặc trưng và ablation từng tầng;
   \item \emph{điểm nóng bộ nhớ} xuất hiện do tầng 3 tạo ra $B \cdot 256$ chuỗi nên cần theo dõi bộ nhớ đỉnh theo kích thước lô, $T$ và độ phân giải;
   \item \emph{độ trễ hai chiều} xuất hiện do quét ngược cần các khung hình tương lai nên cần báo cáo cả thông lượng lẫn độ trễ đầu--cuối;
-  \item \emph{sai lệch tỷ lệ RoI} được tránh bằng cách bảo đảm \code{featmap\_stride} của bộ trích RoI khớp với bước giảm mẫu của bản đồ đặc trưng (32 với tầng 4, 16 với cấu hình đa tỉ lệ);
+  \item \emph{sai lệch tỷ lệ RoI} được tránh bằng cách đặt \code{featmap\_stride} của bộ trích RoI khớp với bước giảm mẫu của đặc trưng (32 với tầng 4, 16 với cấu hình đa tỉ lệ);
   \item \emph{bão hòa độ đo} xảy ra khi dữ liệu nhỏ khiến mAP cao có thể che khuất lỗi nên cần kiểm tra thêm theo camera (cách chia S2, \cref{sec:splits}), trên mẫu âm khó và sai số hiệu chỉnh.
 \end{itemize}
 
