@@ -49,16 +49,33 @@ Luận văn chưa thống kê số camera, số video hoặc phiên ghi, tổng 
 \section{Cách chia dữ liệu và phòng chống rò rỉ}
 \label{sec:splits}
 
-Luận văn dùng hai cách chia bộ dữ liệu phân xưởng:
-\begin{itemize}
-  \item \textbf{S1 (chia ngẫu nhiên)} chia ngẫu nhiên các mẫu vào tập huấn luyện và tập kiểm tra. Cách chia này cho phép so sánh các mô hình trong cùng điều kiện nhưng cùng một cảnh và cùng một người có thể xuất hiện ở cả tập huấn luyện lẫn tập kiểm tra nên kết quả có xu hướng lạc quan;
-  \item \textbf{S2 (chia theo camera)} giữ riêng hai camera chỉ để kiểm tra và dùng các camera còn lại để huấn luyện. Nhờ vậy, S2 tránh được rò rỉ cùng cảnh, cùng người và mô phỏng tình huống đưa hệ thống vào vận hành trên camera mới.
-\end{itemize}
-Mọi cấu hình ablation đều được chạy trên cả hai cách chia và chênh lệch giữa S1 với S2 cho phép ước lượng mức phụ thuộc của từng thành phần vào cảnh đã thấy khi huấn luyện (\cref{sec:cross-camera}).
+Rò rỉ dữ liệu xảy ra khi cùng một cảnh, cùng một người hoặc các khung hình gần nhau của cùng một video nằm ở cả tập huấn luyện lẫn tập kiểm tra. Phân chia 19.691/4.923 đi kèm bộ dữ liệu (\cref{tab:factory-stats}) được lập theo từng hộp người. Khi đối chiếu tệp nhãn, 2.891 trong 3.831 khung hình khóa của tập kiểm tra (75,5\%) cũng có mặt trong tập huấn luyện và cả 128 clip có nhãn đều xuất hiện ở hai phía. Với đoạn \code{32x2x1} phủ khoảng hai giây quanh mỗi khung hình khóa, hai khung hình khóa liền kề ở hai phía dùng gần như cùng các khung hình gốc, nên kết quả trên phân chia này có xu hướng lạc quan và luận văn không dùng phân chia này để báo cáo.
 
-Các số 19.691 và 4.923 trong \cref{tab:factory-stats} thuộc phân chia huấn luyện/kiểm tra của S1 còn số khung hình khóa và số lượt gán nhãn riêng cho S2 chưa được thống kê trong luận văn.
+Thay vào đó, luận văn gộp hai phần rồi chia lại \emph{theo video nguồn} (tệp \path{make_hpd_split.py}, seed 42). Các clip cắt ra từ cùng một bản ghi (ví dụ các đoạn ba giây liên tiếp của một video dài) được gộp thành một nguồn và mỗi nguồn chỉ thuộc một phía; các nguồn được xáo trộn rồi đưa dần vào tập kiểm định sao cho mỗi lớp có khoảng 20\% số hộp ở tập kiểm định (tối đa 30\%). \Cref{tab:vsplit} trình bày thống kê của phép chia này, dùng cho mọi kết quả trên bộ dữ liệu phân xưởng ở \cref{ch:results}.
 
-Rò rỉ dữ liệu xảy ra khi cùng một cảnh, cùng một người hoặc các khung hình gần nhau của cùng một video nằm ở cả tập huấn luyện lẫn tập kiểm tra. S2 loại bỏ rò rỉ theo cảnh bằng cách giữ riêng hai camera, đồng thời mọi siêu tham số và ngưỡng theo lớp đều được chọn mà không dùng tập kiểm tra. Để kiểm soát chặt hơn, cần duy trì bảng kê \code{video\_id}, \code{camera\_id}, \code{session\_id}, thời gian và checksum, kết hợp với băm cảm nhận hoặc embedding để phát hiện các đoạn gần trùng giữa các phần chia. Với AVA, phân chia train/val chính thức được tách theo video nhằm tránh dùng khung hình của cùng một phim ở cả hai phía.
+\begin{table}[htbp]
+\centering
+\caption[Phân chia bộ dữ liệu phân xưởng theo video nguồn]{Phân chia bộ dữ liệu phân xưởng theo video nguồn (seed 42)}
+\label{tab:vsplit}
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Đại lượng} & \textbf{Huấn luyện} & \textbf{Kiểm định}\\
+\midrule
+Video nguồn & 56 & 19\\
+Clip & 105 & 23\\
+Khung hình khóa & 8.427 & 2.409\\
+Lượt gán nhãn (hộp, nhãn) & 20.557 & 3.990\\
+\midrule
+\path{use_mobilephone} & 11.597 & 1.439\\
+\path{sleep_on_table} & 833 & 0\\
+\path{feet_on_table} & 3.383 & 1.313\\
+\path{dangerous_action} & 4.744 & 1.238\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Sau khi gộp, 67 lượt gán nhãn trùng lặp giữa hai phần ban đầu bị loại nên tổng còn 24.547 lượt. Lớp \path{sleep_on_table} chỉ có một video nguồn nên toàn bộ thuộc tập huấn luyện và không có mẫu kiểm định; vì vậy mAP trên bộ dữ liệu phân xưởng được tính trên ba lớp còn lại. Phép chia theo video nguồn loại bỏ rò rỉ giữa các khung hình liền kề nhưng chưa phải là phép chia theo camera: tập kiểm định nhỏ (19 nguồn, lớp gác chân có 4 nguồn) và luận văn chưa có tập kiểm tra tách riêng nên tập kiểm định vừa dùng để chọn checkpoint vừa dùng để báo cáo. Ngưỡng theo lớp và các tham số của logic cảnh báo không được tinh chỉnh trên tập này. Để kiểm soát chặt hơn trong các vòng thu thập tiếp theo, cần duy trì bảng kê \code{video\_id}, \code{camera\_id}, \code{session\_id}, thời gian và checksum, kết hợp với băm cảm nhận hoặc embedding để phát hiện các đoạn gần trùng giữa các phần chia. Với AVA, phân chia train/val chính thức được tách theo video nhằm tránh dùng khung hình của cùng một phim ở cả hai phía.
 
 \section{Bộ dữ liệu AVA v2.2}
 \label{sec:ava}
@@ -87,7 +104,9 @@ Proposal của FAIR được dùng làm vùng người ở cả hai pha. Khi hu�
 \section{Tiền xử lý và cấu hình huấn luyện}
 \label{sec:training-config}
 
-Trên bộ dữ liệu phân xưởng, mọi cấu hình trong một cặp ablation dùng chung backbone, pipeline dữ liệu, bộ tối ưu và lịch huấn luyện, mỗi cấu hình được lặp lại với ba seed. Cấu hình huấn luyện chính được tóm tắt trong \cref{tab:factory-config}.
+Trên bộ dữ liệu phân xưởng, mọi cấu hình trong một cặp so sánh dùng chung backbone, pipeline dữ liệu, bộ tối ưu và lịch huấn luyện. Cấu hình huấn luyện được tóm tắt trong \cref{tab:factory-config} và đọc trực tiếp từ các tệp cấu hình \path{hpd_swin-tiny_fgtn_debias_wandb.py} và \path{hpd_swin-tiny_fgtn-ms-acrn_debias_wandb.py} cùng nhật ký huấn luyện.
+
+Công thức dữ liệu \emph{chống lối tắt} (\code{debias}) được dùng cho các lượt chạy chính vì nguồn video của từng lớp khác nhau về độ phân giải và tỷ lệ khung hình (\cref{sec:cross-camera}). Mọi khung hình ở cả hai pha được đưa về cùng kích thước $384 \times 256$ để kích thước và tỷ lệ khung hình không còn tiết lộ nguồn video. Khi huấn luyện, dữ liệu còn được tăng cường bằng color jitter, làm mờ, nén JPEG hoặc chuyển ảnh xám ngẫu nhiên và che toàn bộ vùng ngoài hộp người với xác suất 0,5 (tệp \path{debias_transforms.py}).
 
 \begin{table}[htbp]
 \centering
@@ -98,12 +117,14 @@ Trên bộ dữ liệu phân xưởng, mọi cấu hình trong một cặp ablat
 \toprule
 \textbf{Hạng mục} & \textbf{Giá trị}\\
 \midrule
-Framework & MMAction2, MMDetection và MMEngine\\
-Tối ưu & AdamW; learning rate $10^{-4}$; weight decay 0,05\\
-Lô / epoch & 4 mẫu/GPU; 20 epoch\\
-Lịch lr & Warm-up tuyến tính từ epoch 0 đến 5; cosine annealing từ epoch 5 đến 20\\
-Độ chính xác và ổn định & AMP bật; dropout 0,5; cắt gradient với chuẩn tối đa 40\\
-Tăng cường dữ liệu & Scale, crop, flip ngẫu nhiên; blur, perspective, affine, color jitter và random erase\\
+Framework & MMAction2, MMDetection và MMEngine; một GPU NVIDIA A100-PCIE-40GB; seed 42\\
+Khởi tạo & Video Swin-T tiền huấn luyện trên Kinetics-400\\
+Tối ưu & AdamW; learning rate cơ sở $1{,}25 \times 10^{-4}$ co giãn tuyến tính theo lô chuẩn 48 (đỉnh $1{,}5625 \times 10^{-5}$ với lô 6, $1{,}0417 \times 10^{-5}$ với lô 4); weight decay 0,05\\
+Lô / epoch & 6 mẫu (A0, A6) hoặc 4 mẫu (A8); lịch 10 epoch, A0 và A8 dừng sau 3 epoch\\
+Lịch lr & Warm-up tuyến tính trong 2 epoch đầu; cosine annealing từ epoch 2 đến 10\\
+Độ chính xác và ổn định & FP32; dropout 0,5; cắt gradient với chuẩn tối đa 40\\
+Đầu vào & Đoạn \code{32x2x1}, khung hình đưa về $384 \times 256$; proposal là hộp nhãn thật\\
+Tăng cường dữ liệu & Đổi tỷ lệ cạnh ngắn 256--320, cắt $256 \times 256$, lật ngang; color jitter; làm mờ, nén JPEG, ảnh xám; che vùng ngoài hộp người ($p = 0{,}5$)\\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -127,11 +148,12 @@ Các gói của OpenMMLab được cài qua công cụ \code{mim}. Khi thiếu g
 
 \begin{enumerate}
   \item mỗi cặp so sánh chỉ thay đổi đúng một yếu tố còn dữ liệu, cách chia, proposal, tăng cường dữ liệu, bộ tối ưu, số epoch và bộ đánh giá được giữ nguyên;
-  \item mỗi cấu hình được chạy với ba seed và kết quả trung bình (kèm độ lệch chuẩn khi đã tổng hợp) được báo cáo trên cả S1 và S2;
-  \item bên cạnh mAP, luận văn báo cáo Precision và Recall tại ngưỡng 0,5, tốc độ xử lý và bộ nhớ GPU;
+  \item mỗi cấu hình hiện được chạy với một seed (42); vì checkpoint được chọn trên tập kiểm định, kết quả được báo cáo cả tại checkpoint tốt nhất lẫn tại cùng epoch giữa các mô hình;
+  \item mAP được tính với proposal là hộp nhãn thật để đo riêng khả năng phân loại hành vi; bên cạnh đó, luận văn báo cáo Precision, Recall và F1 đầu--cuối khi hộp người lấy từ bộ phát hiện YOLO26-x \cite{ultralytics2026yolo26}, hiệu quả của logic cảnh báo theo track, thời gian suy luận và bộ nhớ GPU;
+  \item phép thăm dò che người, che bối cảnh và bỏ chuyển động được dùng để kiểm tra mô hình dựa vào hành vi hay vào bối cảnh;
   % Tạm bỏ theo slide bảo vệ (09/11/2026): chưa có kết quả với hộp nhãn thật.
   % \item Với pipeline dựa trên proposal, chạy thêm cấu hình dùng hộp nhãn thật làm cận trên để tách lỗi định vị khỏi lỗi phân loại.
-  \item so sánh với các mô hình có kiến trúc khác phản ánh hiệu năng của toàn pipeline còn đóng góp của temporal neck chỉ được kết luận từ các cặp ablation trong cùng pipeline. Số liệu công bố của STAR, OV-STAD và ST-CLIP chỉ được dùng để định vị khoảng hiệu năng.
+  \item đóng góp của temporal neck chỉ được kết luận từ các cặp ablation trong cùng pipeline. Số liệu công bố của STAR, OV-STAD và ST-CLIP chỉ được dùng để định vị khoảng hiệu năng.
 \end{enumerate}
 
 \subsection{Cách tính các độ đo trên bộ dữ liệu phân xưởng}
@@ -154,7 +176,7 @@ AP của lớp $c$ là xấp xỉ rời rạc của tích phân trong \cref{eq:m
 \mathrm{AP}_c = \sum_{i} \bigl(R_c(i) - R_c(i-1)\bigr)\,\tilde P_c(i), \qquad \tilde P_c(i) = \max_{i' \geq i} P_c(i'),
 \label{eq:ap-discrete}
 \end{equation}
-với quy ước $R_c(0) = 0$. Trên bộ dữ liệu phân xưởng, mAP là trung bình cộng của AP trên bốn lớp \path{use_mobilephone}, \path{sleep_on_table}, \path{feet_on_table} và \path{dangerous_action}. Do mỗi lớp có trọng số như nhau nên lớp hiếm \path{sleep_on_table} ảnh hưởng tới mAP ngang với lớp phổ biến \path{use_mobilephone} dù số lượt gán nhãn của hai lớp chênh nhau nhiều lần (\cref{tab:factory-stats}). Toàn bộ các giá trị mAP trên dữ liệu phân xưởng trong luận văn đều là frame-mAP@0,5 theo cách tính này.
+với quy ước $R_c(0) = 0$. Trên bộ dữ liệu phân xưởng, mAP là trung bình cộng của AP trên các lớp có mẫu kiểm định, tức ba lớp \path{use_mobilephone}, \path{feet_on_table} và \path{dangerous_action} vì \path{sleep_on_table} không có mẫu kiểm định sau khi chia theo video nguồn (\cref{tab:vsplit}). Do mỗi lớp có trọng số như nhau nên lớp ít mẫu ảnh hưởng tới mAP ngang với lớp phổ biến \path{use_mobilephone}. Toàn bộ các giá trị mAP trên dữ liệu phân xưởng trong luận văn đều là frame-mAP@0,5 theo cách tính này.
 
 Khác với AP vốn tổng hợp trên mọi ngưỡng điểm, Precision và Recall được tính tại một điểm vận hành cố định. Ở đây, một dự đoán $(b_k, c)$ được coi là dương khi $p_{k,c} \geq 0{,}5$ và việc ghép với hộp nhãn thật vẫn dùng điều kiện IoU $\geq 0{,}5$ như trên. Gọi $\mathrm{TP}_c$, $\mathrm{FP}_c$ là số dương đúng và dương sai trong các dự đoán dương còn $\mathrm{FN}_c = N_c - \mathrm{TP}_c$ là số hộp nhãn thật bị bỏ sót, khi đó
 \begin{equation}
@@ -162,7 +184,7 @@ Khác với AP vốn tổng hợp trên mọi ngưỡng điểm, Precision và R
 \mathrm{Recall}_c = \frac{\mathrm{TP}_c}{\mathrm{TP}_c + \mathrm{FN}_c}.
 \label{eq:prec-rec}
 \end{equation}
-Cần phân biệt ngưỡng 0,5 áp lên điểm của lớp với ngưỡng IoU 0,5 dùng để ghép hộp. Precision thấp đồng nghĩa với nhiều báo động giả còn Recall thấp đồng nghĩa với nhiều hành vi bị bỏ sót. Vì vậy, hai chỉ số này được dùng để diễn giải hành vi của hệ cảnh báo trong \cref{tab:operating}, nơi luận văn báo cáo một cặp giá trị chung cho cả bốn lớp.
+Cần phân biệt ngưỡng 0,5 áp lên điểm của lớp với ngưỡng IoU 0,5 dùng để ghép hộp. Precision thấp đồng nghĩa với nhiều báo động giả còn Recall thấp đồng nghĩa với nhiều hành vi bị bỏ sót. Khác với mAP, Precision và Recall trong \cref{tab:operating} được tính khi hộp người lấy từ bộ phát hiện chứ không phải hộp nhãn thật: một người có nhãn mà bộ phát hiện bỏ sót được tính là bỏ sót ở mọi lớp của người đó, còn nhãn gán cho một hộp không ghép được với người có nhãn nào được tính là dương sai. Kết quả được báo cáo theo từng lớp và gộp theo kiểu micro (cộng TP, FP, FN của các lớp rồi mới tính tỷ lệ).
 
 \section{Ma trận ablation}
 \label{sec:ablation}
@@ -178,18 +200,19 @@ Cần phân biệt ngưỡng 0,5 áp lên điểm của lớp với ngưỡng Io
 \toprule
 \textbf{Mã} & \textbf{Cấu hình} & \textbf{Mục đích} & \textbf{Trạng thái}\\
 \midrule
-A0 & Video Swin-T tầng 4, không neck & Baseline tối thiểu (RQ1) & S1, S2\\
-A1 & A0 + temporal MHSA toàn cục & So sánh toán tử tại cùng vị trí (RQ1) & S1, S2\\
-A2 & A0 + SSM một chiều & Vai trò của quét một chiều (RQ2) & S1, S2\\
-A3 & A0 + Bi-SSM & Nhánh dài hạn đứng riêng (RQ2) & S1, S2\\
-A4 & A0 + W-MHSA cục bộ ($W = 5$) & Nhánh ngắn hạn đứng riêng (RQ2) & S1, S2\\
-A5 & Bi-SSM + W-MHSA, cộng trực tiếp & Hai nhánh, không có cổng (RQ2) & S1, S2\\
-A6 & Hybrid FGTN-Mamba có cổng sigmoid (tầng 4) & Mô hình đề xuất cốt lõi (RQ1--RQ2) & S1, S2\\
-A7 & A6 trên tầng 3 + tầng 4 & Đóng góp của đa tỉ lệ (RQ3) & S1, S2\\
-A8 & A7 + ACRN (pipeline đầy đủ) & Đóng góp của ngữ cảnh actor--cảnh (RQ4) & S1, S2\\
+A0 & Video Swin-T tầng 4, không neck & Baseline tối thiểu (RQ1) & PX 3 ep; AVA\\
+A1 & A0 + temporal MHSA toàn cục & So sánh toán tử tại cùng vị trí (RQ1) & Chưa chạy\\
+A2 & A0 + SSM một chiều & Vai trò của quét một chiều (RQ2) & Chưa chạy\\
+A3 & A0 + Bi-SSM & Nhánh dài hạn đứng riêng (RQ2) & Chưa chạy\\
+A4 & A0 + W-MHSA cục bộ ($W = 5$) & Nhánh ngắn hạn đứng riêng (RQ2) & Chưa chạy\\
+A5 & Bi-SSM + W-MHSA, cộng trực tiếp & Hai nhánh, không có cổng (RQ2) & Chưa chạy\\
+A6 & Hybrid FGTN-Mamba có cổng sigmoid (tầng 4) & Mô hình đề xuất cốt lõi (RQ1--RQ2) & PX 10 ep; AVA\\
+A7 & A6 trên tầng 3 + tầng 4 & Đóng góp của đa tỉ lệ (RQ3) & Chưa chạy\\
+A8 & A7 + ACRN (pipeline đầy đủ) & Đóng góp của ngữ cảnh actor--cảnh (RQ4) & PX 3 ep\textsuperscript{a}\\
 % Tạm bỏ A9 khỏi bản in; giữ cấu hình để có thể khôi phục.
 % A9 & A8 với BCE / focal / trọng số lớp / focal + trọng số & Đóng góp của hàm mất mát (RQ4) & Chưa có\\
 \bottomrule
+\multicolumn{4}{@{}p{\textwidth}@{}}{\footnotesize PX: bộ dữ liệu phân xưởng, chia theo video nguồn, một seed; AVA: tập con AVA~v2.2, 10 epoch, một seed. \textsuperscript{a} Với focal loss $\gamma = 2$, không trọng số lớp, lô 4.}
 \end{tabularx}
 \end{table}
 
@@ -198,7 +221,7 @@ Cặp A0 $\rightarrow$ A1 trả lời câu hỏi có cần neck hay không còn 
 \section{Các mô hình so sánh}
 \label{sec:baselines}
 
-Trên bộ dữ liệu phân xưởng, pipeline đề xuất được so sánh với năm mô hình (\cref{tab:main-results}), gồm SlowFast-R50 \cite{feichtenhofer2019slowfast} là baseline hai giai đoạn kinh điển với backbone tích chập 3D hai luồng; YOWOv2-Nano \cite{yang2023yowov2} là phiên bản nhỏ nhất của pipeline one-stage thời gian thực YOWOv2; EfficientViT3D-b1 và FastViT3D-SA12 là biến thể 3D của các backbone hiệu quả EfficientViT-B1 \cite{cai2023efficientvit} và FastViT-SA12 \cite{vasu2023fastvit}; cuối cùng là chính pipeline đề xuất khi bỏ ACRN.
+Các mô hình được dự kiến so sánh trên bộ dữ liệu phân xưởng gồm SlowFast-R50 \cite{feichtenhofer2019slowfast} là baseline hai giai đoạn kinh điển với backbone tích chập 3D hai luồng; YOWOv2-Nano \cite{yang2023yowov2} là phiên bản nhỏ nhất của pipeline one-stage thời gian thực YOWOv2; EfficientViT3D-b1 và FastViT3D-SA12 là biến thể 3D của các backbone hiệu quả EfficientViT-B1 \cite{cai2023efficientvit} và FastViT-SA12 \cite{vasu2023fastvit}. Các mô hình này chưa được huấn luyện lại trên phép chia theo video nguồn với cùng giao thức (hộp nhãn thật, công thức chống lối tắt, cùng tập kiểm định) và luận văn không có nhật ký đánh giá của chúng, nên \cref{ch:results} không báo cáo so sánh với các mô hình này. Mốc so sánh trong cùng pipeline là A0 (không neck).
 
 % Bỏ mục 4.8 khỏi bản in theo yêu cầu; giữ nội dung để có thể khôi phục.
 % \section{Tiêu chí chấp nhận cải tiến}
@@ -209,4 +232,4 @@ Trên bộ dữ liệu phân xưởng, pipeline đề xuất được so sánh v
 \section*{Kết luận chương 4}
 \addcontentsline{toc}{section}{Kết luận chương 4}
 
-Chương này đã mô tả bộ dữ liệu phân xưởng với bốn hành vi mục tiêu, hai cách chia dữ liệu S1 (ngẫu nhiên) và S2 (theo camera), bộ dữ liệu AVA~v2.2 cùng với cấu hình huấn luyện, giao thức đánh giá, ma trận ablation gồm chín cấu hình và năm mô hình so sánh. Bên cạnh đó, chương đã nêu môi trường phần mềm, pipeline dữ liệu theo cấu hình AVA và cách tính IoU, AP, mAP, Precision và Recall trên bộ dữ liệu phân xưởng. \Cref{ch:results} tiếp theo sẽ trình bày kết quả thực nghiệm và thảo luận về đóng góp của từng thành phần.
+Chương này đã mô tả bộ dữ liệu phân xưởng với bốn hành vi mục tiêu, phép chia theo video nguồn thay cho phân chia theo hộp vốn rò rỉ 75,5\% khung hình khóa kiểm tra, bộ dữ liệu AVA~v2.2 cùng với cấu hình huấn luyện, giao thức đánh giá và ma trận ablation gồm chín cấu hình, trong đó A0, A6 và A8 đã được chạy. Bên cạnh đó, chương đã nêu môi trường phần mềm, pipeline dữ liệu theo cấu hình AVA và cách tính IoU, AP, mAP, Precision và Recall trên bộ dữ liệu phân xưởng. \Cref{ch:results} tiếp theo sẽ trình bày kết quả thực nghiệm và thảo luận về đóng góp của từng thành phần.

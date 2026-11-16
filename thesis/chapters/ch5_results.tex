@@ -1,161 +1,248 @@
 \chapter{Kết quả và thảo luận}
 \label{ch:results}
 
-Chương này trình bày kết quả của pipeline đề xuất trên bộ dữ liệu phân xưởng và AVA~v2.2, đồng thời phân tích đóng góp của từng thành phần qua các thí nghiệm ablation trên hai cách chia dữ liệu. Kết quả được thảo luận theo chất lượng phát hiện, khả năng tổng quát hóa và chi phí tính toán còn các công trình đã công bố được dùng làm mốc tham chiếu tại \cref{sec:reference}.
+Chương này chỉ báo cáo các lượt chạy có nhật ký huấn luyện và đánh giá đi kèm (nhật ký của MMEngine và nhật ký console có AP theo từng lớp, liệt kê ở \cref{app:traceability}). Ma trận ablation đầy đủ A0--A8 mô tả ở \cref{tab:ablation} mới được thực hiện một phần: chương này trình bày ba cấu hình A0, A6 và A8 trên bộ dữ liệu phân xưởng với một seed, hai biến thể dữ liệu của A6, cặp A0/A6 trên tập con AVA~v2.2, phép thăm dò sự phụ thuộc vào bối cảnh, đánh giá đầu--cuối với bộ phát hiện người, logic cảnh báo theo track và chi phí tính toán đo thực. Các mốc đã công bố trên AVA được dùng làm tham chiếu tại \cref{sec:reference}.
 
 \section{Kết quả chính trên bộ dữ liệu phân xưởng}
 \label{sec:main-results}
 
-\Cref{tab:main-results} so sánh pipeline đầy đủ với các mô hình khác trên cách chia ngẫu nhiên S1. Pipeline đề xuất đạt 89,83\% mAP, cao hơn mô hình mạnh nhất còn lại là FastViT3D-SA12 5,17 điểm và cao hơn EfficientViT3D-b1 10,07 điểm còn khoảng cách với YOWOv2-Nano (31,28 điểm) và SlowFast-R50 (60,56 điểm) lớn hơn nhiều. Khi bỏ ACRN, pipeline chỉ còn 83,60\%, nghĩa là ACRN đóng góp 6,23 điểm trong cặp lượt chạy này. Cấu hình không có ACRN tương ứng với A7 và trung bình ba seed của A7 và A8 trên S1 lần lượt là 83,71\% và 89,60\% (\cref{tab:ablation-results}), rất gần với hai lượt chạy đơn trong bảng.
+Mọi kết quả trong mục này dùng phép chia theo video nguồn (\cref{sec:splits}), proposal là hộp nhãn thật và frame-mAP@0,5 tính trên ba lớp \path{use_mobilephone}, \path{feet_on_table}\footnote{Trong tệp nhãn của bộ dữ liệu và trên các hình minh họa, lớp này mang tên \code{foot\_on\_table}.} và \path{dangerous_action}, vì \path{sleep_on_table} chỉ có một video nguồn nên không có mẫu kiểm định. Các lượt chạy được liệt kê trong \cref{tab:runs}.
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
-\caption{So sánh mAP trên bộ dữ liệu phân xưởng (cách chia ngẫu nhiên S1)}
+\caption[Các lượt chạy được báo cáo]{Các lượt chạy được báo cáo trong chương (seed 42, một GPU A100-PCIE-40GB)}
+\label{tab:runs}
+\small
+\begin{tabularx}{\textwidth}{@{}lXlcc@{}}
+\toprule
+\textbf{Mã} & \textbf{Cấu hình (tên trong mã nguồn)} & \textbf{Dữ liệu} & \textbf{Epoch} & \textbf{Lô}\\
+\midrule
+A0 & Video Swin-T tầng 4, không neck (\code{A0\_noneck}) & phân xưởng & 3\textsuperscript{a} & 6\\
+A6 & Hybrid FGTN-Mamba có cổng sigmoid, tầng 4 (\code{A5\_hybrid}, \code{branch\_mode=hybrid}) & phân xưởng & 10 & 6\\
+A8 & A6 trên tầng 3 + 4, ACRN, focal loss $\gamma = 2$, không trọng số lớp (\code{A8\_full}) & phân xưởng & 3 & 4\\
+A6-gốc & A6 với tiền xử lý gốc (cạnh ngắn 256, giữ tỷ lệ khung hình) & phân xưởng & 4\textsuperscript{a} & 6\\
+A6+AVA & A6, bổ sung 2.064 hộp AVA ánh xạ sang ba lớp & phân xưởng + AVA & 3 & 6\\
+A0, A6 & như trên & tập con AVA~v2.2 & 10 & 6\\
+\bottomrule
+\multicolumn{5}{@{}l}{\footnotesize \textsuperscript{a} Dừng sớm; lịch learning rate vẫn là lịch 10 epoch.}
+\end{tabularx}
+\end{table}
+
+Trong mã nguồn, cấu hình \code{A5\_hybrid} là khối có cổng sigmoid, tức A6 trong \cref{tab:ablation}, còn khối cộng cố định 0,5/0,5 (A5) là chế độ \code{no\_gate}. A8 ở đây khác định nghĩa A8 trong \cref{tab:ablation} ở chỗ không dùng trọng số lớp, đồng thời chỉ được huấn luyện 3 epoch với lô 4 nên learning rate đỉnh (co giãn theo kích thước lô) thấp hơn A0 và A6 một phần ba.
+
+\Cref{tab:main-results} trình bày AP theo lớp tại checkpoint tốt nhất và tại các epoch cố định. Do tập kiểm định vừa dùng để chọn checkpoint vừa dùng để báo cáo, giá trị tại checkpoint tốt nhất mang tính lạc quan nên bảng báo cáo thêm epoch~3 (ngân sách chung của ba mô hình) và epoch cuối của A6. Cột \emph{mAP 2 lớp} chỉ lấy trung bình trên \path{use_mobilephone} và \path{feet_on_table} vì \path{dangerous_action} đạt AP 100\% ở mọi mô hình và mọi epoch nên không phân biệt được các mô hình (\cref{sec:cross-camera}).
+
+\begin{table}[H]
+\centering
+\caption[AP theo lớp trên bộ dữ liệu phân xưởng]{AP theo lớp trên tập kiểm định của bộ dữ liệu phân xưởng (frame-mAP@0,5, \%, một seed, proposal là hộp nhãn thật)}
 \label{tab:main-results}
-\begin{tabularx}{\textwidth}{Xrr}
+\small
+\begin{tabular}{@{}llrrrrr@{}}
 \toprule
-\textbf{Mô hình} & \textbf{mAP (\%)} & \textbf{So với pipeline đầy đủ}\\
+\textbf{Mô hình} & \textbf{Checkpoint} & \textbf{\code{mobilephone}} & \textbf{\code{feet}} & \textbf{\code{dangerous}} & \textbf{mAP 3 lớp} & \textbf{mAP 2 lớp}\\
 \midrule
-SlowFast-R50 \cite{feichtenhofer2019slowfast} & 29,27 & $-60{,}56$\\
-YOWOv2-Nano \cite{yang2023yowov2} & 58,55 & $-31{,}28$\\
-EfficientViT3D-b1 \cite{cai2023efficientvit} & 79,76 & $-10{,}07$\\
-Video Swin-T + Hybrid FGTN-Mamba (không ACRN) & 83,60 & $-6{,}23$\\
-FastViT3D-SA12 \cite{vasu2023fastvit} & 84,66 & $-5{,}17$\\
-\textbf{Video Swin-T + Hybrid FGTN-Mamba đa tỉ lệ + ACRN} & \textbf{89,83} & ---\\
+A0 & tốt nhất (epoch 2) & 81,73 & 69,43 & 100,00 & 83,72 & 75,58\\
+A6 & tốt nhất (epoch 1) & 89,69 & \textbf{70,30} & 100,00 & \textbf{86,66} & \textbf{80,00}\\
+A8 & tốt nhất (epoch 3) & \textbf{95,82} & 49,51 & 100,00 & 81,78 & 72,67\\
+\midrule
+A0 & epoch 3 & 80,66 & 65,86 & 100,00 & 82,17 & 73,26\\
+A6 & epoch 3 & 87,16 & 68,38 & 100,00 & 85,18 & 77,77\\
+A8 & epoch 3 & 95,82 & 49,51 & 100,00 & 81,78 & 72,67\\
+\midrule
+A6 & epoch 10 (cuối) & 88,35 & 61,75 & 100,00 & 83,36 & 75,05\\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \end{table}
 
-Về chỉ số vận hành (\cref{tab:operating}), Precision và Recall tại ngưỡng 0,5 cùng bằng 81,82\%, nghĩa là tại điểm vận hành này, xét ở mức từng người và từng khung hình khóa, khoảng 18\% dự đoán dương là sai và khoảng 18\% hành vi thật bị bỏ sót. Ngưỡng theo lớp và logic theo track (\cref{sec:loss,sec:inference}) cho phép dịch chuyển điểm vận hành theo yêu cầu nghiệp vụ, chẳng hạn ưu tiên recall với \path{dangerous_action}. Tốc độ trên 20 khung hình/giây với khoảng 10~GB bộ nhớ GPU cho thấy tiềm năng xử lý theo thời gian thực (M6). Tuy nhiên, điều kiện và phạm vi đo FPS chưa được ghi lại đầy đủ nên chưa thể dùng thông lượng này để kết luận về độ trễ đầu--cuối, vốn còn phụ thuộc vào bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều.
-
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
-\caption[Chỉ số vận hành của pipeline đầy đủ]{Chỉ số vận hành của pipeline đầy đủ trên bộ dữ liệu phân xưởng}
-\label{tab:operating}
-\begin{tabularx}{\textwidth}{lX}
+\caption[mAP theo epoch trên bộ dữ liệu phân xưởng]{mAP 3 lớp (\%) theo epoch trên tập kiểm định của bộ dữ liệu phân xưởng; ``--'' là epoch không được huấn luyện}
+\label{tab:epochs}
+\small
+\begin{tabular}{@{}lrrrrrrrrrr@{}}
 \toprule
-\textbf{Chỉ số} & \textbf{Giá trị}\\
+\textbf{Lượt chạy} & \textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} & \textbf{5} & \textbf{6} & \textbf{7} & \textbf{8} & \textbf{9} & \textbf{10}\\
 \midrule
-mAP & 89,83\%\\
-Precision / Recall tại ngưỡng 0,5 & 81,82\% / 81,82\%\\
-Tốc độ xử lý; bộ nhớ GPU & Trên 20 khung hình/giây; khoảng 10~GB\\
+A0 & 81,58 & 83,72 & 82,17 & -- & -- & -- & -- & -- & -- & --\\
+A6 & 86,66 & 86,06 & 85,18 & 85,05 & 86,45 & 86,23 & 84,88 & 84,01 & 83,49 & 83,36\\
+A8 & 77,25 & 78,53 & 81,78 & -- & -- & -- & -- & -- & -- & --\\
+A6-gốc & 87,28 & 87,49 & 86,79 & 85,11 & -- & -- & -- & -- & -- & --\\
+A6+AVA & 86,22 & 81,84 & 82,18 & -- & -- & -- & -- & -- & -- & --\\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \end{table}
+
+Ở cả ba epoch có chung, A6 cao hơn A0 (5,08; 2,34 và 3,01 điểm). Tại checkpoint tốt nhất, chênh lệch là 2,94 điểm, chủ yếu đến từ \path{use_mobilephone} (+7,96 điểm) còn \path{feet_on_table} chỉ tăng 0,87 điểm. A6 đạt mAP cao nhất ngay ở epoch~1 rồi giảm dần còn 83,36\% ở epoch~10, chủ yếu do \path{feet_on_table} (từ 70,30\% xuống 61,75\%), nên việc chọn checkpoint trên tập kiểm định có thể làm kết quả lạc quan hơn tới 3,30 điểm so với epoch cuối. Do mỗi cấu hình mới có một seed, luận văn chưa có độ lệch chuẩn giữa các seed. Biến thiên theo epoch của A6 từ epoch~2 tới epoch~10 (83,36--86,45\%) cho thấy các chênh lệch dưới khoảng 3 điểm cần được diễn giải thận trọng.
+
+\subsection{Chỉ số vận hành đầu--cuối}
+\label{sec:operating}
+
+mAP ở \cref{tab:main-results} dùng hộp nhãn thật nên chưa gồm lỗi của bộ phát hiện người. Để đo hệ thống ở điều kiện vận hành, cả 23 video kiểm định được chạy qua toàn bộ pipeline suy luận: YOLO26-x \cite{ultralytics2026yolo26} phát hiện người cứ 8 khung hình một lần (ngưỡng tin cậy 0,7), mô hình hành vi chạy trên các hộp này và một nhãn được coi là dương khi điểm đạt từ 0,5 trở lên. Dự đoán được ghép với hộp nhãn thật theo IoU $\geq 0{,}5$ như \cref{eq:prec-rec} trên 314 khung hình khóa có nhãn (521 người). \Cref{tab:operating} trình bày kết quả.
+
+\begin{table}[H]
+\centering
+\caption[Chỉ số vận hành đầu--cuối]{Precision / Recall / F1 (\%) đầu--cuối với hộp người từ YOLO26-x, ngưỡng điểm 0,5 cho mọi lớp, trên 314 khung hình khóa kiểm định}
+\label{tab:operating}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Lớp} & \textbf{A0} & \textbf{A6} & \textbf{A8}\\
+\midrule
+\path{use_mobilephone} & 42,7 / 73,8 / 54,1 & 53,7 / \textbf{92,3} / 67,9 & \textbf{85,1} / 68,9 / \textbf{76,1}\\
+\path{feet_on_table} & 0,0 / 0,0 / 0,0 & \textbf{100,0} / 2,4 / 4,7 & 15,0 / \textbf{5,5} / \textbf{8,0}\\
+\path{dangerous_action} & \textbf{74,2} / 38,2 / \textbf{50,4} & 73,3 / 38,2 / 50,2 & 47,8 / 38,2 / 42,4\\
+\midrule
+Gộp ba lớp (micro) & 49,5 / 38,6 / 43,4 & \textbf{58,4} / \textbf{45,9} / \textbf{51,4} & 58,1 / 38,6 / 46,4\\
+Số nhãn \path{sleep_on_table} báo sai & 21 & 46 & 83\\
+\midrule
+Recall của YOLO26-x (IoU $\geq 0{,}5$) & \multicolumn{3}{c}{63,0\% số người có nhãn}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Bộ phát hiện người là nút thắt lớn nhất: chỉ 63,0\% người có nhãn được YOLO26-x trả về hộp đạt IoU $\geq 0{,}5$, nên recall của \path{dangerous_action} dừng ở 38,2\% với cả ba mô hình dù AP trên hộp nhãn thật đạt 100\%. Lớp \path{feet_on_table} gần như không được phát hiện ở ngưỡng 0,5 (recall 0--5,5\%): điểm của lớp này thấp ngay cả khi hộp người đúng, phù hợp với AP thấp hơn hẳn các lớp khác trong \cref{tab:main-results}, và cho thấy lớp này cần ngưỡng riêng thấp hơn (\cref{sec:loss}) cùng hộp người bao trọn bàn chân. A8 cho Precision cao nhất với \path{use_mobilephone} nhưng báo sai nhiều nhất với \path{sleep_on_table}, lớp không có mẫu kiểm định nào. Ở mức gộp, A6 có F1 cao nhất (51,4\%).
+
+\subsection{Chi phí tính toán đo thực}
+\label{sec:cost}
+
+\Cref{tab:cost} tổng hợp chi phí đọc từ nhật ký. Thời gian suy luận được đo trong pha kiểm định với lô 1, đầu vào 32 khung hình $384 \times 256$, FP32 trên A100-PCIE-40GB, đã gồm thời gian nạp dữ liệu nhưng chưa gồm bộ phát hiện người.
+
+\begin{table}[H]
+\centering
+\caption{Chi phí tính toán đo được trên bộ dữ liệu phân xưởng (A100-PCIE-40GB, FP32)}
+\label{tab:cost}
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Chỉ số} & \textbf{A0} & \textbf{A6} & \textbf{A8}\\
+\midrule
+Thời gian suy luận / khung hình khóa (s) & 0,078 & 0,087 & 0,103\\
+Thông lượng (khung hình khóa / s) & 12,8 & 11,5 & 9,7\\
+Bộ nhớ GPU khi suy luận (GB) & 2,1 & 2,3 & 2,5\\
+Bộ nhớ GPU tối đa khi huấn luyện (GB; lô 6 / 6 / 4) & 28,1 & 28,7 & 21,7\\
+Thời gian một epoch huấn luyện + kiểm định (phút) & 24,4 & 27,5 & 34,3\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Khối Hybrid FGTN-Mamba làm tăng thời gian suy luận khoảng 12\% so với A0, còn A8 tăng khoảng 32\%. Đây là thông lượng của riêng mô hình hành vi trên hộp có sẵn và chưa được tối ưu cho suy luận (chưa dùng FP16 hay TensorRT) nên chưa phải độ trễ đầu--cuối; độ trễ của cảnh báo được phân tích ở \cref{sec:alert-eval}.
 
 \section{Ablation: đóng góp của từng thành phần}
 \label{sec:ablation-results}
 
-\Cref{tab:ablation-results} và \cref{fig:ablation} trình bày mAP của chín cấu hình A0--A8 (\cref{tab:ablation}) trên hai cách chia S1 (ngẫu nhiên) và S2 (giữ riêng hai camera để kiểm tra), trong đó mỗi giá trị là trung bình của ba seed.
+\Cref{tab:ablation-results} tổng hợp các cặp so sánh có số liệu. Mỗi cặp được đánh giá tại cùng epoch để không phụ thuộc vào việc chọn checkpoint.
 
 \begin{table}[H]
 \centering
-\caption[Kết quả ablation trên bộ dữ liệu phân xưởng]{Kết quả ablation trên bộ dữ liệu phân xưởng (mAP, \%, trung bình ba seed). $\Delta$: chênh lệch so với cấu hình tham chiếu của cặp so sánh (A1, A2, A4 so với A0; A3 so với A2; A5 so với A3; A6 so với A5; A7 so với A6; A8 so với A7)}
+\caption[Các cặp ablation có số liệu]{Các cặp ablation có số liệu (mAP, \%, một seed); chênh lệch tính tại cùng epoch}
 \label{tab:ablation-results}
 \small
-\begin{tabularx}{\textwidth}{lXrrrrr}
+\begin{tabularx}{\textwidth}{@{}lXrrr@{}}
 \toprule
-\textbf{Mã} & \textbf{Cấu hình} & \textbf{S1} & \textbf{S2} & \textbf{$\Delta$S1} & \textbf{$\Delta$S2} & \textbf{S1 $-$ S2}\\
+\textbf{Cặp} & \textbf{Thay đổi} & \textbf{Trước} & \textbf{Sau} & \textbf{$\Delta$}\\
 \midrule
-A0 & Tầng 4, không neck & 72,45 & 64,40 & --- & --- & 8,05\\
-A1 & + MHSA toàn cục & 75,62 & 67,83 & $+3{,}17$ & $+3{,}43$ & 7,79\\
-A2 & + SSM một chiều & 75,31 & 67,80 & $+2{,}86$ & $+3{,}40$ & 7,51\\
-A3 & + Bi-SSM & 77,04 & 69,38 & $+1{,}73$ & $+1{,}58$ & 7,66\\
-A4 & + W-MHSA cục bộ & 76,27 & 68,30 & $+3{,}82$ & $+3{,}90$ & 7,97\\
-A5 & Hai nhánh, cộng trực tiếp & 78,10 & 70,40 & $+1{,}06$ & $+1{,}02$ & 7,70\\
-A6 & Hybrid có cổng (tầng 4) & 79,86 & 72,25 & $+1{,}76$ & $+1{,}85$ & 7,61\\
-A7 & A6 trên tầng 3 + 4 & 83,71 & 74,25 & $+3{,}85$ & $+2{,}00$ & 9,46\\
-A8 & A7 + ACRN & \textbf{89,60} & \textbf{78,15} & $+5{,}89$ & $+3{,}90$ & 11,45\\
+A0 $\rightarrow$ A6 & thêm Hybrid FGTN-Mamba, phân xưởng, epoch 3 & 82,17 & 85,18 & $+3{,}01$\\
+A0 $\rightarrow$ A6 & như trên, tập con AVA~v2.2, epoch 10 & 13,99 & 16,42 & $+2{,}43$\\
+A6 $\rightarrow$ A8 & đa tỉ lệ + ACRN + focal, lô 4, phân xưởng, epoch 3 & 85,18 & 81,78 & $-3{,}40$\\
+A6-gốc $\rightarrow$ A6 & công thức dữ liệu chống lối tắt, phân xưởng, epoch 3 & 86,79 & 85,18 & $-1{,}61$\\
+A6 $\rightarrow$ A6+AVA & thêm 2.064 hộp AVA, phân xưởng, epoch 3 & 85,18 & 82,18 & $-3{,}00$\\
+\midrule
+A1--A5, A7 & chưa chạy & \multicolumn{3}{c}{---}\\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-  scale only axis, width=0.64\textwidth, height=7.2cm,
-  xmin=60, xmax=93, ymin=-0.6, ymax=8.6, y dir=reverse,
-  xtick={60,65,...,90}, ytick={0,...,8},
-  yticklabels={{A0 · không neck},{A1 · MHSA toàn cục},{A2 · SSM một chiều},{A3 · Bi-SSM},{A4 · W-MHSA cục bộ},{A5 · hai nhánh, cộng},{A6 · Hybrid có cổng},{A7 · + đa tỉ lệ},{A8 · + ACRN}},
-  xlabel={mAP (\%), trung bình ba seed},
-  axis x line*=bottom, axis y line*=left,
-  axis line style={draw=vzaxis, line width=0.5pt},
-  xtick style={draw=vzaxis}, ytick style={draw=none},
-  xmajorgrids, major grid style={draw=vzgrid, line width=0.4pt},
-  tick label style={font=\footnotesize, text=vzinktwo},
-  label style={font=\footnotesize, text=vzinktwo},
-  legend style={draw=none, fill=none, font=\footnotesize, text=vzink,
-                at={(0.5,1.02)}, anchor=south, legend columns=2,
-                /tikz/every even column/.append style={column sep=1.5em}},
-  legend cell align=left,
-  clip=false,
-]
-  % đoạn nối S2--S1 của từng cấu hình
-  \draw[vzaxis, line width=1.4pt] (axis cs:64.40,0) -- (axis cs:72.45,0);
-  \draw[vzaxis, line width=1.4pt] (axis cs:67.83,1) -- (axis cs:75.62,1);
-  \draw[vzaxis, line width=1.4pt] (axis cs:67.80,2) -- (axis cs:75.31,2);
-  \draw[vzaxis, line width=1.4pt] (axis cs:69.38,3) -- (axis cs:77.04,3);
-  \draw[vzaxis, line width=1.4pt] (axis cs:68.30,4) -- (axis cs:76.27,4);
-  \draw[vzaxis, line width=1.4pt] (axis cs:70.40,5) -- (axis cs:78.10,5);
-  \draw[vzaxis, line width=1.4pt] (axis cs:72.25,6) -- (axis cs:79.86,6);
-  \draw[vzaxis, line width=1.4pt] (axis cs:74.25,7) -- (axis cs:83.71,7);
-  \draw[vzaxis, line width=1.4pt] (axis cs:78.15,8) -- (axis cs:89.60,8);
-  \addplot[only marks, mark=*, mark size=3.2pt,
-           mark options={fill=vzSone, draw=white, line width=0.8pt}]
-    coordinates {(72.45,0) (75.62,1) (75.31,2) (77.04,3) (76.27,4) (78.10,5) (79.86,6) (83.71,7) (89.60,8)};
-  \addlegendentry{S1 --- chia ngẫu nhiên}
-  \addplot[only marks, mark=*, mark size=3.2pt,
-           mark options={fill=vzStwo, draw=white, line width=0.8pt}]
-    coordinates {(64.40,0) (67.83,1) (67.80,2) (69.38,3) (68.30,4) (70.40,5) (72.25,6) (74.25,7) (78.15,8)};
-  \addlegendentry{S2 --- giữ riêng hai camera}
-  % nhãn giá trị chỉ ở hai đầu của chuỗi (A0 và A8)
-  \node[anchor=west, font=\footnotesize, text=vzink, xshift=4pt] at (axis cs:72.45,0) {72,45};
-  \node[anchor=east, font=\footnotesize, text=vzink, xshift=-4pt] at (axis cs:64.40,0) {64,40};
-  \node[anchor=west, font=\footnotesize, text=vzink, xshift=4pt] at (axis cs:89.60,8) {89,60};
-  \node[anchor=east, font=\footnotesize, text=vzink, xshift=-4pt] at (axis cs:78.15,8) {78,15};
-\end{axis}
-\end{tikzpicture}
-\caption[Ablation trên hai cách chia dữ liệu]{mAP của chín cấu hình ablation trên hai cách chia dữ liệu (trung bình ba seed). Đoạn nối giữa hai điểm của mỗi cấu hình là mức giảm khi chuyển từ cách chia ngẫu nhiên (S1) sang camera chưa thấy khi huấn luyện (S2).}
-\label{fig:ablation}
-\end{figure}
+\subsection{Có cần temporal neck (RQ1)}
 
-\subsection{Có cần temporal neck và neck tiêu chuẩn đã đủ chưa (RQ1)}
-
-Việc thêm temporal MHSA toàn cục tại vị trí hậu-backbone, tiền-RoI (A0 $\rightarrow$ A1) làm mAP tăng 3,17 điểm trên S1 và 3,43 điểm trên S2. Như vậy, mô hình hóa trục thời gian trước khi cắt vùng người là cần thiết, ngay cả khi bên trong Video Swin đã có attention không--thời gian. Tuy nhiên, neck tiêu chuẩn vẫn chưa đủ vì ở cùng vị trí, Hybrid FGTN-Mamba (A6) cao hơn A1 4,24 điểm trên S1 và 4,42 điểm trên S2 còn so với khi không dùng neck thì mức tăng là 7,41 và 7,85 điểm.
+Trên cả hai bộ dữ liệu, Hybrid FGTN-Mamba tại vị trí hậu-backbone, tiền-RoI cải thiện so với khi không có neck: $+3{,}01$ điểm trên bộ dữ liệu phân xưởng tại epoch~3 và $+2{,}43$ điểm trên tập con AVA~v2.2 tại epoch~10. Trên tập con AVA, A6 cao hơn A0 ở cả ba nhóm hành vi và ở 45 trong 59 lớp có AP xác định (\cref{sec:ava-results}). Hai bộ dữ liệu cho kết quả cùng chiều, nhưng mỗi kết quả mới có một seed. Câu hỏi neck tiêu chuẩn đã đủ hay chưa vẫn chưa được trả lời vì A1 (MHSA toàn cục tại cùng vị trí) chưa được chạy.
 
 \subsection{Vai trò của từng nhánh, hướng quét và cổng (RQ2)}
 
-\begin{itemize}
-  \item \emph{quét một chiều và hai chiều}: SSM một chiều (A2) đạt mức tương đương MHSA toàn cục (75,31 so với 75,62 trên S1; 67,80 so với 67,83 trên S2) với chi phí tuyến tính theo $T$. Khi thêm quét ngược (A2 $\rightarrow$ A3), mAP tăng 1,73 điểm (S1) và 1,58 điểm (S2), tức các khung hình sau khung hình khóa mang thông tin hữu ích, đổi lại hệ thống trực tuyến phải chịu độ trễ nhìn trước (\cref{sec:inference});
-  \item \emph{hai nhánh khi đứng riêng}: Bi-SSM (A3) cao hơn W-MHSA cục bộ (A4) 0,77 điểm (S1) và 1,08 điểm (S2), phù hợp với việc một nửa số hành vi mục tiêu là trạng thái kéo dài. Cả hai nhánh khi đứng riêng đều tốt hơn MHSA toàn cục (A1), gợi ý rằng thiên lệch cục bộ có ích khi dữ liệu huấn luyện còn hạn chế;
-  \item \emph{hai nhánh bổ sung cho nhau}: cộng trực tiếp hai nhánh (A5) cho kết quả cao hơn nhánh mạnh hơn khi đứng riêng (A3) 1,06 điểm (S1) và 1,02 điểm (S2), nghĩa là nhánh cục bộ mang thông tin mà Bi-SSM chưa nắm bắt được;
-  \item \emph{cổng sigmoid}: thay tỷ lệ cố định 0,5/0,5 bằng cổng học theo nội dung (A5 $\rightarrow$ A6) giúp mAP tăng thêm 1,76 điểm (S1) và 1,85 điểm (S2). Mức tăng nhất quán trên hai cách chia cho thấy lợi ích của cổng không phụ thuộc vào việc cảnh kiểm tra đã xuất hiện khi huấn luyện.
-\end{itemize}
-Chuỗi tăng A2 $\rightarrow$ A3 $\rightarrow$ A5 $\rightarrow$ A6 lặp lại theo cùng thứ tự trên cả S1 và S2. Riêng các chênh lệch cỡ một điểm hoặc nhỏ hơn (A1 so với A2, A3 so với A4) cần được diễn giải thận trọng cho tới khi có độ lệch chuẩn giữa các seed.
+Các cấu hình A1--A5 tách riêng hướng quét, từng nhánh và cổng chưa được chạy nên luận văn chưa có bằng chứng thực nghiệm cho vai trò riêng của Bi-SSM, W-MHSA và cổng sigmoid. Những phân tích ở \cref{ch:method} về thang thời gian của từng nhánh vẫn là giả thuyết thiết kế.
 
-\subsection{Đặc trưng đa tỉ lệ và ACRN (RQ3, RQ4)}
+\subsection{Đặc trưng đa tỉ lệ, ACRN và hàm mất mát (RQ3, RQ4)}
 
-Khi áp dụng Hybrid FGTN-Mamba trên cả tầng 3 và tầng 4 (A6 $\rightarrow$ A7), mAP tăng 3,85 điểm trên S1 và 2,00 điểm trên S2, xác nhận vai trò của độ phân giải cao hơn đối với các tín hiệu nhỏ như điện thoại, bàn tay hay bàn chân (L3). Việc thêm ACRN (A7 $\rightarrow$ A8) đem lại mức tăng lớn nhất là 5,89 và 3,90 điểm, phù hợp với việc các hành vi mục tiêu phụ thuộc vào quan hệ giữa người với bàn, ghế và thiết bị (L4). Tính từ A0 đến A8, tổng mức tăng là 17,15 điểm (S1) và 13,75 điểm (S2).
+Với cùng ngân sách 3 epoch, A8 thấp hơn A6 3,40 điểm mAP. A8 cho AP cao nhất với \path{use_mobilephone} (95,82\% so với 87,16\%) nhưng AP của \path{feet_on_table} giảm còn 49,51\% (so với 68,38\%). Cặp A6 $\rightarrow$ A8 thay đổi đồng thời bốn yếu tố: đặc trưng đa tỉ lệ, ACRN, focal loss và kích thước lô (kéo theo learning rate). Vì A7 và thí nghiệm tách hàm mất mát chưa được chạy, luận văn không tách được đóng góp riêng của đa tỉ lệ, của ACRN hay của focal loss, và chưa có bằng chứng rằng pipeline đầy đủ tốt hơn A6 trên bộ dữ liệu này.
 
-\section{Tổng quát hóa sang camera mới}
+\subsection{Công thức dữ liệu và dữ liệu bổ sung}
+
+So với tiền xử lý gốc, công thức chống lối tắt (\cref{sec:training-config}) làm mAP tại epoch~3 giảm 1,61 điểm. Mức giảm này là kỳ vọng vì công thức này loại bỏ các tín hiệu kích thước và tỷ lệ khung hình vốn giúp nhận ra nguồn video. Bổ sung 2.064 hộp AVA được ánh xạ sang ba lớp (A6+AVA) không cải thiện kết quả: mAP tốt nhất là 86,22\% so với 86,66\% của A6 và thấp hơn 3,00 điểm tại epoch~3.
+
+\section{Phụ thuộc vào bối cảnh và khả năng tổng quát hóa}
 \label{sec:cross-camera}
 
-Với mọi cấu hình, mAP trên S2 đều thấp hơn trên S1 (cột cuối của \cref{tab:ablation-results}). Ở các cấu hình A0--A6, khoảng cách này ổn định ở mức 7,5--8,1 điểm (khoảng 10\% giá trị tương đối), tức temporal neck không làm mô hình phụ thuộc nhiều hơn vào những cảnh đã thấy. Khoảng cách tăng lên 9,46 điểm ở A7 và 11,45 điểm ở A8, cho thấy một phần mức tăng của đa tỉ lệ và ACRN trên S1 đến từ các tín hiệu gắn với cảnh hoặc camera cụ thể. Điều này cũng dễ hiểu với ACRN vì thành phần này học trực tiếp bố cục cảnh. Dù vậy, hai thành phần này vẫn cải thiện rõ trên S2 và thứ tự giữa chín cấu hình được giữ nguyên.
+Việc \path{dangerous_action} đạt AP 100\% ngay từ epoch đầu ở mọi mô hình là dấu hiệu bất thường. Toàn bộ mẫu kiểm định của lớp này thuộc nhóm clip \code{newfi}; các clip trong nhóm có độ phân giải $720 \times 576$, khác với phần lớn video của các lớp còn lại ($1920 \times 1080$), chỉ chứa nhãn \path{dangerous_action} và mọi người tại khung hình khóa đều mang nhãn này. Mô hình vì vậy có thể nhận ra lớp này qua đặc điểm của nguồn video và bối cảnh thay vì qua hành vi.
+
+Để kiểm tra giả thuyết trên, các checkpoint được đánh giá lại mà không huấn luyện thêm trong bốn điều kiện đầu vào: C0 giữ nguyên đầu vào; C1 tô kín vùng bên trong mọi hộp người bằng màu trung bình; C2 tô kín vùng bên ngoài các hộp người; C3 lặp lại khung hình khóa cho cả 32 khung của đoạn, tức loại bỏ chuyển động (tệp \path{probe_scene.py}). Kết quả được trình bày trong \cref{tab:probe}.
+
+\begin{table}[H]
+\centering
+\caption[Thăm dò sự phụ thuộc vào bối cảnh]{AP theo lớp (\%) khi che người, che bối cảnh hoặc bỏ chuyển động. A6 và A6+AVA: checkpoint epoch 1; A0: checkpoint epoch 2}
+\label{tab:probe}
+\small
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+\textbf{Mô hình} & \textbf{Điều kiện} & \textbf{\code{mobilephone}} & \textbf{\code{feet}} & \textbf{\code{dangerous}} & \textbf{mAP}\\
+\midrule
+\multirow{4}{*}{A6} & C0 nguyên bản & 89,69 & 70,30 & 100,00 & 86,66\\
+ & C1 che người & 58,16 & 43,70 & 99,21 & 67,03\\
+ & C2 che bối cảnh & 96,70 & 67,01 & 100,00 & 87,90\\
+ & C3 không chuyển động & 84,34 & 57,76 & 99,95 & 80,68\\
+\midrule
+\multirow{4}{*}{A0} & C0 nguyên bản & 77,79 & 68,95 & 100,00 & 82,25\\
+ & C1 che người & 51,46 & 42,15 & 99,63 & 64,41\\
+ & C2 che bối cảnh & 94,17 & 63,47 & 100,00 & 85,88\\
+ & C3 không chuyển động & 64,09 & 62,82 & 99,30 & 75,40\\
+\midrule
+\multirow{4}{*}{A6+AVA} & C0 nguyên bản & 88,54 & 70,13 & 100,00 & 86,22\\
+ & C1 che người & 51,92 & 40,97 & 99,75 & 64,21\\
+ & C2 che bối cảnh & 98,53 & 61,73 & 100,00 & 86,75\\
+ & C3 không chuyển động & 84,67 & 50,08 & 99,93 & 78,23\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Kết quả thăm dò cho thấy:
+\begin{itemize}
+  \item \path{dangerous_action} vẫn đạt AP từ 99,21\% trở lên khi toàn bộ vùng người bị che (C1). Như vậy, mô hình nhận dạng lớp này chủ yếu qua bối cảnh. Cả công thức chống lối tắt lẫn việc bổ sung các đoạn đánh nhau từ AVA đều không loại bỏ được hiện tượng này. AP 100\% của \path{dangerous_action} vì vậy không phải là bằng chứng về khả năng nhận dạng hành vi; để đo được lớp này cần mẫu \path{dangerous_action} từ các nguồn video khác và mẫu âm từ chính nguồn của nhóm \code{newfi};
+  \item \path{use_mobilephone} và \path{feet_on_table} phụ thuộc vào vùng người: khi che người, AP của A6 giảm lần lượt 31,53 và 26,60 điểm. Ngược lại, che bối cảnh không làm giảm AP của \path{use_mobilephone} vì phép che này đã được dùng khi huấn luyện với xác suất 0,5, tức C2 nằm trong phân bố huấn luyện;
+  \item khi bỏ chuyển động (C3), mAP của A6 giảm 5,98 điểm và của A0 giảm 6,85 điểm. Thông tin thời gian có đóng góp nhưng không chiếm phần lớn kết quả. Mức giảm theo lớp của hai mô hình ngược chiều nhau (A6 giảm nhiều hơn ở \path{feet_on_table}, A0 giảm nhiều hơn ở \path{use_mobilephone}) nên chưa thể kết luận neck khai thác chuyển động tốt hơn.
+\end{itemize}
+Với checkpoint epoch~2 của A0, mAP ở điều kiện C0 là 82,25\%, thấp hơn 1,47 điểm so với giá trị 83,72\% ghi trong nhật ký huấn luyện tại cùng epoch. Nguyên nhân chưa được xác định nên các so sánh trong \cref{tab:probe} chỉ được thực hiện giữa các điều kiện của cùng một mô hình.
+
+Về tổng quát hóa, phép chia theo video nguồn đã loại bỏ rò rỉ giữa các khung hình khóa liền kề của cùng một video nhưng chưa phải là phép chia theo camera. Kết hợp với kết quả thăm dò, luận văn chỉ đo được khả năng tổng quát hóa sang video mới của hai lớp \path{use_mobilephone} và \path{feet_on_table}.
 
 \section{Kết quả trên AVA v2.2}
 \label{sec:ava-results}
-
 \label{sec:ava-record}
 
-Trên AVA~v2.2 trong thiết lập closed-set, pipeline gồm Video Swin-Tiny kết hợp Hybrid FGTN-Mamba đa tỉ lệ và ACRN đạt 38,1 mAP (\cref{tab:reference}). Kết quả này bổ sung một đánh giá trên dữ liệu công khai cho các thực nghiệm trên dữ liệu phân xưởng và cho thấy pipeline có khả năng mô hình hóa hành động trong những cảnh đa dạng hơn phạm vi ứng dụng ban đầu.
+Do giới hạn dung lượng lưu trữ, thực nghiệm trên AVA~v2.2 dùng một tập con gồm 45 video huấn luyện và 8 video kiểm định (tệp \path{make_subset.py}). Giao thức đánh giá giữ nguyên giao thức chính thức trên tập con: các lớp được đánh giá, proposal của FAIR (recall 93,9\%), danh sách khung hình loại trừ chính thức và 6.460 khung hình khóa kiểm định. A0 và A6 được huấn luyện 10 epoch với cùng thiết lập (\cref{tab:ava-subset}).
 
-So với mốc 39,2 mAP của STAR/L \cite{gritsenko2024star}, kết quả của pipeline thấp hơn 1,1 điểm. Tuy nhiên, STAR/L dùng tiền huấn luyện CLIP $\rightarrow$ Kinetics-700 với đầu vào 320~px, trong khi các phương pháp trong bảng còn khác nhau về backbone, dữ liệu tiền huấn luyện và giao thức đánh giá. Vì vậy, khoảng cách này được dùng để định vị mức hiệu năng của pipeline còn đóng góp riêng của Hybrid FGTN-Mamba, đa tỉ lệ và ACRN được đánh giá qua các cặp ablation trên dữ liệu phân xưởng (\cref{sec:ablation-results}). Kết quả tổng hợp trên AVA chưa cho phép định lượng riêng mức tăng của từng thành phần trên bộ dữ liệu này.
+\begin{table}[H]
+\centering
+\caption[Kết quả trên tập con AVA v2.2]{Kết quả trên tập con AVA~v2.2 (8 video kiểm định, frame-mAP@0,5, \%, một seed)}
+\label{tab:ava-subset}
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Chỉ số} & \textbf{A0} & \textbf{A6} & \textbf{Chênh lệch}\\
+\midrule
+mAP tại epoch 10 & 13,99 & \textbf{16,42} & $+2{,}43$\\
+mAP tốt nhất (epoch) & 13,99 (10) & \textbf{16,85} (4) & $+2{,}86$\\
+\quad Di chuyển của người (epoch 10) & 26,35 & 28,41 & $+2{,}06$\\
+\quad Thao tác với vật thể (epoch 10) & 7,68 & 9,93 & $+2{,}25$\\
+\quad Tương tác giữa người (epoch 10) & 16,31 & 19,46 & $+3{,}15$\\
+Số lớp A6 cao hơn A0 (epoch 10) & \multicolumn{2}{c}{45 / 59} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Các lớp tăng nhiều nhất là \emph{fall down} (+20,40), \emph{drive} (+15,99), \emph{kiss} (+15,56) và \emph{sing to} (+14,28), còn các lớp giảm nhiều nhất là \emph{jump/leap} ($-11{,}80$), \emph{eat} ($-4{,}66$) và \emph{crouch/kneel} ($-2{,}21$). A6 cũng hội tụ nhanh hơn: đạt 14,81\% ngay ở epoch~2 trong khi A0 cần tới epoch~10 để đạt 13,99\%. Kết quả này cùng chiều với cặp A0/A6 trên bộ dữ liệu phân xưởng. Luận văn chưa huấn luyện pipeline đầy đủ (A8) trên AVA và chưa đánh giá trên toàn bộ tập val.
 
 \section{Mốc tham chiếu trên AVA}
 \label{sec:reference}
 
-\Cref{tab:reference} đặt kết quả 38,1 mAP của pipeline đầy đủ bên cạnh các mốc đã công bố trên AVA của những phương pháp được nêu ở \cref{ch:related}. Các nhóm closed-set, open-vocabulary và zero-shot khác nhau cả về phạm vi lớp lẫn điều kiện đánh giá nên kết quả cần được đọc theo từng giao thức.
+\Cref{tab:reference} liệt kê các mốc đã công bố trên AVA của những phương pháp được nêu ở \cref{ch:related}. Các nhóm closed-set, open-vocabulary và zero-shot khác nhau cả về phạm vi lớp lẫn điều kiện đánh giá nên kết quả cần được đọc theo từng giao thức. Kết quả của luận văn được đặt ở hàng cuối chỉ để ghi nhận: con số này đo trên 8 video kiểm định của tập con với 10 epoch huấn luyện nên \emph{không so sánh trực tiếp} được với các mốc trên toàn bộ tập val.
 
 \begin{table}[H]
 \centering
@@ -173,15 +260,15 @@ STAR/L \cite{gritsenko2024star} & AVA, end-to-end & 39,2 & CLIP $\to$ K700; 320 
 OV-STAD \cite{wu2024ovstad} & OV-AVA (base / novel / all) & 27,8 / 16,6 / 25,0 & Open-vocabulary\\
 ST-CLIP \cite{huang2025stclip} & ZS-AVA (trung bình; với hộp thật) & 9,01 / 11,76 & Zero-shot\\
 \midrule
-Hybrid FGTN-Mamba đa tỉ lệ + ACRN (đề xuất) & AVA v2.2, closed-set & \textbf{38,1} & Video Swin-Tiny\\
+Hybrid FGTN-Mamba tầng 4 (A6) & Tập con AVA v2.2 (8 video val), closed-set & 16,42 & Video Swin-T, 10 epoch; không so sánh trực tiếp\\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\section{Minh họa suy luận trên video}
+\section{Minh họa suy luận trên video và đánh giá logic cảnh báo}
 \label{sec:demo}
 
-Để minh họa hành vi của mô hình trên video liên tục, luận văn chạy suy luận với ba mô hình A0, A5 và A8 (\cref{tab:demo-models}).
+\Cref{fig:demo} trình bày cùng một khung hình khóa qua ba mô hình A0, A6 và A8 (\cref{tab:demo-models}) trên ba clip thuộc tập kiểm định, tức các clip mà ba mô hình đều chưa thấy khi huấn luyện. Pipeline giống hệt \cref{sec:operating}: YOLO26-x phát hiện người, mô hình hành vi chạy bằng PyTorch trên GPU với nhân selective scan CUDA của Mamba, cùng checkpoint với \cref{tab:main-results} và \emph{cùng ngưỡng 0,5 cho mọi lớp}, không tinh chỉnh trên các clip này. Hàng trên là clip quay từ camera giám sát trong nhà (có dấu thời gian ``Camera 01''). Mỗi hàng dùng khung hình khóa có tổng số nhãn đúng trừ nhãn sai của ba mô hình lớn nhất; với hàng dưới, chỉ xét các khung hình mà mỗi người được bộ phát hiện trả về đúng một hộp. Các tỷ lệ đúng sai trên toàn tập kiểm định nằm ở \cref{tab:operating}.
 
 \begin{table}[H]
 \centering
@@ -192,54 +279,76 @@ Hybrid FGTN-Mamba đa tỉ lệ + ACRN (đề xuất) & AVA v2.2, closed-set & \
 \toprule
 \textbf{Mô hình} & \textbf{Cấu hình}\\
 \midrule
-A0 & Video Swin-T tầng 4, không neck\\
-A5 & Bi-SSM + W-MHSA, cộng trực tiếp 0,5 / 0,5, tầng 4 (repo: \code{A5\_hybrid})\\
-A8 & Đa tỉ lệ tầng 3 + 4 + ACRN + focal loss\\
+A0 & Video Swin-T tầng 4, không neck; checkpoint epoch 2\\
+A6 & Hybrid FGTN-Mamba có cổng sigmoid, tầng 4 (repo: \code{A5\_hybrid}); checkpoint epoch 1\\
+A8 & A6 trên tầng 3 + 4, ACRN, focal loss; checkpoint epoch 3\\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Quy trình suy luận gồm bốn bước: (i) bộ phát hiện người chạy cứ 8 khung hình một lần; (ii) với mỗi khung hình khóa, lấy đoạn 32 khung hình với bước 2 quanh khung khóa rồi đổi kích thước về $384 \times 256$; (iii) mô hình hành vi chạy bằng PyTorch trên GPU với kernel selective scan CUDA của Mamba; (iv) xuất nhãn hành vi kèm điểm cho từng người.
-
-Đầu vào là video ghép từ các clip thuộc tập kiểm tra của một phép chia theo video, gồm các tình huống dùng điện thoại, gác chân lên bàn và đánh nhau mà cả ba mô hình đều chưa thấy khi huấn luyện. Phần minh họa cho thấy pipeline chạy được đầu--cuối trên video, từ phát hiện người tới nhãn hành vi, nhưng không thay thế số liệu định lượng trong \cref{tab:main-results,tab:ablation-results}. \Cref{fig:demo} trình bày cùng một khung hình qua ba mô hình.
-
 \begin{figure}[H]
 \centering
-\begin{subfigure}[t]{0.32\textwidth}
-  \centering
-  \includegraphics[width=\linewidth]{demo_A0.png}
-  \caption{A0}
-\end{subfigure}\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \centering
-  \includegraphics[width=\linewidth]{demo_A5.png}
-  \caption{A5}
-\end{subfigure}\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \centering
-  \includegraphics[width=\linewidth]{demo_A8.png}
-  \caption{A8}
-\end{subfigure}
-\caption[Minh họa suy luận trên video: A0, A5, A8]{Minh họa suy luận trên video với ba mô hình A0, A5 và A8 tại cùng một khung hình.}
+\begin{subfigure}{0.32\linewidth}\includegraphics[width=\linewidth]{demo_A0_phone.jpg}\end{subfigure}\hfill
+\begin{subfigure}{0.32\linewidth}\includegraphics[width=\linewidth]{demo_A6_phone.jpg}\end{subfigure}\hfill
+\begin{subfigure}{0.32\linewidth}\includegraphics[width=\linewidth]{demo_A8_phone.jpg}\end{subfigure}\\[2pt]
+\begin{subfigure}{0.32\linewidth}\includegraphics[width=\linewidth]{demo_A0_foot.jpg}\end{subfigure}\hfill
+\begin{subfigure}{0.32\linewidth}\includegraphics[width=\linewidth]{demo_A6_foot.jpg}\end{subfigure}\hfill
+\begin{subfigure}{0.32\linewidth}\includegraphics[width=\linewidth]{demo_A8_foot.jpg}\end{subfigure}\\[2pt]
+\begin{subfigure}{0.32\linewidth}\includegraphics[width=\linewidth]{demo_A0_fight.jpg}\caption{A0}\end{subfigure}\hfill
+\begin{subfigure}{0.32\linewidth}\includegraphics[width=\linewidth]{demo_A6_fight.jpg}\caption{A6}\end{subfigure}\hfill
+\begin{subfigure}{0.32\linewidth}\includegraphics[width=\linewidth]{demo_A8_fight.jpg}\caption{A8}\end{subfigure}
+\caption[Minh họa suy luận trên video: A0, A6, A8]{Suy luận đầu--cuối trên ba clip kiểm định với A0, A6 và A8 (theo cột), ngưỡng 0,5. Hàng trên: dùng điện thoại, camera giám sát; hàng giữa: gác chân lên bàn; hàng dưới: \path{dangerous_action}. Nhãn viết tắt: phone = \path{use_mobilephone}, sleep = \path{sleep_on_table}, foot = \path{feet_on_table}, fight = \path{dangerous_action}; hộp xám là người không có nhãn nào vượt ngưỡng.}
 \label{fig:demo}
 \end{figure}
+
+Ở hàng trên, A0 (0,53) và A6 (0,75) gán đúng \path{use_mobilephone} còn A8 gán nhầm thành \path{feet_on_table} (0,79). Ở hàng giữa, A6 và A8 nhận ra người gác chân (0,53 và 0,50, sát ngưỡng) còn A0 bỏ sót người này và gán \path{use_mobilephone} cho người bên cạnh. Ở hàng dưới, cả ba mô hình gán \path{dangerous_action} cho từng người với điểm gần 1,0, nhưng như \cref{sec:cross-camera} đã chỉ ra, điểm này phản ánh bối cảnh nhiều hơn hành vi.
+
+\subsection{Đánh giá logic cảnh báo theo track}
+\label{sec:alert-eval}
+
+\Cref{alg:alert} được cài đặt trong tệp \path{alert.py}: hộp người ở các khung hình khóa liên tiếp được nối thành track bằng ghép tham lam theo IoU (từ 0,3 trở lên, bỏ track sau 2 khung hình khóa không xuất hiện) và mỗi cặp track--lớp giữ $n$ kết quả so ngưỡng gần nhất. Logic được chạy trên chính các dự đoán đầu--cuối của \cref{sec:operating} với tham số đặt trước, không tinh chỉnh: $\tau_c = 0{,}5$, $m/n = 2/3$ và $\Delta_{\text{cd}} = 5$~giây; khoảng cách giữa hai khung hình khóa là 8 khung hình, tức 0,32 giây ở 25 khung hình/giây. Một sự kiện được tính là đúng nếu tại khung hình đó có người mang đúng nhãn của sự kiện với IoU $\geq 0{,}5$. Với mỗi video và mỗi lớp có trong nhãn thật (gọi là một \emph{tình huống}), độ trễ được tính từ khung hình đầu tiên có nhãn của lớp tới sự kiện đúng đầu tiên. \Cref{tab:alert-eval} trình bày kết quả.
+
+\begin{table}[H]
+\centering
+\caption[Đánh giá logic cảnh báo theo track]{Đánh giá logic cảnh báo trên 23 video kiểm định ($\tau_c = 0{,}5$, $m/n = 2/3$, $\Delta_{\text{cd}} = 5$~s): số tình huống được cảnh báo đúng trên tổng số tình huống, Precision của sự kiện cảnh báo và trung vị độ trễ tới cảnh báo đúng đầu tiên}
+\label{tab:alert-eval}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Chỉ số} & \textbf{A0} & \textbf{A6} & \textbf{A8}\\
+\midrule
+Tình huống \path{use_mobilephone} & 2 / 6 & \textbf{5 / 6} & 1 / 6\\
+Tình huống \path{feet_on_table} & 0 / 4 & 1 / 4 & 1 / 4\\
+Tình huống \path{dangerous_action} & 10 / 13 & 10 / 13 & 10 / 13\\
+Tổng số tình huống & 12 / 23 & \textbf{16 / 23} & 12 / 23\\
+Precision của sự kiện cảnh báo & 41,2\% (21/51) & \textbf{46,3\%} (25/54) & 36,2\% (21/58)\\
+Trung vị độ trễ ngoại tuyến (s) & 0,64 & 0,64 & 0,64\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Logic cảnh báo phát hiện được 12--16 trong 23 tình huống. Hai nguồn lỗi chính đã thấy ở \cref{tab:operating} được giữ nguyên: bộ phát hiện người bỏ sót khoảng một phần ba số người và điểm của \path{feet_on_table} thấp, khiến lớp này chỉ được cảnh báo ở 0--1 trong 4 tình huống. Precision của sự kiện ở mức 36--46\% nghĩa là hơn một nửa số cảnh báo là sai ở các ngưỡng mặc định này. Như vậy, logic $m/n$ với cooldown đã chạy được đầu--cuối nhưng chưa đạt mức dùng được trong vận hành nếu không hiệu chỉnh ngưỡng theo lớp và cải thiện bộ phát hiện người.
+
+Trung vị độ trễ 0,64 giây ở trên được đo trên video đã ghi, trong đó khung hình tương lai luôn có sẵn. Trong vận hành trực tuyến, độ trễ còn cộng thêm phần nhìn trước: đoạn \code{32x2x1} kết thúc 30 khung hình sau khung hình khóa, tức 1,2 giây ở 25 khung hình/giây (1,0 giây ở 30 khung hình/giây), cùng thời gian chạy bộ phát hiện người và mô hình (khoảng 0,1 giây cho mô hình hành vi theo \cref{tab:cost}). Độ trễ trực tuyến ước tính vì vậy vào khoảng 2 giây với $m = 2$ và tăng thêm 0,32 giây cho mỗi đơn vị tăng của $m$. Với \path{dangerous_action}, mức trễ này có thể quá chậm; giảm $m$ xuống 1 riêng cho lớp này hoặc dùng đoạn video lệch về quá khứ là hai hướng điều chỉnh, đổi lại sẽ tăng báo động giả hoặc bỏ thông tin từ quét ngược.
 
 \section{Trả lời câu hỏi nghiên cứu}
 \label{sec:rq-answers}
 
-\textbf{RQ1} --- Temporal neck là cần thiết vì ngay cả MHSA toàn cục tại vị trí hậu-backbone, tiền-RoI cũng làm tăng mAP ($+3{,}17$ / $+3{,}43$ điểm trên S1 / S2) nhưng Hybrid FGTN-Mamba còn cao hơn neck tiêu chuẩn đó 4,24 / 4,42 điểm. \textbf{RQ2} --- Quét hai chiều có ích ($+1{,}73$ / $+1{,}58$), hai nhánh bổ sung cho nhau ($+1{,}06$ / $+1{,}02$ so với Bi-SSM đứng riêng) và cổng sigmoid đóng góp thêm 1,76 / 1,85 điểm. \textbf{RQ3} --- Đa tỉ lệ cải thiện 3,85 / 2,00 điểm. \textbf{RQ4} --- ACRN cải thiện 5,89 / 3,90 điểm. \textbf{RQ5} --- Mới trả lời được một phần. Mọi thành phần vẫn có ích trên camera chưa thấy khi huấn luyện, dù mAP của pipeline đầy đủ giảm từ 89,60\% xuống 78,15\%. Trên AVA~v2.2 trong thiết lập closed-set, pipeline đạt 38,1 mAP. Tuy vậy, kết quả trên camera mới vẫn cho thấy sự phụ thuộc vào miền dữ liệu còn AVA chưa có ablation riêng để định lượng đóng góp của từng thành phần.
+\textbf{RQ1} --- Có bằng chứng ủng hộ ở mức một seed: A6 cao hơn A0 3,01 điểm tại epoch~3 trên bộ dữ liệu phân xưởng (2,94 điểm tại checkpoint tốt nhất) và 2,43 điểm trên tập con AVA~v2.2 tại epoch~10, hai bộ dữ liệu cho kết quả cùng chiều. Câu hỏi neck tiêu chuẩn (A1) đã đủ hay chưa chưa được trả lời. \textbf{RQ2} --- Chưa trả lời được vì A1--A5 chưa được chạy. \textbf{RQ3, RQ4} --- Chưa có bằng chứng: với cùng ngân sách 3 epoch, A8 thấp hơn A6 3,40 điểm và do A6 $\rightarrow$ A8 thay đổi đồng thời nhiều yếu tố, chưa tách được đóng góp của đa tỉ lệ, ACRN và focal loss. \textbf{RQ5} --- Mới trả lời được một phần: phép chia theo video nguồn loại bỏ rò rỉ giữa các khung hình liền kề, hai lớp \path{use_mobilephone} và \path{feet_on_table} phụ thuộc chủ yếu vào vùng người, nhưng \path{dangerous_action} được nhận dạng qua bối cảnh nên khả năng tổng quát hóa của lớp này chưa đo được.
 
 \section{Hạn chế của nghiên cứu}
 \label{sec:limitations}
 
 \begin{itemize}
-  \item \emph{độ bất định}: kết quả ablation chưa kèm độ lệch chuẩn giữa các seed còn các mô hình so sánh trong \cref{tab:main-results} chỉ là lượt chạy đơn và chưa được đánh giá trên S2;
-  \item \emph{dữ liệu và tổng quát hóa}: bộ dữ liệu phân xưởng có số camera hạn chế và mAP của pipeline đầy đủ giảm 11,45 điểm khi chuyển sang camera mới.;
-  \item \emph{thực nghiệm trên AVA}: kết quả của pipeline đầy đủ chưa kèm ablation riêng cho từng thành phần trên AVA;
-  \item \emph{khoảng cách tới triển khai}: độ trễ đầu--cuối (gồm bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều) chưa được đo và pipeline vẫn phụ thuộc vào person proposal cũng như thiết lập closed-set.
+  \item \emph{độ bất định}: mỗi cấu hình mới có một seed nên chưa có độ lệch chuẩn hay kiểm định thống kê cho các chênh lệch;
+  \item \emph{phạm vi ablation}: mới có A0, A6 và A8 (3 epoch, không trọng số lớp); A1--A5, A7, thí nghiệm tách hàm mất mát và phép chia theo camera chưa được chạy; các mô hình SlowFast, YOWOv2, EfficientViT3D và FastViT3D (\cref{sec:baselines}) chưa được huấn luyện lại trong cùng giao thức nên luận văn không báo cáo so sánh với chúng;
+  \item \emph{giao thức}: chưa có tập kiểm tra tách riêng nên checkpoint được chọn trên tập kiểm định; mAP dùng hộp nhãn thật và trong dữ liệu không có người nào thiếu nhãn hành vi nên mô hình chưa được huấn luyện hay đánh giá trên người làm việc bình thường (\cref{sec:loss});
+  \item \emph{dữ liệu}: tập kiểm định nhỏ (19 video nguồn, lớp gác chân có 4 video), \path{sleep_on_table} chưa có mẫu kiểm định và \path{dangerous_action} được nhận dạng qua bối cảnh;
+  \item \emph{triển khai}: recall của bộ phát hiện người mới đạt 63,0\%, ngưỡng theo lớp chưa được hiệu chỉnh trên một tập riêng và logic cảnh báo mới được đánh giá trên 23 video ngắn;
+  \item \emph{AVA}: mới dùng tập con 45 video huấn luyện và 8 video kiểm định, chưa có A8.
 \end{itemize}
 
 \section*{Kết luận chương 5}
 \addcontentsline{toc}{section}{Kết luận chương 5}
 
-Trên bộ dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP với tốc độ trên 20 khung hình/giây và vượt các mô hình so sánh. Các thí nghiệm ablation trên hai cách chia dữ liệu xác nhận đóng góp của temporal neck, hai nhánh, cổng sigmoid, đặc trưng đa tỉ lệ và ACRN, trong đó Hybrid FGTN-Mamba vượt neck tiêu chuẩn tại cùng vị trí hơn 4 điểm trên cả hai cách chia. Trên hai camera không xuất hiện khi huấn luyện (S2), pipeline đầy đủ đạt 78,15\%. Trên AVA~v2.2, pipeline đầy đủ đạt 38,1 mAP. Độ bất định giữa các seed, khả năng tổng quát hóa và độ trễ đầu--cuối là những vấn đề cần được tiếp tục đánh giá.
+Trên bộ dữ liệu phân xưởng chia theo video nguồn, Hybrid FGTN-Mamba (A6) đạt 86,66\% mAP trên ba lớp tại checkpoint tốt nhất và 85,18\% tại epoch~3, cao hơn mô hình không neck khoảng 3 điểm, chủ yếu nhờ lớp \path{use_mobilephone}. Trên tập con AVA~v2.2, A6 cũng cao hơn A0 2,43 điểm và cải thiện ở cả ba nhóm hành vi. Phép thăm dò cho thấy AP 100\% của \path{dangerous_action} đến từ bối cảnh chứ không phải từ hành vi. Pipeline đầy đủ A8 chưa vượt A6 trong ngân sách 3 epoch. Khi chạy đầu--cuối với YOLO26-x, F1 gộp của A6 là 51,4\% và logic cảnh báo phát hiện 16/23 tình huống với Precision của sự kiện 46,3\%, cho thấy bộ phát hiện người, ngưỡng theo lớp và lớp \path{feet_on_table} là các điểm cần cải thiện trước khi triển khai. Mọi kết quả mới dựa trên một seed nên cần được lặp lại.
