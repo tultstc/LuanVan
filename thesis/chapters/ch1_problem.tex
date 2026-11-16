@@ -8,6 +8,23 @@ Một phân xưởng có thể đồng thời có nhiều người, nhiều máy
 
 Luận văn tập trung vào bốn hành vi mục tiêu là sử dụng điện thoại (\path{use_mobilephone}), ngủ trên bàn (\path{sleep_on_table}), gác chân lên bàn (\path{feet_on_table}) và hành vi nguy hiểm (\path{dangerous_action}). Thực nghiệm được tiến hành trên bộ dữ liệu riêng thu từ camera của phân xưởng với nhãn được gán theo từng người tại các khung hình khóa (\cref{sec:factory-data}) và trên bộ dữ liệu công khai AVA~v2.2 \cite{gu2018ava}. Bộ dữ liệu AVA có cùng cấu trúc bài toán và là chuẩn đánh giá phổ biến nhất của STAD.
 
+Về mặt quản lý, việc giám sát các hành vi này gắn với nghĩa vụ chấp hành nội quy và quy trình về an toàn, vệ sinh lao động được quy định trong Luật An toàn, vệ sinh lao động \cite{luat2015atvsld}. Trong bối cảnh đó, hệ thống được nghiên cứu đóng vai trò công cụ hỗ trợ người giám sát. Hệ thống phát hiện và đề xuất cảnh báo kèm bằng chứng hình ảnh còn việc xác nhận và xử lý vi phạm vẫn thuộc về con người.
+
+\subsection{Yêu cầu đối với hệ thống cảnh báo}
+\label{sec:requirements}
+
+Từ bối cảnh trên, một hệ thống cảnh báo dùng được trong phân xưởng cần đáp ứng đồng thời nhiều yêu cầu. Các yêu cầu dưới đây mang tính định tính và được dùng để định hướng thiết kế. Luận văn không đặt ngưỡng định lượng cho từng yêu cầu và không phải yêu cầu nào cũng được kiểm chứng đầy đủ trong phạm vi thực nghiệm.
+
+\textbf{Cảnh báo ở mức từng người.} Mỗi cảnh báo cần gắn với một người cụ thể và một vị trí trong khung hình để người giám sát biết ngay ai đang làm gì và ở đâu. Trong cùng một khung hình có thể có nhiều người thực hiện các hành vi khác nhau và một người có thể đồng thời mang nhiều hành vi. Yêu cầu này dẫn tới cách phát biểu bài toán theo từng hộp người với đầu ra đa nhãn ở \cref{sec:formulation}.
+
+\textbf{Độ trễ.} Cảnh báo chỉ có ý nghĩa phòng ngừa khi được đưa ra lúc hành vi còn đang diễn ra. Độ trễ của toàn hệ thống không chỉ gồm thời gian suy luận của mô hình mà còn gồm thời gian chờ đủ khung hình cho đoạn video quanh thời điểm cần xét, thời gian phát hiện người và thời gian xác nhận cảnh báo qua nhiều khung hình liên tiếp. Đoạn video càng dài thì hành vi dài hạn càng dễ nhận ra nhưng độ trễ cũng tăng theo. Vì vậy, độ dài đoạn và cách quét theo thời gian là một lựa chọn đánh đổi chứ không chỉ là siêu tham số của mô hình.
+
+\textbf{Đánh đổi giữa báo động giả và bỏ sót.} Báo động giả lặp lại làm người giám sát mất lòng tin và dần bỏ qua cảnh báo còn bỏ sót làm mất ý nghĩa an toàn của hệ thống. Mức chấp nhận đối với hai loại lỗi cũng khác nhau giữa các hành vi. Chẳng hạn, với \path{dangerous_action} thì bỏ sót thường nghiêm trọng hơn báo động giả còn với các hành vi kéo dài như \path{sleep_on_table} hệ thống có thể chờ xác nhận lâu hơn để giảm báo động giả. Do đó, hệ thống cần cho phép đặt ngưỡng riêng theo từng lớp và logic xác nhận theo thời gian (\cref{sec:inference}) còn mô hình nên được so sánh bằng độ đo không phụ thuộc ngưỡng như mAP trước khi chọn điểm vận hành.
+
+\textbf{Khả năng mở rộng theo số camera.} Chi phí tính toán tăng theo số camera và số người trong mỗi khung hình. Vì vậy, toán tử thời gian cần có chi phí tăng chậm theo độ dài đoạn video và các thành phần dùng chung như bộ phát hiện người nên được tổ chức để xử lý theo lô. Bên cạnh chi phí, hệ thống còn phải hoạt động được trên camera mới mà không cần gán nhãn lại từ đầu. Đây là lý do luận văn đánh giá thêm trên cách chia theo camera (\cref{sec:splits}).
+
+\textbf{Quyền riêng tư và ẩn danh dữ liệu.} Video ghi hình người lao động là dữ liệu cá nhân nên việc thu thập, lưu trữ và sử dụng cần có mục đích rõ ràng, được thông báo tới người lao động và tuân thủ quy định hiện hành về bảo vệ dữ liệu cá nhân. Về mặt kỹ thuật, bài toán được phát biểu theo hộp người và định danh track nên không đòi hỏi nhận dạng danh tính. Khi triển khai, hệ thống nên chỉ lưu những đoạn ngắn gắn với cảnh báo, giới hạn quyền truy cập, đặt thời hạn lưu trữ và làm mờ khuôn mặt trong dữ liệu dùng để chia sẻ hoặc huấn luyện lại. Luận văn nêu các điểm này như điều kiện cần cân nhắc khi triển khai và chúng không thuộc phạm vi các thực nghiệm của luận văn.
+
 \section{Phát biểu bài toán}
 \label{sec:formulation}
 
@@ -69,14 +86,14 @@ Nhận xét trên cũng đúng với AVA. Nhóm \emph{chuyển động của ng�
   \item giữ khả năng nạp trọng số tiền huấn luyện của Video Swin bằng cách không sửa cấu trúc bên trong backbone;
   \item áp dụng temporal neck độc lập trên nhiều tầng đặc trưng để tín hiệu nhỏ không bị mất trước 3D RoIAlign;
   \item bổ sung ngữ cảnh actor--cảnh bằng ACRN;
-  \item đánh giá trên dữ liệu phân xưởng và AVA~v2.2 với nhiều hạt giống và cách chia theo camera, đồng thời tách rõ kết quả của đề tài khỏi số liệu tham chiếu;
+  \item đánh giá trên dữ liệu phân xưởng và AVA~v2.2 với nhiều seed và cách chia theo camera, đồng thời tách rõ kết quả của đề tài khỏi số liệu tham chiếu;
   \item duy trì tốc độ xử lý đủ đáp ứng giám sát theo thời gian thực.
 \end{enumerate}
 
 \section{Câu hỏi nghiên cứu}
 \label{sec:rq}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \caption{Câu hỏi nghiên cứu và bằng chứng cần thu thập}
 \label{tab:rq}
@@ -88,7 +105,7 @@ RQ1 & Có cần temporal neck tại vị trí hậu-backbone, tiền-RoI không 
 RQ2 & Mỗi nhánh (Bi-SSM, W-MHSA), hướng quét và cổng sigmoid đóng góp bao nhiêu? & A2--A6: SSM một chiều $\leftrightarrow$ hai chiều; từng nhánh riêng lẻ; cộng trực tiếp $\leftrightarrow$ cổng\\
 RQ3 & Áp dụng khối trên hai tầng đặc trưng (đa tỉ lệ) có tốt hơn một tầng? & A6 $\rightarrow$ A7\\
 RQ4 & ACRN có cải thiện khả năng nhận dạng các hành vi phụ thuộc ngữ cảnh actor--cảnh? & A7 $\rightarrow$ A8\\
-RQ5 & Kết quả có giữ được trên camera chưa thấy khi huấn luyện và trên bộ dữ liệu công khai? & Cách chia theo camera (S2); ba hạt giống; AVA~v2.2\\
+RQ5 & Kết quả có giữ được trên camera chưa thấy khi huấn luyện và trên bộ dữ liệu công khai? & Cách chia theo camera (S2); ba seed; AVA~v2.2\\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -121,8 +138,7 @@ Các mã A0--A8 là các cấu hình trong ma trận ablation (\cref{tab:ablatio
 % \textbf{Mức} & \textbf{Nội dung}\\
 % \midrule
 % E1 --- Có mã nguồn & Cài đặt phương pháp, cấu hình mô hình và cấu trúc các thành phần trong kho mã\\
-% E2 --- Hồ sơ thực nghiệm & Kết quả trên bộ dữ liệu phân xưởng (so sánh sáu mô hình; ablation A0--A8 trên hai cách chia, trung bình ba hạt giống; Precision, Recall, tốc độ, bộ nhớ GPU) và 39,1 mAP trên AVA~v2.2; nhật ký chi tiết không nằm trong kho mã\\
-% E3 --- Có mã, chưa có số liệu & Ablation hàm mất mát (A9); AP theo từng hành vi; độ lệch chuẩn giữa các hạt giống; độ trễ đầu--cuối\\
+% E3 --- Có mã, chưa có số liệu & Ablation hàm mất mát (A9); AP theo từng hành vi; độ lệch chuẩn giữa các seed; độ trễ đầu--cuối\\
 % E4 --- Tham chiếu & Số liệu của A*, STAR, OV-STAD, ST-CLIP và các baseline công bố, trích từ bài báo gốc\\
 % \bottomrule
 % \end{tabularx}
@@ -131,4 +147,4 @@ Các mã A0--A8 là các cấu hình trong ma trận ablation (\cref{tab:ablatio
 \section*{Kết luận chương 1}
 \addcontentsline{toc}{section}{Kết luận chương 1}
 
-Chương này đã phát biểu bài toán phát hiện hành động không--thời gian theo từng người cho bốn hành vi mục tiêu trong phân xưởng, chỉ ra hai thang thời gian đối lập của các hành vi cùng yêu cầu kéo theo đối với toán tử thời gian, đồng thời xác lập độ đo đánh giá, sáu mục tiêu và năm câu hỏi nghiên cứu. \Cref{ch:related} tiếp theo sẽ trình bày cơ sở lý thuyết và các họ phương pháp liên quan, qua đó làm rõ khoảng trống mà thiết kế đề xuất nhắm tới.
+Chương này đã phát biểu bài toán phát hiện hành động không--thời gian theo từng người cho bốn hành vi mục tiêu trong phân xưởng, phân tích các yêu cầu đối với hệ thống cảnh báo, chỉ ra hai thang thời gian đối lập của các hành vi cùng yêu cầu kéo theo đối với toán tử thời gian, đồng thời xác lập độ đo đánh giá, sáu mục tiêu và năm câu hỏi nghiên cứu. \Cref{ch:related} tiếp theo sẽ trình bày cơ sở lý thuyết và các họ phương pháp liên quan, qua đó làm rõ khoảng trống mà thiết kế đề xuất nhắm tới.

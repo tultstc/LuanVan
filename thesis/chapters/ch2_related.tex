@@ -1,10 +1,30 @@
 \chapter{Cơ sở lý thuyết và các công trình liên quan}
 \label{ch:related}
 
-Chương này trình bày các cơ sở lý thuyết phục vụ trực tiếp cho thiết kế ở \cref{ch:method}, gồm attention cửa sổ, mô hình không gian trạng thái chọn lọc, pipeline STAD hai giai đoạn và hàm mất mát cho dữ liệu mất cân bằng. Sau đó, chương tổng quan các họ phương pháp liên quan và rút ra khoảng trống nghiên cứu.
+Chương này trình bày các cơ sở lý thuyết phục vụ trực tiếp cho thiết kế ở \cref{ch:method}, gồm attention cửa sổ, mô hình không gian trạng thái chọn lọc, pipeline STAD hai giai đoạn và hàm mất mát cho dữ liệu mất cân bằng. Bên cạnh đó, để làm nền cho các khái niệm được dùng ở những chương sau, phần cơ sở lý thuyết còn trình bày phép tích chập 3D, kiến trúc Transformer phân cấp Swin, bài toán phát hiện đối tượng hai giai đoạn và các độ đo đánh giá phát hiện. Sau đó, chương tổng quan các họ phương pháp liên quan và rút ra khoảng trống nghiên cứu.
 
 \section{Cơ sở lý thuyết}
 \label{sec:theory}
+
+\subsection{Tích chập 3D và kiến trúc hai luồng}
+\label{sec:conv3d}
+
+Mạng nơ-ron tích chập (convolutional neural network, CNN) hai chiều đã rất thành công trên ảnh tĩnh nhưng một khung hình đơn lẻ không chứa thông tin về chuyển động. Cách mở rộng trực tiếp nhất là cho nhân tích chập trượt đồng thời theo cả thời gian và không gian. Với tensor đầu vào $X \in \R^{C \times T \times H \times W}$ và nhân $\mathcal{W} \in \R^{C' \times C \times k_t \times k_h \times k_w}$, phép tích chập 3D (3D convolution) cho đầu ra tại kênh $c'$ và vị trí $(t, i, j)$ là
+\begin{equation}
+Y_{c',t,i,j} = b_{c'} + \sum_{c=1}^{C} \sum_{\tau=0}^{k_t-1} \sum_{u=0}^{k_h-1} \sum_{v=0}^{k_w-1}
+  \mathcal{W}_{c',c,\tau,u,v}\, X_{c,\, s_t t + \tau,\, s_h i + u,\, s_w j + v},
+\label{eq:conv3d}
+\end{equation}
+trong đó $(s_t, s_h, s_w)$ là bước trượt theo từng trục và đầu vào đã được đệm (padding) phù hợp. Khi $k_t = 1$, \cref{eq:conv3d} suy biến thành tích chập 2D áp dụng độc lập cho từng khung hình. Số tham số và số phép nhân--cộng của một lớp 3D đều gấp $k_t$ lần lớp 2D tương ứng. Do mỗi nhân chỉ phủ $k_t$ khung hình nên trường tiếp nhận theo thời gian của một chồng $L$ lớp có bước 1 chỉ tăng tuyến tính theo độ sâu, cụ thể là $1 + L(k_t - 1)$ khung hình khi không có giảm mẫu thời gian.
+
+C3D \cite{tran2015c3d} là một trong những mạng đầu tiên huấn luyện tích chập 3D trên quy mô lớn và cho thấy nhân đồng nhất kích thước $3 \times 3 \times 3$ ở mọi lớp là lựa chọn tốt nhất trong các cấu hình được thử nghiệm. Hạn chế của cách huấn luyện từ đầu là tích chập 3D có nhiều tham số hơn hẳn tích chập 2D trong khi dữ liệu video có nhãn lại ít hơn nhiều so với ImageNet. I3D \cite{carreira2017i3d} giải quyết vấn đề này bằng kỹ thuật \emph{thổi phồng} (inflation), theo đó một bộ lọc 2D kích thước $N \times N$ đã tiền huấn luyện trên ảnh được biến thành bộ lọc 3D kích thước $k_t \times N \times N$ bằng cách lặp lại trọng số $k_t$ lần dọc trục thời gian rồi chia cho $k_t$:
+\begin{equation}
+\mathcal{W}^{\text{3D}}_{c',c,\tau,u,v} = \frac{1}{k_t}\,\mathcal{W}^{\text{2D}}_{c',c,u,v}, \qquad \tau = 0, \dots, k_t - 1.
+\label{eq:inflate}
+\end{equation}
+Với cách khởi tạo này, nếu đưa vào một ``video nhàm chán'' gồm cùng một ảnh lặp lại theo thời gian thì mạng 3D cho đúng đáp ứng của mạng 2D gốc trên ảnh đó. Nhờ vậy, tri thức thị giác tĩnh được kế thừa nguyên vẹn và mạng chỉ còn phải học thêm phần liên quan đến chuyển động. Ý tưởng khởi tạo từ trọng số ảnh sau đó được dùng rộng rãi cho các backbone video, kể cả Video Swin \cite{liu2022videoswin} được trình bày ở \cref{sec:swin}.
+
+Một hướng khác để đưa chuyển động vào mô hình là kiến trúc hai luồng (two-stream) \cite{simonyan2014twostream}, trong đó một luồng xử lý khung hình RGB để nắm ngoại hình còn luồng kia xử lý một chồng trường dòng quang học (optical flow) để nắm chuyển động và dự đoán của hai luồng được hợp nhất ở cuối. Nhược điểm của hướng tiếp cận này là dòng quang học phải được tính trước với chi phí lớn và không được học cùng mạng. SlowFast \cite{feichtenhofer2019slowfast} giữ tinh thần hai luồng nhưng thay sự khác biệt về \emph{loại tín hiệu} bằng sự khác biệt về \emph{nhịp lấy mẫu}. Luồng chậm (Slow pathway) lấy mẫu thưa với bước $\tau$ khung hình và có nhiều kênh để nắm ngữ nghĩa không gian còn luồng nhanh (Fast pathway) lấy mẫu dày hơn $\alpha$ lần (tức là với bước $\tau/\alpha$) nhưng chỉ dùng $\beta$ lần số kênh của luồng chậm. Với các giá trị điển hình $\alpha = 8$ và $\beta = 1/8$, luồng nhanh có độ phân giải thời gian cao nhưng rất nhẹ và chỉ chiếm khoảng 20\% tổng chi phí tính toán. Thông tin từ luồng nhanh được đưa sang luồng chậm qua các kết nối bên (lateral connection) ở nhiều tầng, chẳng hạn bằng một tích chập thời gian có bước $\alpha$ để khớp số khung hình của hai luồng. SlowFast kết hợp với bộ phát hiện người và 3D RoIAlign (\cref{sec:twostage}) đã trở thành cấu hình tham chiếu cho STAD trên AVA và SlowFast-R50 cũng là một mô hình so sánh trong luận văn.
 
 \subsection{Self-attention và attention trong cửa sổ}
 \label{sec:attention}
@@ -15,6 +35,83 @@ Cho chuỗi $T$ token $\mat{X} \in \R^{T \times C}$, self-attention \cite{vaswan
 \label{eq:attention}
 \end{equation}
 trong đó $d$ là số chiều của mỗi đầu và $\mat{M} \in \{0, -\infty\}^{T \times T}$ là mặt nạ. Với $\mat{M} = \mat{0}$, mọi cặp token đều được so khớp với nhau với chi phí $O(T^2 d)$. Self-attention đa đầu (multi-head self-attention, MHSA) chia $C$ kênh thành $h$ đầu để mỗi đầu học một kiểu quan hệ riêng. Nếu đặt $M_{ij} = -\infty$ cho mọi $|i - j| > \lfloor W/2 \rfloor$ thì attention chỉ còn tác dụng trong một \emph{cửa sổ trượt} độ rộng $W$ quanh mỗi token \cite{beltagy2020longformer} và số cặp có ích giảm từ $T^2$ xuống $TW$. Swin Transformer \cite{liu2021swin} và Video Swin \cite{liu2022videoswin} áp dụng ý tưởng cửa sổ này trong không gian và thời gian, trong đó các cửa sổ được dịch chuyển xen kẽ để thông tin lan truyền được qua nhiều tầng.
+
+Trong \cref{eq:attention}, mỗi hàng của ma trận $\softmax(\cdot)$ là một phân bố xác suất trên $T$ token nên đầu ra tại vị trí $i$ là trung bình có trọng số của các vectơ giá trị, trong đó trọng số do độ tương đồng giữa truy vấn $\mat{q}_i$ và các khóa $\mat{k}_j$ quyết định. Hệ số $1/\sqrt{d}$ được dùng vì khi các thành phần của $\mat{q}_i$ và $\mat{k}_j$ độc lập, có kỳ vọng 0 và phương sai 1 thì tích vô hướng $\mat{q}_i^{\top}\mat{k}_j$ có phương sai bằng $d$ và nếu không chuẩn hóa, softmax dễ bão hòa khiến gradient rất nhỏ. Với $h$ đầu, mỗi đầu dùng một bộ phép chiếu riêng với $d = C/h$ chiều rồi các đầu ra được nối lại và chiếu về $C$ chiều:
+\begin{equation}
+\begin{gathered}
+\mathrm{MHSA}(\mat{X}) = \Concat\big[\mathrm{head}_1, \dots, \mathrm{head}_h\big]\,\mat{W}_O,\\
+\mathrm{head}_i = \softmax\!\left(\frac{\mat{X}\mat{W}_Q^{(i)}\big(\mat{X}\mat{W}_K^{(i)}\big)^{\top}}{\sqrt{d}}\right)\mat{X}\mat{W}_V^{(i)}.
+\end{gathered}
+\label{eq:mhsa}
+\end{equation}
+
+Bản thân self-attention không phân biệt thứ tự của token, vì khi không có mặt nạ, hoán vị các hàng của $\mat{X}$ chỉ làm đầu ra bị hoán vị theo đúng cách đó. Do vậy, thông tin vị trí phải được đưa vào từ bên ngoài. Transformer gốc \cite{vaswani2017attention} cộng vào mỗi token một mã hóa vị trí (positional encoding) dạng sin--cos cố định
+\begin{equation}
+\mathrm{PE}_{(p,\,2i)} = \sin\!\big(p / 10000^{2i/C}\big), \qquad
+\mathrm{PE}_{(p,\,2i+1)} = \cos\!\big(p / 10000^{2i/C}\big),
+\label{eq:posenc}
+\end{equation}
+trong đó $p$ là vị trí và $i$ là chỉ số của cặp kênh. Các mô hình thị giác về sau thường dùng mã hóa vị trí học được hoặc độ lệch vị trí tương đối (relative position bias) cộng trực tiếp vào ma trận attention như trong Swin (\cref{sec:swin}). Một khối Transformer hoàn chỉnh gồm MHSA và một mạng truyền thẳng hai lớp (MLP) áp dụng riêng cho từng token, mỗi thành phần đều đi kèm LayerNorm và kết nối tắt (residual connection).
+
+Chi phí tính toán là trở ngại chính khi đưa Transformer vào video. Theo cách làm của ViT \cite{dosovitskiy2021vit}, ảnh được chia thành các patch không chồng lấp và mỗi patch được chiếu tuyến tính thành một token. Với video gồm $T$ khung hình và $S$ patch trên mỗi khung hình, số token là $TS$ nên attention toàn cục trên không--thời gian tốn $O\big((TS)^2\big)$ cả về tính toán lẫn bộ nhớ. TimeSformer \cite{bertasius2021timesformer} đề xuất attention phân tách không--thời gian (divided space-time attention), trong đó mỗi khối thực hiện liên tiếp hai bước. Ở bước thứ nhất, mỗi token chỉ chú ý tới các token cùng vị trí không gian trên $T$ khung hình. Ở bước thứ hai, mỗi token chỉ chú ý tới $S$ token trong cùng khung hình của nó. Mỗi token khi đó chỉ so khớp với khoảng $T + S$ token thay vì $TS$ token nên tổng chi phí giảm xuống $O\big(TS(T + S)\big)$ và theo thực nghiệm của các tác giả, cách phân tách này còn cho độ chính xác tốt hơn attention chung trên toàn bộ không--thời gian. Dù vậy, phần chi phí theo thời gian vẫn là bậc hai theo $T$ và đây chính là động lực cho các cơ chế cục bộ hoặc tuyến tính được trình bày tiếp theo.
+
+\subsection{Swin Transformer và Video Swin}
+\label{sec:swin}
+
+ViT giữ nguyên một độ phân giải token ở mọi lớp nên không tạo ra được các bản đồ đặc trưng đa tỉ lệ như CNN trong khi những bài toán dự đoán dày đặc như phát hiện đối tượng lại cần các bản đồ như vậy. Swin Transformer \cite{liu2021swin} khắc phục điều này bằng ba thành phần chính là attention trong cửa sổ, cửa sổ dịch chuyển và phép gộp patch.
+
+\textbf{Attention trong cửa sổ.} Ảnh được chia thành các patch $4 \times 4$ điểm ảnh và mỗi patch được chiếu thành một token $C$ chiều. Bản đồ token kích thước $h \times w$ tiếp tục được chia thành các cửa sổ không chồng lấp gồm $M \times M$ token và self-attention đa đầu chỉ được tính bên trong từng cửa sổ (window multi-head self-attention, W-MSA). Chi phí của attention toàn cục (MSA) và W-MSA trên cùng một bản đồ lần lượt là
+\begin{equation}
+\Omega(\mathrm{MSA}) = 4hwC^2 + 2(hw)^2C, \qquad
+\Omega(\mathrm{W\text{-}MSA}) = 4hwC^2 + 2M^2hwC,
+\label{eq:swin-cost}
+\end{equation}
+trong đó số hạng thứ nhất là chi phí của bốn phép chiếu tuyến tính còn số hạng thứ hai là chi phí so khớp. Khi $M$ cố định (Swin dùng $M = 7$), số hạng so khớp giảm từ bậc hai xuống tuyến tính theo số token $hw$. Bên trong mỗi cửa sổ, Swin cộng thêm vào $\mat{Q}\mat{K}^{\top}/\sqrt{d}$ một độ lệch vị trí tương đối $\mat{B} \in \R^{M^2 \times M^2}$ được tra từ bảng tham số học theo độ lệch tọa độ giữa hai token.
+
+\textbf{Cửa sổ dịch chuyển.} Nếu mọi khối đều dùng cùng một cách chia thì các cửa sổ hoàn toàn tách biệt và thông tin không bao giờ đi qua được biên cửa sổ. Vì vậy, Swin xen kẽ hai cách chia giữa hai khối liên tiếp, trong đó khối thứ nhất chia đều từ góc trên bên trái còn khối thứ hai dịch lưới cửa sổ đi $\lfloor M/2 \rfloor$ token theo mỗi chiều (\cref{fig:swin-window}). Mỗi cửa sổ của khối sau vắt ngang qua biên của nhiều cửa sổ ở khối trước nên sau hai khối, mỗi token đã gián tiếp trao đổi thông tin với các cửa sổ lân cận. Do phép dịch làm xuất hiện thêm các cửa sổ nhỏ ở biên, Swin dịch vòng (cyclic shift) bản đồ token rồi dùng mặt nạ để chặn attention giữa các token vốn không kề nhau trong ảnh gốc. Nhờ vậy, số cửa sổ và chi phí tính toán được giữ nguyên như khi chia đều.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=4.2mm, y=4.2mm]
+  \draw[step=1, gray!45, very thin] (0,0) grid (8,8);
+  \draw[line width=1.1pt, blue!70!black] (0,0) rectangle (8,8);
+  \draw[line width=1.1pt, blue!70!black] (4,0) -- (4,8) (0,4) -- (8,4);
+  \node[font=\small, below] at (4,-0.2) {(a) Khối $l$: chia đều};
+  \draw[-{Stealth[length=2mm]}, line width=0.7pt] (8.7,4) -- (11.2,4);
+  \begin{scope}[xshift=50mm]
+    \fill[orange!25] (2,2) rectangle (6,6);
+    \draw[step=1, gray!45, very thin] (0,0) grid (8,8);
+    \draw[line width=1.1pt, red!70!black] (0,0) rectangle (8,8);
+    \draw[line width=1.1pt, red!70!black] (2,0) -- (2,8) (6,0) -- (6,8) (0,2) -- (8,2) (0,6) -- (8,6);
+    \draw[line width=0.6pt, blue!70!black, dashed] (4,0) -- (4,8) (0,4) -- (8,4);
+    \node[font=\small, below] at (4,-0.2) {(b) Khối $l+1$: cửa sổ dịch};
+  \end{scope}
+\end{tikzpicture}
+\caption[Cửa sổ đều và cửa sổ dịch chuyển trong Swin Transformer]{Cách chia cửa sổ trong hai khối liên tiếp của Swin Transformer, minh họa trên lưới $8 \times 8$ token với $M = 4$: (a) bốn cửa sổ $4 \times 4$ chia đều; (b) lưới cửa sổ được dịch đi $\lfloor M/2 \rfloor = 2$ token tạo thành chín cửa sổ, trong đó cửa sổ tô màu ở giữa chứa token của cả bốn cửa sổ ở khối trước (đường đứt nét). Swin thực tế dùng $M = 7$.}
+\label{fig:swin-window}
+\end{figure}
+
+\textbf{Gộp patch và cấu trúc phân cấp.} Giữa hai tầng liên tiếp, phép gộp patch (patch merging) nối đặc trưng của mỗi nhóm $2 \times 2$ token kề nhau thành một vectơ $4C$ chiều rồi chiếu tuyến tính xuống $2C$ chiều. Sau mỗi lần gộp, độ phân giải không gian giảm một nửa còn số kênh tăng gấp đôi nên mạng tạo ra bốn tầng đặc trưng với bước giảm mẫu $4, 8, 16, 32$ so với ảnh vào, tương tự các tầng của ResNet. Với cấu hình Swin-T, số kênh của bốn tầng lần lượt là $96, 192, 384, 768$ (\cref{tab:swin-stages}). Cấu trúc phân cấp này cho phép dùng Swin trực tiếp làm backbone cho các kiến trúc phát hiện đa tỉ lệ như mạng kim tự tháp đặc trưng (\cref{sec:detection}).
+
+\begin{table}[htbp]
+\centering
+\caption{Cấu hình bốn tầng của Swin-T, dùng chung cho Video Swin-T}
+\label{tab:swin-stages}
+\small
+\begin{tabular}{cccccc}
+\toprule
+\textbf{Tầng} & \textbf{Bước giảm mẫu} & \textbf{Lưới token} & \textbf{Số kênh} & \textbf{Số khối} & \textbf{Số đầu}\\
+ & \textbf{không gian} & \textbf{(ảnh $256 \times 256$)} & & & \\
+\midrule
+1 & 4  & $64 \times 64$ & 96  & 2 & 3\\
+2 & 8  & $32 \times 32$ & 192 & 2 & 6\\
+3 & 16 & $16 \times 16$ & 384 & 6 & 12\\
+4 & 32 & $8 \times 8$   & 768 & 2 & 24\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Video Swin.} Video Swin \cite{liu2022videoswin} mở rộng toàn bộ thiết kế trên sang miền không--thời gian. Đoạn video được chia thành các patch 3D kích thước $2 \times 4 \times 4$ (thời gian $\times$ cao $\times$ rộng) nên số bước thời gian giảm một nửa ngay từ lớp nhúng, chẳng hạn 32 khung hình vào cho $T = 16$. Attention được tính trong các cửa sổ 3D kích thước $P \times M \times M = 8 \times 7 \times 7$ và cửa sổ của khối kế tiếp được dịch đi $(P/2, \lfloor M/2 \rfloor, \lfloor M/2 \rfloor) = (4, 3, 3)$ token theo ba trục, đồng thời độ lệch vị trí tương đối cũng được mở rộng thành ba chiều. Phép gộp patch chỉ giảm mẫu theo không gian nên bốn tầng của Video Swin-T có cùng số kênh và bước giảm mẫu không gian như \cref{tab:swin-stages} còn số bước thời gian $T$ giữ nguyên ở mọi tầng. Trọng số được khởi tạo từ Swin đã tiền huấn luyện trên ảnh, trong đó lớp nhúng patch được mở rộng theo trục thời gian theo tinh thần của \cref{eq:inflate}. Trong luận văn, ``tầng 3'' và ``tầng 4'' của backbone chính là hai tầng có bước giảm mẫu 16 và 32 với 384 và 768 kênh trong \cref{tab:swin-stages}.
 
 \subsection{Mô hình không gian trạng thái chọn lọc}
 \label{sec:ssm}
@@ -41,15 +138,125 @@ S4 \cite{gu2022s4} chỉ ra rằng nếu $\mat{A}$ có cấu trúc phù hợp th
 \end{equation}
 với $\bar{\mat{B}}_t = \Delta_t\mat{B}_t$. Khi bước $\Delta_t$ nhỏ thì $\bar{\mat{A}}_t \to \mat{I}$ (trạng thái cũ được giữ lại) còn khi $\Delta_t$ lớn thì đầu vào mới được ưu tiên. Hồi quy được thực thi bằng phép quét song song (selective scan) với chi phí tuyến tính theo $T$, phía trước là một tích chập nhân quả ngắn theo kênh ($k = 4$) và một nhánh cổng SiLU. Vision Mamba \cite{zhu2024vim} mở rộng cơ chế này sang hai chiều cho dữ liệu không nhân quả. Biến thể \code{bimamba v2} dùng trong luận văn là cài đặt của Video Mamba Suite \cite{chen2024videomambasuite}, trong đó mỗi chiều quét có một bộ tham số riêng.
 
+\textbf{Hai dạng tính toán của SSM.} Khi các tham số $(\Delta, \mat{A}, \mat{B}, \mat{C})$ không đổi theo thời gian, \cref{eq:ssm-disc} là một hệ tuyến tính bất biến theo thời gian (linear time-invariant, LTI). Khai triển hồi quy với $\mat{h}_{-1} = \mat{0}$ cho $y_t = \sum_{k=0}^{t} \mat{C}\bar{\mat{A}}^{k}\bar{\mat{B}}\,x_{t-k} + Dx_t$, tức là đầu ra bằng tích chập của đầu vào với một nhân có độ dài bằng độ dài chuỗi:
+\begin{equation}
+\mat{y} = \bar{\mat{K}} * \mat{x} + D\mat{x}, \qquad
+\bar{\mat{K}} = \big(\mat{C}\bar{\mat{B}},\ \mat{C}\bar{\mat{A}}\bar{\mat{B}},\ \dots,\ \mat{C}\bar{\mat{A}}^{T-1}\bar{\mat{B}}\big) \in \R^{T}.
+\label{eq:ssm-conv}
+\end{equation}
+Nhờ sự tương đương này, cùng một mô hình có thể được huấn luyện song song theo dạng tích chập, chẳng hạn bằng biến đổi Fourier nhanh với chi phí $O(T \log T)$, rồi suy luận tuần tự theo dạng hồi quy với chi phí không đổi cho mỗi bước mới và bộ nhớ trạng thái cố định. Đây là điểm khác biệt căn bản so với attention, vốn phải giữ lại khóa và giá trị của mọi bước trước đó. Để nhớ được lịch sử dài, S4 \cite{gu2022s4} khởi tạo $\mat{A}$ theo lý thuyết HiPPO, theo đó trạng thái $\mat{h}_t$ xấp xỉ hệ số chiếu của toàn bộ tín hiệu quá khứ lên một cơ sở đa thức trực giao.
+
+\textbf{Quét song song.} Khi $\Delta_t$, $\mat{B}_t$ và $\mat{C}_t$ phụ thuộc vào đầu vào như trong \cref{eq:mamba}, hệ không còn bất biến theo thời gian nên dạng tích chập \cref{eq:ssm-conv} không còn áp dụng được. Tuy vậy, với $\mat{A}$ là ma trận chéo như trong Mamba, mỗi bước hồi quy có dạng $\mat{h}_t = \mat{a}_t \odot \mat{h}_{t-1} + \mat{b}_t$ với $\mat{a}_t = \exp(\Delta_t \mat{A})$ và $\mat{b}_t = \bar{\mat{B}}_t x_t$. Hợp hai bước liên tiếp cho phép toán
+\begin{equation}
+(\mat{a}_1, \mat{b}_1) \bullet (\mat{a}_2, \mat{b}_2) = \big(\mat{a}_2 \odot \mat{a}_1,\ \mat{a}_2 \odot \mat{b}_1 + \mat{b}_2\big).
+\label{eq:scan-op}
+\end{equation}
+Phép toán $\bullet$ có tính kết hợp nên toàn bộ dãy trạng thái $\mat{h}_1, \dots, \mat{h}_T$ chính là các tổng tiền tố (prefix sum) theo $\bullet$ và tính được bằng thuật toán quét song song \cite{blelloch1990prefix} với tổng khối lượng $O(T)$ và độ sâu $O(\log T)$. Mamba \cite{gu2023mamba} cài đặt phép quét này thành một kernel nhận biết phần cứng (hardware-aware), trong đó trạng thái mở rộng chỉ được hiện thực trong bộ nhớ SRAM tốc độ cao của GPU và được tính lại khi lan truyền ngược thay vì lưu trữ. Nhờ vậy, cả thời gian lẫn bộ nhớ đều tuyến tính theo $T$ trong khi mô hình vẫn giữ được tính chọn lọc.
+
+\textbf{Quét hai chiều cho dữ liệu thị giác.} Phép quét của Mamba có tính nhân quả, tức là $\mat{h}_t$ chỉ phụ thuộc vào $x_1, \dots, x_t$. Điều này tự nhiên với văn bản nhưng chưa phù hợp với ảnh hay đoạn video đã ghi sẵn, nơi mỗi token cần thông tin từ mọi phía. Vision Mamba \cite{zhu2024vim} trải phẳng các patch ảnh thành chuỗi rồi cho chuỗi đi qua hai SSM chọn lọc theo chiều xuôi và chiều ngược với tham số riêng và cộng kết quả lại, nhờ đó mỗi token nhận được ngữ cảnh từ cả hai phía với chi phí vẫn tuyến tính. VideoMamba \cite{li2024videomamba} áp dụng khối hai chiều này cho các token không--thời gian của video, trong đó các token được quét hết trong một khung hình rồi mới sang khung hình kế tiếp. Khác với hai công trình trên, neck của luận văn chỉ quét dọc trục thời gian tại từng vị trí không gian (\cref{sec:ssm-branch}) nên độ dài mỗi chuỗi là $T = 16$ chứ không phải $T \cdot H \cdot W$.
+
+\subsection{Phát hiện đối tượng hai giai đoạn}
+\label{sec:detection}
+
+Bài toán phát hiện đối tượng yêu cầu vừa định vị bằng hộp bao vừa phân loại mọi đối tượng trong ảnh. Họ phương pháp hai giai đoạn tách bài toán thành hai bước, trong đó giai đoạn thứ nhất sinh ra một tập vùng đề xuất (region proposal) có khả năng chứa đối tượng còn giai đoạn thứ hai trích đặc trưng của từng vùng để phân loại và tinh chỉnh hộp. Faster R-CNN \cite{ren2015fasterrcnn} là đại diện tiêu biểu của họ này, trong đó cả hai giai đoạn dùng chung một bản đồ đặc trưng do backbone sinh ra.
+
+\textbf{Mạng đề xuất vùng.} Mạng đề xuất vùng (region proposal network, RPN) trượt một lớp tích chập nhỏ trên bản đồ đặc trưng. Tại mỗi vị trí, RPN xét $k$ hộp neo (anchor) với nhiều kích thước và tỉ lệ khung hình khác nhau (bản gốc dùng ba kích thước và ba tỉ lệ, tức là $k = 9$) và dự đoán cho mỗi hộp neo một điểm ``có đối tượng'' (objectness) cùng bốn độ lệch hồi quy. Các độ lệch tâm được chuẩn hóa theo kích thước hộp neo còn độ lệch kích thước được tính theo logarit của tỉ số nên mục tiêu hồi quy không phụ thuộc vào kích thước tuyệt đối của đối tượng. Hàm mất mát của RPN gồm entropy chéo nhị phân cho điểm objectness và hàm smooth-$L_1$ cho các độ lệch. Các đề xuất có điểm cao được lọc bằng phép triệt tiêu không cực đại (non-maximum suppression, NMS) rồi được chuyển sang giai đoạn hai.
+
+\textbf{RoIPool và RoIAlign.} Giai đoạn hai cần biến mỗi vùng đề xuất có kích thước bất kỳ thành một đặc trưng có kích thước cố định $h \times w$, thường là $7 \times 7$. RoIPool trong Faster R-CNN làm điều này bằng cách làm tròn tọa độ của vùng về lưới của bản đồ đặc trưng, chia vùng thành $h \times w$ ô với biên cũng được làm tròn rồi lấy giá trị lớn nhất trong mỗi ô. Hai lần lượng tử hóa này gây lệch giữa vùng thực và vùng thực sự được lấy đặc trưng. Trên bản đồ có bước giảm mẫu 16, sai lệch nửa ô đã tương ứng với khoảng tám điểm ảnh trên ảnh gốc, một sai số đáng kể với đối tượng nhỏ. RoIAlign \cite{he2017maskrcnn} loại bỏ hoàn toàn bước làm tròn. Tọa độ vùng và biên các ô được giữ ở dạng số thực, trong mỗi ô lấy một số điểm mẫu cách đều (thường là $2 \times 2$) và giá trị tại mỗi điểm mẫu $(x, y)$ không nằm trên lưới được nội suy song tuyến tính từ bốn điểm lưới lân cận:
+\begin{equation}
+f(x, y) = \sum_{i,j} \max\big(0,\, 1 - |x - x_i|\big)\,\max\big(0,\, 1 - |y - y_j|\big)\, f(x_i, y_j),
+\label{eq:bilinear}
+\end{equation}
+trong đó $(x_i, y_j)$ là các điểm lưới nguyên. Giá trị của mỗi ô là trung bình hoặc cực đại của các điểm mẫu trong ô đó. Do \cref{eq:bilinear} khả vi theo $f(x_i, y_j)$ nên gradient vẫn truyền được về bản đồ đặc trưng. Các tác giả Mask R-CNN cho thấy việc căn chỉnh chính xác này cải thiện rõ rệt chất lượng dự đoán ở mức điểm ảnh và cả chất lượng phát hiện hộp. \Cref{fig:roialign} minh họa sự khác biệt giữa hai cách lấy đặc trưng.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=7mm, y=7mm]
+  \draw[step=1, gray!50, thin] (0,0) grid (5,5);
+  \draw[dashed, line width=0.8pt] (0.6,0.8) rectangle (4.1,3.9);
+  \draw[line width=1.1pt, red!70!black] (1,1) rectangle (4,4);
+  \draw[line width=1.1pt, red!70!black] (2,1) -- (2,4) (1,2) -- (4,2);
+  \node[font=\small, below] at (2.5,-0.2) {(a) RoIPool};
+  \begin{scope}[xshift=50mm]
+    \draw[step=1, gray!50, thin] (0,0) grid (5,5);
+    \draw[line width=1.1pt, blue!70!black] (0.6,0.8) rectangle (4.1,3.9);
+    \draw[line width=0.8pt, blue!70!black] (2.35,0.8) -- (2.35,3.9) (0.6,2.35) -- (4.1,2.35);
+    \foreach \i in {0.25,0.75,1.25,1.75}{
+      \foreach \j in {0.25,0.75,1.25,1.75}{
+        \fill[blue!70!black] ({0.6+1.75*\i},{0.8+1.55*\j}) circle (1.4pt);
+      }
+    }
+    \node[font=\small, below] at (2.5,-0.2) {(b) RoIAlign};
+  \end{scope}
+\end{tikzpicture}
+\caption[So sánh RoIPool và RoIAlign]{Lấy đặc trưng $2 \times 2$ cho cùng một vùng đề xuất (khung đứt nét ở (a), khung xanh ở (b)) trên lưới bản đồ đặc trưng: (a) RoIPool làm tròn vùng và biên ô về lưới nên vùng bị lệch và các ô có kích thước không đều; (b) RoIAlign giữ tọa độ thực, chia vùng thành các ô bằng nhau và lấy $2 \times 2$ điểm mẫu trong mỗi ô bằng nội suy song tuyến tính.}
+\label{fig:roialign}
+\end{figure}
+
+\textbf{Mạng kim tự tháp đặc trưng.} Đối tượng trong ảnh có kích thước rất khác nhau trong khi một bản đồ đặc trưng duy nhất ở bước 16 hoặc 32 vừa quá thô với đối tượng nhỏ vừa không tận dụng được các tầng nông có độ phân giải cao. Mạng kim tự tháp đặc trưng (feature pyramid network, FPN) \cite{lin2017fpn} kết hợp các tầng của backbone qua một đường từ trên xuống, theo đó bản đồ ở tầng sâu được nâng mẫu gấp đôi rồi cộng với bản đồ của tầng nông hơn sau khi tầng nông đi qua một tích chập $1 \times 1$ (kết nối bên). Kết quả là một kim tự tháp $\{P_2, P_3, P_4, P_5\}$ với bước $4, 8, 16, 32$, trong đó mọi mức có cùng số kênh và đều giàu ngữ nghĩa. Mỗi vùng đề xuất kích thước $w \times h$ trên ảnh được gán vào mức
+\begin{equation}
+k = \Big\lfloor k_0 + \log_2\big(\sqrt{wh}/224\big) \Big\rfloor, \qquad k_0 = 4,
+\label{eq:fpn-level}
+\end{equation}
+sau đó $k$ được giới hạn trong khoảng từ 2 đến 5. Như vậy, vùng lớn lấy đặc trưng ở mức thô còn vùng nhỏ lấy đặc trưng ở mức mịn. Ý tưởng dùng tầng có độ phân giải cao hơn cho vật nhỏ cũng là cơ sở của đặc trưng đa tỉ lệ trong \cref{sec:multiscale}, dù cách kết hợp ở đó là nội suy và nối kênh chứ không phải đường từ trên xuống của FPN.
+
 \subsection{Pipeline STAD hai giai đoạn và 3D RoIAlign}
 \label{sec:twostage}
 
 Pipeline STAD chuẩn trên AVA kế thừa Faster R-CNN \cite{ren2015fasterrcnn,gu2018ava}. Trước hết, bộ phát hiện người cung cấp các hộp tại khung hình khóa và backbone video trích bản đồ đặc trưng $F \in \R^{C \times T \times H \times W}$. Sau đó, 3D RoIAlign \cite{he2017maskrcnn,feichtenhofer2019slowfast} gộp trung bình bản đồ theo thời gian rồi cắt vùng tương ứng với mỗi hộp để head đa nhãn trả ra xác suất của từng hành vi. Trong MMAction2 \cite{mmaction2}, các bước này tương ứng với \code{SingleRoIExtractor3D} (hỗ trợ nhiều bản đồ đặc trưng bằng cách nội suy mọi bản đồ về kích thước của bản đồ thứ nhất rồi nối theo kênh) và \code{BBoxHeadAVA}. Khối đề xuất được chèn vào giữa backbone và bộ trích RoI.
 
+Việc STAD trên AVA thường dùng pipeline hai giai đoạn với person proposal có thể được giải thích từ ba đặc điểm của bài toán. Thứ nhất, nhãn của AVA gắn với từng người tại khung hình khóa và mỗi người mang nhiều nhãn hành động nguyên tử nên đơn vị dự đoán tự nhiên là ``một người tại một thời điểm''. Thứ hai, phát hiện người trên ảnh tĩnh là bài toán đã được nghiên cứu kỹ với nhiều bộ phát hiện chất lượng cao, chẳng hạn bộ phát hiện dựa trên Faster R-CNN mà SlowFast sử dụng, vì vậy tách riêng bước định vị cho phép mô hình hành động tập trung vào việc phân loại. Thứ ba, cùng một bản đồ đặc trưng video được dùng chung cho mọi người trong khung hình nên chi phí của backbone không tăng theo số người. Ở bước trích đặc trưng, hộp tại khung hình khóa được giả định gần như không đổi trong đoạn video ngắn nên 3D RoIAlign có thể nhân bản hộp này dọc trục thời gian hoặc gộp trục thời gian trước rồi áp dụng RoIAlign 2D với nội suy song tuyến tính (\cref{eq:bilinear}) như trong MMAction2. Đánh đổi của cách làm này là chất lượng phát hiện hành động bị chặn trên bởi chất lượng của bộ đề xuất người, vì người bị bỏ sót sẽ không bao giờ được phân loại còn hộp bị lệch sẽ kéo theo đặc trưng bị lệch.
+
 \subsection{Mất cân bằng lớp và focal loss}
 \label{sec:imbalance}
 
 Với bài toán đa nhãn, hàm mất mát cơ sở là entropy chéo nhị phân (binary cross-entropy, BCE) tính trên từng logit. Focal loss \cite{lin2017focal} nhân mỗi số hạng với $(1 - p_t)^{\gamma}$ để giảm đóng góp của các mẫu dễ. Cui và cộng sự \cite{cui2019classbalanced} đề xuất đặt trọng số lớp theo \emph{số mẫu hiệu dụng} $E_{n_c} = (1 - \beta^{n_c})/(1 - \beta)$, theo đó trọng số $w_c \propto 1/E_{n_c}$ tăng chậm hơn nghịch đảo tần suất và tránh khuếch đại quá mức các lớp cực hiếm. Hai cơ chế này được kết hợp với nhau trong \cref{sec:loss}.
+
+Cụ thể hơn, softmax ngầm giả định các lớp loại trừ lẫn nhau, điều không đúng với STAD khi một người có thể vừa ngồi vừa dùng điện thoại. Vì vậy, mỗi lớp được xem là một bài toán nhị phân độc lập với xác suất $p_c = \sigma(s_c) = 1/(1 + e^{-s_c})$ và nhãn $y_c \in \{0, 1\}$:
+\begin{equation}
+\BCE(s_c, y_c) = -\big[y_c \log \sigma(s_c) + (1 - y_c)\log\big(1 - \sigma(s_c)\big)\big] = -\log p_{t,c},
+\label{eq:bce-binary}
+\end{equation}
+trong đó $p_{t,c} = p_c$ nếu $y_c = 1$ và $p_{t,c} = 1 - p_c$ nếu ngược lại. Đạo hàm của BCE theo logit có dạng đơn giản $\partial \BCE / \partial s_c = p_c - y_c$ nên mỗi mẫu đóng góp gradient tỉ lệ với sai số dự đoán của nó. Khi dữ liệu mất cân bằng, số mẫu âm của một lớp hiếm áp đảo số mẫu dương. Dù mỗi mẫu âm dễ chỉ có sai số nhỏ, tổng đóng góp của chúng vẫn có thể lấn át tín hiệu từ số ít mẫu dương và khiến mô hình thiên về dự đoán âm cho lớp hiếm.
+
+Focal loss \cite{lin2017focal} ban đầu được đề xuất cho bộ phát hiện một giai đoạn, nơi số hộp nền dễ phân loại lớn hơn số hộp chứa đối tượng nhiều bậc. Hàm mất mát có dạng
+\begin{equation}
+\mathrm{FL}(p_t) = -\alpha_t\,(1 - p_t)^{\gamma}\log p_t,
+\label{eq:focal-general}
+\end{equation}
+trong đó $\gamma \geq 0$ là tham số tập trung còn $\alpha_t \in [0, 1]$ là hệ số cân bằng giữa mẫu dương và mẫu âm. Với mẫu đã được phân loại tốt ($p_t \to 1$), hệ số điều biến $(1 - p_t)^{\gamma}$ tiến về 0 và mất mát gần như bị triệt tiêu. Ngược lại, với mẫu bị phân loại sai ($p_t$ nhỏ), hệ số này xấp xỉ 1 và mất mát hầu như không đổi. Chẳng hạn, với $\gamma = 2$, một mẫu có $p_t = 0{,}9$ có mất mát nhỏ hơn 100 lần so với entropy chéo thông thường. Như vậy, focal loss không thay đổi tỉ lệ lớp một cách tường minh mà điều chỉnh trọng số theo \emph{độ khó} của từng mẫu để các mẫu khó chiếm phần lớn gradient.
+
+Trọng số theo số mẫu hiệu dụng xuất phát từ quan sát rằng các mẫu của cùng một lớp có phần thông tin trùng lặp nên lợi ích biên của mỗi mẫu mới giảm dần. Cui và cộng sự \cite{cui2019classbalanced} mô hình hóa điều này bằng cách coi tập mẫu khả dĩ của mỗi lớp chiếm một thể tích $N$ và mỗi mẫu mới hoặc rơi vào phần đã được phủ hoặc phủ thêm phần mới. Đặt $\beta = (N - 1)/N$, phép quy nạp cho thể tích kỳ vọng mà $n$ mẫu bao phủ là
+\begin{equation}
+E_n = \sum_{j=1}^{n} \beta^{j-1} = \frac{1 - \beta^{n}}{1 - \beta}, \qquad \beta \in [0, 1).
+\label{eq:effnum}
+\end{equation}
+Khi $\beta = 0$, mọi lớp có $E_n = 1$ và không có tái cân bằng. Khi $\beta \to 1$, $E_n \to n$ và trọng số $1/E_n$ trở thành nghịch đảo tần suất. Giá trị $\beta$ nằm giữa hai cực này cho phép điều chỉnh mức tái cân bằng một cách liên tục, hơn nữa $E_n$ bị chặn trên bởi $1/(1 - \beta)$ nên trọng số của các lớp có rất nhiều mẫu gần như bão hòa. Trọng số lớp và focal loss tác động lên hai khía cạnh khác nhau là tần suất của lớp và độ khó của mẫu nên có thể kết hợp với nhau như cách luận văn thực hiện ở \cref{eq:focal}.
+
+\subsection{Độ đo đánh giá phát hiện}
+\label{sec:detection-metrics}
+
+Các độ đo của bài toán phát hiện đều dựa trên việc đối sánh hộp dự đoán với hộp nhãn thật. Mức độ trùng khớp giữa hai hộp $A$ và $B$ được đo bằng tỉ số giao trên hợp (intersection over union, IoU):
+\begin{equation}
+\mathrm{IoU}(A, B) = \frac{|A \cap B|}{|A \cup B|} \in [0, 1].
+\label{eq:iou}
+\end{equation}
+Với một lớp và một ngưỡng IoU cho trước (thường là 0,5), các dự đoán được sắp xếp theo điểm tin cậy giảm dần rồi lần lượt được ghép với hộp nhãn thật chưa được ghép có IoU lớn nhất. Dự đoán ghép được là dương tính thật (true positive, TP), dự đoán không ghép được hoặc trùng với một hộp đã ghép là dương tính giả (false positive, FP) và hộp nhãn thật không được ghép là âm tính giả (false negative, FN). Từ đó,
+\begin{equation}
+\mathrm{Precision} = \frac{\mathrm{TP}}{\mathrm{TP} + \mathrm{FP}}, \qquad
+\mathrm{Recall} = \frac{\mathrm{TP}}{\mathrm{TP} + \mathrm{FN}}.
+\label{eq:pr}
+\end{equation}
+Trong bối cảnh cảnh báo, Precision cho biết tỉ lệ cảnh báo đúng trong số các cảnh báo được phát ra còn Recall cho biết tỉ lệ sự việc thực tế được phát hiện. Cả hai đại lượng đều phụ thuộc vào ngưỡng điểm, trong đó hạ ngưỡng thường làm tăng Recall nhưng giảm Precision và ngược lại.
+
+Quét ngưỡng từ cao xuống thấp cho ta đường Precision--Recall (đường PR) và độ chính xác trung bình (average precision, AP) tóm tắt toàn bộ đường này thành một con số. Do đường PR thực nghiệm có dạng răng cưa, Precision tại mỗi mức Recall thường được thay bằng giá trị nội suy
+\begin{equation}
+P_{\text{interp}}(r) = \max_{r' \geq r} P(r'),
+\label{eq:interp}
+\end{equation}
+tức là bao trên đơn điệu giảm của đường PR. Giao thức PASCAL VOC \cite{everingham2010pascal} ban đầu lấy trung bình $P_{\text{interp}}$ tại 11 mức Recall cách đều $0; 0{,}1; \dots; 1$ còn các phiên bản sau và nhiều bộ đánh giá hiện nay tính diện tích dưới toàn bộ bao trên này, ứng với tích phân trong \cref{eq:map}. AP không gắn với một ngưỡng cụ thể nên phản ánh chất lượng xếp hạng của mô hình trên mọi điểm vận hành. Độ chính xác trung bình trên các lớp (mean average precision, mAP) là trung bình cộng AP của các lớp được đánh giá nên mỗi lớp có trọng số như nhau bất kể số mẫu. Vì vậy, mAP nhạy với chất lượng trên các lớp hiếm hơn so với các độ đo tính gộp trên toàn bộ mẫu.
+
+Trong STAD có hai cách đánh giá chính. \emph{Frame-mAP} coi mỗi khung hình được đánh giá như một ảnh riêng, theo đó một dự đoán gồm hộp người và điểm của một lớp hành động tại khung hình đó là đúng nếu IoU với một hộp nhãn thật mang cùng nhãn đạt ngưỡng. \emph{Video-mAP} \cite{gkioxari2015tubes} đánh giá trên các ống hành động (action tube) gồm chuỗi hộp nối nhau qua nhiều khung hình. Một ống dự đoán chỉ được coi là đúng khi độ chồng lấp không--thời gian với ống nhãn thật vượt ngưỡng nên độ đo này đòi hỏi thêm khả năng liên kết hộp theo thời gian và xác định đúng thời điểm bắt đầu cũng như kết thúc của hành động. AVA \cite{gu2018ava} chỉ gán nhãn tại các khung hình khóa với tần suất một khung hình mỗi giây và không cung cấp ống hành động nên giao thức chính thức của AVA dùng frame-mAP tại ngưỡng IoU 0,5 (frame-mAP@0,5) với AP của mỗi lớp được tính theo cách của PASCAL VOC. Đây cũng là độ đo chính của luận văn (\cref{sec:metric}).
 
 \section{Tổng quan các họ phương pháp liên quan}
 \label{sec:survey}
@@ -72,7 +279,7 @@ Các công trình dưới đây được lựa chọn vì mỗi công trình đ�
 
 \Cref{tab:families} tóm tắt điểm mạnh và các hạn chế liên quan đến đề tài của từng họ phương pháp.
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \caption{So sánh các họ phương pháp liên quan}
 \label{tab:families}
@@ -119,9 +326,9 @@ L7 & Thiếu ablation và tái lập cùng giao thức & Không tách được n
 
 \Cref{fig:gaps} tóm tắt lập luận của chương. Năm họ phương pháp chính có chung bốn điểm nghẽn (L1--L5) tương ứng với bốn hướng khắc phục C1--C4 của luận văn. Riêng hai hạn chế là phụ thuộc vào person proposal và closed-set (L6) chưa được giải quyết trực tiếp.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{baseline_gaps.png}
+\includegraphics[width=0.72\textwidth]{baseline_gaps.png}
 \caption[Từ các họ phương pháp tới hạn chế chung và hướng khắc phục]{Từ các họ phương pháp tới hạn chế chung và bốn hướng khắc phục của luận văn, trong đó C1 là Hybrid FGTN-Mamba (L1, L2), C2 là đa tỉ lệ (L3), C3 là ngữ cảnh lấy actor làm trung tâm bằng ACRN (L4) và C4 là hàm mất mát hai cấp cùng ngưỡng theo lớp (L5).}
 \label{fig:gaps}
 \end{figure}
@@ -129,4 +336,4 @@ L7 & Thiếu ablation và tái lập cùng giao thức & Không tách được n
 \section*{Kết luận chương 2}
 \addcontentsline{toc}{section}{Kết luận chương 2}
 
-Chương này đã trình bày cơ sở lý thuyết về attention cửa sổ, mô hình không gian trạng thái chọn lọc, pipeline STAD hai giai đoạn và hàm mất mát cho dữ liệu mất cân bằng. Qua tổng quan bảy họ phương pháp có thể thấy chưa có cơ chế nào vừa truyền được ngữ cảnh dài hạn với chi phí tuyến tính vừa giữ được chuyển tiếp ngắn hạn và định tuyến giữa hai thang thời gian theo nội dung tại vị trí trước RoI của pipeline STAD theo từng người. Bảy hạn chế L1--L7 đã được ánh xạ tới các cơ chế xử lý được trình bày trong \cref{ch:method}.
+Chương này đã trình bày cơ sở lý thuyết về attention cửa sổ, mô hình không gian trạng thái chọn lọc, pipeline STAD hai giai đoạn và hàm mất mát cho dữ liệu mất cân bằng. Bên cạnh đó, chương cũng hệ thống hóa các kiến thức nền về tích chập 3D, Transformer phân cấp Swin, phát hiện đối tượng hai giai đoạn và các độ đo đánh giá được dùng xuyên suốt luận văn. Qua tổng quan năm họ phương pháp có thể thấy chưa có cơ chế nào vừa truyền được ngữ cảnh dài hạn với chi phí tuyến tính vừa giữ được chuyển tiếp ngắn hạn và định tuyến giữa hai thang thời gian theo nội dung tại vị trí trước RoI của pipeline STAD theo từng người. Bảy hạn chế L1--L7 đã được ánh xạ tới các cơ chế xử lý được trình bày trong \cref{ch:method}.

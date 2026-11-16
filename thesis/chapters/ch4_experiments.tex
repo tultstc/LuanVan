@@ -6,7 +6,7 @@ Thực nghiệm của luận văn được tiến hành trên hai bộ dữ li�
 \section{Bộ dữ liệu phân xưởng}
 \label{sec:factory-data}
 
-Bộ dữ liệu được thu từ hệ thống camera giám sát của phân xưởng và gán nhãn theo cấu trúc của AVA. Tại mỗi khung hình khóa, mỗi người có một hộp bao cùng một tập con của bốn nhãn hành vi (\cref{tab:factory-classes}) và một người có thể mang nhiều nhãn cùng lúc. Do có cùng cấu trúc với AVA nên bộ dữ liệu dùng chung pipeline đọc dữ liệu và bộ đánh giá frame-mAP@0,5 của MMAction2. Báo cáo bổ sung thống kê được 24.614 lượt gán nhãn, gồm 19.691 lượt cho huấn luyện và 4.923 lượt cho kiểm tra với phân bố theo lớp được trình bày trong \cref{tab:factory-stats}.
+Bộ dữ liệu được thu từ hệ thống camera giám sát của phân xưởng và gán nhãn theo cấu trúc của AVA. Tại mỗi khung hình khóa, mỗi người có một hộp bao cùng một tập con của bốn nhãn hành vi (\cref{tab:factory-classes}) và một người có thể mang nhiều nhãn cùng lúc. Do có cùng cấu trúc với AVA nên bộ dữ liệu dùng chung pipeline đọc dữ liệu và bộ đánh giá frame-mAP@0,5 của MMAction2. Bộ dữ liệu có 24.614 lượt gán nhãn, gồm 19.691 lượt cho huấn luyện và 4.923 lượt cho kiểm tra với phân bố theo lớp được trình bày trong \cref{tab:factory-stats}.
 
 \begin{table}[H]
 \centering
@@ -24,9 +24,9 @@ Bộ dữ liệu được thu từ hệ thống camera giám sát của phân x�
 \end{tabularx}
 \end{table}
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
-\caption{Phân bố lượt gán nhãn của bộ dữ liệu phân xưởng theo báo cáo bổ sung}
+\caption{Phân bố lượt gán nhãn của bộ dữ liệu phân xưởng}
 \label{tab:factory-stats}
 \begin{tabularx}{\textwidth}{Xrrr}
 \toprule
@@ -44,19 +44,19 @@ Bộ dữ liệu được thu từ hệ thống camera giám sát của phân x�
 
 Trong tập huấn luyện, \path{use_mobilephone} chiếm khoảng 53,2\% còn \path{sleep_on_table} chỉ chiếm 3,4\%, tức là số nhãn của hai lớp chênh nhau khoảng 15,8 lần. Phân bố lớp giữa tập huấn luyện và tập kiểm tra tương đối ổn định nhưng điều này không thay thế được việc kiểm tra tính độc lập theo video hoặc camera. Các con số trên là số lượt gán nhãn hành vi chứ không phải số khung hình khóa hay số hộp người duy nhất vì một người có thể mang nhiều nhãn.
 
-Báo cáo nguồn chưa thống kê số camera, số video hoặc phiên ghi, tổng thời lượng, độ phân giải và tốc độ khung hình gốc, số khung hình khóa và hộp người duy nhất, cũng như định danh bộ phát hiện người. Do đó, luận văn không suy ra các đại lượng này từ số lượt gán nhãn.
+Luận văn chưa thống kê số camera, số video hoặc phiên ghi, tổng thời lượng, độ phân giải và tốc độ khung hình gốc, số khung hình khóa và hộp người duy nhất, cũng như định danh bộ phát hiện người. Do đó, luận văn không suy ra các đại lượng này từ số lượt gán nhãn.
 
 \section{Cách chia dữ liệu và phòng chống rò rỉ}
 \label{sec:splits}
 
 Luận văn dùng hai cách chia bộ dữ liệu phân xưởng:
 \begin{itemize}
-  \item \textbf{S1 (chia ngẫu nhiên)} được dùng giống như trong các lượt chạy ban đầu của hồ sơ thực nghiệm. Cách chia này cho phép đối chiếu với kết quả đã có nhưng cùng một cảnh và cùng một người có thể xuất hiện ở cả tập huấn luyện lẫn tập kiểm tra nên kết quả có xu hướng lạc quan;
+  \item \textbf{S1 (chia ngẫu nhiên)} chia ngẫu nhiên các mẫu vào tập huấn luyện và tập kiểm tra. Cách chia này cho phép so sánh các mô hình trong cùng điều kiện nhưng cùng một cảnh và cùng một người có thể xuất hiện ở cả tập huấn luyện lẫn tập kiểm tra nên kết quả có xu hướng lạc quan;
   \item \textbf{S2 (chia theo camera)} giữ riêng hai camera chỉ để kiểm tra và dùng các camera còn lại để huấn luyện. Nhờ vậy, S2 tránh được rò rỉ cùng cảnh, cùng người và mô phỏng tình huống đưa hệ thống vào vận hành trên camera mới.
 \end{itemize}
 Mọi cấu hình ablation đều được chạy trên cả hai cách chia và chênh lệch giữa S1 với S2 cho phép ước lượng mức phụ thuộc của từng thành phần vào cảnh đã thấy khi huấn luyện (\cref{sec:cross-camera}).
 
-Các số 19.691 và 4.923 trong \cref{tab:factory-stats} thuộc phân chia huấn luyện/kiểm tra được báo cáo trong tài liệu bổ sung còn bảng đối chiếu số khung hình khóa và số lượt gán nhãn riêng cho S1 và S2 thì tài liệu này chưa cung cấp.
+Các số 19.691 và 4.923 trong \cref{tab:factory-stats} thuộc phân chia huấn luyện/kiểm tra của S1 còn số khung hình khóa và số lượt gán nhãn riêng cho S2 chưa được thống kê trong luận văn.
 
 Rò rỉ dữ liệu xảy ra khi cùng một cảnh, cùng một người hoặc các khung hình gần nhau của cùng một video nằm ở cả tập huấn luyện lẫn tập kiểm tra. S2 loại bỏ rò rỉ theo cảnh bằng cách giữ riêng hai camera, đồng thời mọi siêu tham số và ngưỡng theo lớp đều được chọn mà không dùng tập kiểm tra. Để kiểm soát chặt hơn, cần duy trì bảng kê \code{video\_id}, \code{camera\_id}, \code{session\_id}, thời gian và checksum, kết hợp với băm cảm nhận hoặc embedding để phát hiện các đoạn gần trùng giữa các phần chia. Với AVA, phân chia train/val chính thức được tách theo video nhằm tránh dùng khung hình của cùng một phim ở cả hai phía.
 
@@ -65,14 +65,33 @@ Rò rỉ dữ liệu xảy ra khi cùng một cảnh, cùng một người hoặ
 
 AVA \cite{gu2018ava} gồm 430 video phim, mỗi video dài 15 phút (235 huấn luyện, 64 kiểm định, 131 kiểm tra). Mỗi giây có một khung hình khóa và tại đó mọi người đều được gán hộp bao cùng một hoặc nhiều nhãn trong 80 lớp hành động nguyên tử, trong số đó có 60 lớp được đánh giá. Theo giao thức chuẩn, frame-mAP@0,5 được tính trên tập val với hộp người lấy từ bộ đề xuất do FAIR công bố (recall 93,9\%) \cite{feichtenhofer2019slowfast,mmaction2}.
 
+\subsection{Pipeline dữ liệu theo cấu hình AVA}
+\label{sec:ava-pipeline}
+
+Cấu hình AVA của luận văn (\path{projects/fgtn_ava/ava22_swin-tiny_fgtn_32x2x1-10e.py}) được xây dựng từ công thức SlowFast trên AVA~v2.2 của MMAction2 \cite{mmaction2} và giữ nguyên cách đọc dữ liệu của công thức này. Hậu tố \code{32x2x1} trong tên cấu hình cho biết mỗi mẫu là một đoạn gồm 32 khung hình lấy cách nhau 2 khung và mỗi khung hình khóa chỉ lấy một đoạn. Do video AVA được tách thành ảnh ở 30 khung hình/giây nên một đoạn phủ 64 khung hình gốc, tức khoảng 2,1 giây đặt đối xứng quanh khung hình khóa. Với kích thước patch $(2, 4, 4)$ của Video Swin-T, 32 khung hình đầu vào cho bản đồ đặc trưng có 16 bước thời gian và đây chính là độ dài chuỗi $T$ mà Hybrid FGTN-Mamba xử lý.
+
+Khi huấn luyện, mỗi mẫu lần lượt đi qua các bước sau:
+\begin{enumerate}
+  \item \code{SampleAVAFrames} chọn chỉ số của 32 khung hình quanh khung hình khóa với bước 2;
+  \item \code{RawFrameDecode} đọc các ảnh đã tách sẵn từ đĩa;
+  \item \code{RandomRescale} đổi kích thước ảnh sao cho cạnh ngắn nhận một giá trị ngẫu nhiên trong khoảng từ 256 đến 320 điểm ảnh;
+  \item \code{RandomCrop} cắt ngẫu nhiên một vùng $256 \times 256$ và dịch hộp nhãn cùng proposal theo vùng cắt;
+  \item \code{Flip} lật ngang toàn bộ đoạn với xác suất 0,5, hộp nhãn và proposal được lật theo;
+  \item \code{FormatShape} sắp xếp dữ liệu thành tensor $C \times T \times H \times W$ và bỏ chiều số đoạn vì mỗi khung hình khóa chỉ có một đoạn;
+  \item \code{PackActionInputs} đóng gói tensor ảnh cùng hộp nhãn, nhãn và proposal thành đầu vào của mô hình.
+\end{enumerate}
+Ở pha kiểm định và kiểm tra, đoạn video được lấy với cùng độ dài và cùng bước nhưng ảnh chỉ được đổi kích thước để cạnh ngắn bằng 256 điểm ảnh (giữ nguyên tỷ lệ khung hình) và không bị cắt hay lật. Sau đó, bộ tiền xử lý \code{ActionDataPreprocessor} chuẩn hóa từng kênh màu theo trung bình và độ lệch chuẩn của ImageNet rồi gộp các mẫu thành lô dạng \code{NCTHW}. Các khung hình khóa thuộc danh sách loại trừ chính thức của AVA~v2.2 bị bỏ qua ở cả hai pha.
+
+Proposal của FAIR được dùng làm vùng người ở cả hai pha. Khi huấn luyện, một proposal được nhận nhãn của hộp nhãn thật nếu IoU giữa hai hộp đạt từ 0,9 trở lên, các hộp nhãn thật cũng được thêm vào tập proposal và mỗi đoạn lấy tối đa 32 vùng cho head phân loại. Bộ dữ liệu phân xưởng dùng chung cơ chế đọc chú thích theo định dạng AVA (\cref{sec:factory-data}) nhưng các phép tăng cường áp dụng cho bộ dữ liệu này là các phép được liệt kê trong \cref{tab:factory-config}.
+
 \section{Tiền xử lý và cấu hình huấn luyện}
 \label{sec:training-config}
 
-Trên bộ dữ liệu phân xưởng, mọi cấu hình trong một cặp ablation dùng chung backbone, pipeline dữ liệu, bộ tối ưu và lịch huấn luyện, mỗi cấu hình được lặp lại với ba hạt giống. Cấu hình huấn luyện chính theo mô tả của báo cáo bổ sung được tóm tắt trong \cref{tab:factory-config}. Báo cáo này chưa nêu model và số lượng GPU của các lượt chạy phân xưởng, cũng chưa cung cấp cấu hình chi tiết của từng lượt chạy ablation.
+Trên bộ dữ liệu phân xưởng, mọi cấu hình trong một cặp ablation dùng chung backbone, pipeline dữ liệu, bộ tối ưu và lịch huấn luyện, mỗi cấu hình được lặp lại với ba seed. Cấu hình huấn luyện chính được tóm tắt trong \cref{tab:factory-config}.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
-\caption[Cấu hình huấn luyện trên dữ liệu phân xưởng]{Cấu hình huấn luyện chính trên dữ liệu phân xưởng ghi trong báo cáo bổ sung}
+\caption[Cấu hình huấn luyện trên dữ liệu phân xưởng]{Cấu hình huấn luyện chính trên dữ liệu phân xưởng}
 \label{tab:factory-config}
 \small
 \begin{tabularx}{\textwidth}{lX}
@@ -85,22 +104,65 @@ Lô / epoch & 4 mẫu/GPU; 20 epoch\\
 Lịch lr & Warm-up tuyến tính từ epoch 0 đến 5; cosine annealing từ epoch 5 đến 20\\
 Độ chính xác và ổn định & AMP bật; dropout 0,5; cắt gradient với chuẩn tối đa 40\\
 Tăng cường dữ liệu & Scale, crop, flip ngẫu nhiên; blur, perspective, affine, color jitter và random erase\\
-Phần cứng & Báo cáo chưa nêu model và số lượng GPU\\
 \bottomrule
 \end{tabularx}
 \end{table}
+
+\subsection{Môi trường phần mềm}
+\label{sec:software}
+
+Mã nguồn của luận văn nằm trong thư mục \path{projects/fgtn_ava} và được tổ chức như một dự án mở rộng của MMAction2 \cite{mmaction2}. Các thành phần riêng của luận văn, gồm khối Hybrid FGTN-Mamba và head có focal loss với trọng số lớp, được đăng ký vào registry của OpenMMLab và nạp qua khóa \code{custom\_imports} trong tệp cấu hình nên không cần sửa mã nguồn của framework. Theo hướng dẫn cài đặt của dự án, môi trường phần mềm gồm:
+\begin{itemize}
+  \item PyTorch \cite{paszke2019pytorch} làm nền tính toán tensor và vi phân tự động;
+  \item MMEngine \cite{mmengine} quản lý vòng lặp huấn luyện, kiểm định, bộ lập lịch learning rate và việc lưu checkpoint;
+  \item MMCV bản đầy đủ với phiên bản từ 2.0.0 trở lên và thấp hơn 2.2.0, cần thiết vì phép RoIAlign được cài đặt trong phần mở rộng biên dịch sẵn của MMCV;
+  \item MMDetection \cite{chen2019mmdetection} cung cấp khung \code{FastRCNN}, bộ gán nhãn và bộ lấy mẫu vùng quan tâm;
+  \item MMAction2 từ phiên bản 1.2.0 trở lên cung cấp backbone Video Swin, \code{AVARoIHead}, \code{ACRNHead}, bộ đọc dữ liệu AVA và bộ đánh giá \code{AVAMetric};
+  \item gói \code{causal-conv1d} cùng gói \code{mamba} lấy từ kho mã của Video Mamba Suite \cite{chen2024videomambasuite} cung cấp nhân CUDA cho phép quét chọn lọc hai chiều.
+\end{itemize}
+Các gói của OpenMMLab được cài qua công cụ \code{mim}. Khi thiếu gói \code{mamba-ssm}, khối neck tự chuyển sang phép quét viết bằng PyTorch thuần. Cách này cho kết quả đúng nhưng chậm hơn nhiều nên chỉ dùng để kiểm tra nhanh chứ không dùng để huấn luyện. Ngoài ra, dự án có tệp \path{selfcheck.py} chạy trên CPU mà không cần MMAction2 hay GPU để kiểm tra kích thước đầu ra của khối neck ở mọi chế độ nhánh, cả khi dùng một tầng lẫn hai tầng, đồng thời kiểm tra rằng hàm mất mát có trọng số trở về BCE thông thường khi tắt focal và trọng số lớp. Trong cấu hình AVA, mô hình được khởi tạo từ checkpoint Video Swin-T tiền huấn luyện trên Kinetics-400 do MMAction2 công bố.
 
 \section{Giao thức đánh giá}
 \label{sec:protocol}
 
 \begin{enumerate}
   \item mỗi cặp so sánh chỉ thay đổi đúng một yếu tố còn dữ liệu, cách chia, proposal, tăng cường dữ liệu, bộ tối ưu, số epoch và bộ đánh giá được giữ nguyên;
-  \item mỗi cấu hình được chạy với ba hạt giống và kết quả trung bình (kèm độ lệch chuẩn khi đã tổng hợp) được báo cáo trên cả S1 và S2;
+  \item mỗi cấu hình được chạy với ba seed và kết quả trung bình (kèm độ lệch chuẩn khi đã tổng hợp) được báo cáo trên cả S1 và S2;
   \item bên cạnh mAP, luận văn báo cáo Precision và Recall tại ngưỡng 0,5, tốc độ xử lý và bộ nhớ GPU;
   % Tạm bỏ theo slide bảo vệ (09/11/2026): chưa có kết quả với hộp nhãn thật.
   % \item Với pipeline dựa trên proposal, chạy thêm cấu hình dùng hộp nhãn thật làm cận trên để tách lỗi định vị khỏi lỗi phân loại.
   \item so sánh với các mô hình có kiến trúc khác phản ánh hiệu năng của toàn pipeline còn đóng góp của temporal neck chỉ được kết luận từ các cặp ablation trong cùng pipeline. Số liệu công bố của STAR, OV-STAD và ST-CLIP chỉ được dùng để định vị khoảng hiệu năng.
 \end{enumerate}
+
+\subsection{Cách tính các độ đo trên bộ dữ liệu phân xưởng}
+\label{sec:metric-calc}
+
+Định nghĩa chung của frame-mAP đã được nêu ở \cref{sec:metric} và nền tảng của pipeline phát hiện hai giai đoạn được trình bày ở \cref{ch:related}. Mục này cụ thể hóa cách tính các độ đo trên bộ dữ liệu phân xưởng. Mức độ trùng khớp giữa hộp dự đoán $\hat b$ và hộp nhãn thật $b$ được đo bằng tỷ lệ giao trên hợp (Intersection over Union, IoU)
+\begin{equation}
+\mathrm{IoU}(\hat b, b) = \frac{|\hat b \cap b|}{|\hat b \cup b|},
+\label{eq:iou-factory}
+\end{equation}
+trong đó $|\cdot|$ là diện tích của vùng tương ứng.
+
+Bộ đánh giá \code{AVAMetric} xét từng khung hình khóa một cách độc lập và đây là lý do độ đo được gọi là frame-mAP. Với mỗi lớp $c$, dự đoán trên mọi khung hình khóa của tập kiểm tra được gộp lại và sắp xếp theo điểm $p_{k,c}$ giảm dần. Lần lượt theo thứ tự đó, một dự đoán được tính là dương đúng (true positive, TP) nếu hộp nhãn thật mang nhãn $c$ có IoU lớn nhất với nó trong cùng khung hình khóa đạt IoU $\geq 0{,}5$ và chưa được ghép với dự đoán nào trước đó, ngược lại dự đoán bị tính là dương sai (false positive, FP). Gọi $N_c$ là số hộp nhãn thật mang nhãn $c$ và $\mathrm{TP}_c(i)$ là số dương đúng trong $i$ dự đoán đầu tiên, độ chính xác và độ phủ sau $i$ dự đoán là
+\begin{equation}
+P_c(i) = \frac{\mathrm{TP}_c(i)}{i}, \qquad R_c(i) = \frac{\mathrm{TP}_c(i)}{N_c}.
+\label{eq:pr-curve}
+\end{equation}
+AP của lớp $c$ là xấp xỉ rời rạc của tích phân trong \cref{eq:map}, với độ chính xác được làm đơn điệu không tăng theo độ phủ:
+\begin{equation}
+\mathrm{AP}_c = \sum_{i} \bigl(R_c(i) - R_c(i-1)\bigr)\,\tilde P_c(i), \qquad \tilde P_c(i) = \max_{i' \geq i} P_c(i'),
+\label{eq:ap-discrete}
+\end{equation}
+với quy ước $R_c(0) = 0$. Trên bộ dữ liệu phân xưởng, mAP là trung bình cộng của AP trên bốn lớp \path{use_mobilephone}, \path{sleep_on_table}, \path{feet_on_table} và \path{dangerous_action}. Do mỗi lớp có trọng số như nhau nên lớp hiếm \path{sleep_on_table} ảnh hưởng tới mAP ngang với lớp phổ biến \path{use_mobilephone} dù số lượt gán nhãn của hai lớp chênh nhau nhiều lần (\cref{tab:factory-stats}). Toàn bộ các giá trị mAP trên dữ liệu phân xưởng trong luận văn đều là frame-mAP@0,5 theo cách tính này.
+
+Khác với AP vốn tổng hợp trên mọi ngưỡng điểm, Precision và Recall được tính tại một điểm vận hành cố định. Ở đây, một dự đoán $(b_k, c)$ được coi là dương khi $p_{k,c} \geq 0{,}5$ và việc ghép với hộp nhãn thật vẫn dùng điều kiện IoU $\geq 0{,}5$ như trên. Gọi $\mathrm{TP}_c$, $\mathrm{FP}_c$ là số dương đúng và dương sai trong các dự đoán dương còn $\mathrm{FN}_c = N_c - \mathrm{TP}_c$ là số hộp nhãn thật bị bỏ sót, khi đó
+\begin{equation}
+\mathrm{Precision}_c = \frac{\mathrm{TP}_c}{\mathrm{TP}_c + \mathrm{FP}_c}, \qquad
+\mathrm{Recall}_c = \frac{\mathrm{TP}_c}{\mathrm{TP}_c + \mathrm{FN}_c}.
+\label{eq:prec-rec}
+\end{equation}
+Cần phân biệt ngưỡng 0,5 áp lên điểm của lớp với ngưỡng IoU 0,5 dùng để ghép hộp. Precision thấp đồng nghĩa với nhiều báo động giả còn Recall thấp đồng nghĩa với nhiều hành vi bị bỏ sót. Vì vậy, hai chỉ số này được dùng để diễn giải hành vi của hệ cảnh báo trong \cref{tab:operating}, nơi luận văn báo cáo một cặp giá trị chung cho cả bốn lớp.
 
 \section{Ma trận ablation}
 \label{sec:ablation}
@@ -136,15 +198,15 @@ Cặp A0 $\rightarrow$ A1 trả lời câu hỏi có cần neck hay không còn 
 \section{Các mô hình so sánh}
 \label{sec:baselines}
 
-Trên bộ dữ liệu phân xưởng, pipeline đề xuất được so sánh với năm mô hình trong hồ sơ thực nghiệm (\cref{tab:main-results}), gồm SlowFast-R50 \cite{feichtenhofer2019slowfast} là baseline hai giai đoạn kinh điển với backbone tích chập 3D hai luồng; YOWOv2-Nano \cite{yang2023yowov2} là phiên bản nhỏ nhất của pipeline one-stage thời gian thực YOWOv2; EfficientViT3D-b1 và FastViT3D-SA12 là biến thể 3D của các backbone hiệu quả EfficientViT-B1 \cite{cai2023efficientvit} và FastViT-SA12 \cite{vasu2023fastvit}; cuối cùng là chính pipeline đề xuất khi bỏ ACRN.
+Trên bộ dữ liệu phân xưởng, pipeline đề xuất được so sánh với năm mô hình (\cref{tab:main-results}), gồm SlowFast-R50 \cite{feichtenhofer2019slowfast} là baseline hai giai đoạn kinh điển với backbone tích chập 3D hai luồng; YOWOv2-Nano \cite{yang2023yowov2} là phiên bản nhỏ nhất của pipeline one-stage thời gian thực YOWOv2; EfficientViT3D-b1 và FastViT3D-SA12 là biến thể 3D của các backbone hiệu quả EfficientViT-B1 \cite{cai2023efficientvit} và FastViT-SA12 \cite{vasu2023fastvit}; cuối cùng là chính pipeline đề xuất khi bỏ ACRN.
 
 % Bỏ mục 4.8 khỏi bản in theo yêu cầu; giữ nội dung để có thể khôi phục.
 % \section{Tiêu chí chấp nhận cải tiến}
 % \label{sec:acceptance}
 %
-% Hybrid FGTN-Mamba (A6) phải cải thiện mAP ổn định qua các hạt giống so với A0, A1 và từng nhánh riêng lẻ (A2--A4) trên cả S1 và S2, trong đó mức cải thiện so với toán tử tiêu chuẩn tại cùng vị trí (A1) cần đạt tối thiểu 3 điểm mAP. Lợi ích không được chỉ đến từ tăng tham số; tốc độ triển khai phải báo cả độ trễ nhìn trước của quét hai chiều; và mọi số liệu phải tái tạo được từ cấu hình, nhật ký và checkpoint đã lưu.
+% Hybrid FGTN-Mamba (A6) phải cải thiện mAP ổn định qua các seed so với A0, A1 và từng nhánh riêng lẻ (A2--A4) trên cả S1 và S2, trong đó mức cải thiện so với toán tử tiêu chuẩn tại cùng vị trí (A1) cần đạt tối thiểu 3 điểm mAP. Lợi ích không được chỉ đến từ tăng tham số; tốc độ triển khai phải báo cả độ trễ nhìn trước của quét hai chiều; và mọi số liệu phải tái tạo được từ cấu hình, nhật ký và checkpoint đã lưu.
 
 \section*{Kết luận chương 4}
 \addcontentsline{toc}{section}{Kết luận chương 4}
 
-Chương này đã mô tả bộ dữ liệu phân xưởng với bốn hành vi mục tiêu, hai cách chia dữ liệu S1 (ngẫu nhiên) và S2 (theo camera), bộ dữ liệu AVA~v2.2 cùng với cấu hình huấn luyện, giao thức đánh giá, ma trận ablation gồm chín cấu hình và năm mô hình so sánh. \Cref{ch:results} tiếp theo sẽ trình bày kết quả thực nghiệm và thảo luận về đóng góp của từng thành phần.
+Chương này đã mô tả bộ dữ liệu phân xưởng với bốn hành vi mục tiêu, hai cách chia dữ liệu S1 (ngẫu nhiên) và S2 (theo camera), bộ dữ liệu AVA~v2.2 cùng với cấu hình huấn luyện, giao thức đánh giá, ma trận ablation gồm chín cấu hình và năm mô hình so sánh. Bên cạnh đó, chương đã nêu môi trường phần mềm, pipeline dữ liệu theo cấu hình AVA và cách tính IoU, AP, mAP, Precision và Recall trên bộ dữ liệu phân xưởng. \Cref{ch:results} tiếp theo sẽ trình bày kết quả thực nghiệm và thảo luận về đóng góp của từng thành phần.
