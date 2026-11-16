@@ -93,5 +93,10 @@ try:
 
             return dict(loss_bbox=losses, bbox_targets=cls_targets)
 
+    # FastRCNN builds its roi_head in the mmdet scope; mmaction registers BBoxHeadAVA there too
+    from mmdet.registry import MODELS as MMDET_MODELS
+
+    MMDET_MODELS.register_module(module=BBoxHeadAVAWeighted)
+
 except ImportError:
     pass  # standalone use (selfcheck.py) without mmaction installed
