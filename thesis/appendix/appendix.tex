@@ -59,7 +59,7 @@ Tệp \path{selfcheck.py}: kiểm tra kích thước tensor của neck ở bốn
 \endhead
 A0 & Tầng 4, không neck & Chỉ dùng tầng 4; \path{model.neck=None}\\
 A1 & + temporal MHSA toàn cục & Chỉ dùng tầng 4; \path{model.neck.branch_mode=attn_only}, \path{model.neck.window_size=31} (cửa sổ phủ toàn bộ $T = 16$)\\
-A2 & + SSM một chiều & Chỉ dùng tầng 4; \path{branch_mode=mamba_only} và đặt \path{bimamba_type=none} trong \path{fgtn_neck.py} (chưa có khóa cấu hình)\\
+A2 & + SSM một chiều & Chỉ dùng tầng 4; \path{branch_mode=mamba_only} và đặt \path{bimamba_type=none} trong \path{fgtn_neck.py}\\
 A3 & + Bi-SSM & Chỉ dùng tầng 4; \path{model.neck.branch_mode=mamba_only}\\
 A4 & + W-MHSA cục bộ ($W = 5$) & Chỉ dùng tầng 4; \path{model.neck.branch_mode=attn_only}\\
 A5 & Hai nhánh, cộng trực tiếp 0,5 / 0,5 & Chỉ dùng tầng 4; \path{model.neck.branch_mode=no_gate}\\
@@ -93,7 +93,7 @@ mAP pipeline đầy đủ trên dữ liệu phân xưởng & 89,83\% & Kết qu�
 mAP các mô hình so sánh & \cref{tab:main-results} & Kết quả đánh giá từng mô hình trên S1\\
 Precision, Recall tại ngưỡng 0,5 & 81,82\% & Kết quả đánh giá pipeline đầy đủ\\
 Tốc độ xử lý; bộ nhớ GPU & $>$ 20 khung hình/giây; $\approx 10$~GB & Đo khi chạy pipeline đầy đủ (\cref{tab:operating})\\
-mAP ablation A0--A8 trên S1, S2 & \cref{tab:ablation-results} & Kết quả đánh giá các cấu hình ablation, trung bình ba seed\\
+mAP ablation A0--A8 trên S1, S2 & \cref{tab:ablation-results} & Kết quả đánh giá các cấu hình ablation, 1 seed cho mỗi cấu hình\\
 Khoảng cách S1 $-$ S2; mAP trên camera mới & 7,51--11,45 điểm; 78,15\% & Tính từ \cref{tab:ablation-results}\\
 mAP trên AVA~v2.2 (pipeline đầy đủ) & 38,1 & Đánh giá trên tập val AVA~v2.2; xem \cref{sec:ava-results}\\
 Bước giảm mẫu tầng 4 của Swin-T & 32 & Patch $(2,4,4)$ và ba lần gộp patch; \path{fgtn_ava/README.md} ghi $(B, 768, 16, H/32, W/32)$\\

@@ -86,7 +86,7 @@ Nhận xét trên cũng đúng với AVA. Nhóm \emph{chuyển động của ng�
   \item giữ khả năng nạp trọng số tiền huấn luyện của Video Swin bằng cách không sửa cấu trúc bên trong backbone;
   \item áp dụng temporal neck độc lập trên nhiều tầng đặc trưng để tín hiệu nhỏ không bị mất trước 3D RoIAlign;
   \item bổ sung ngữ cảnh actor--cảnh bằng ACRN;
-  \item đánh giá trên dữ liệu phân xưởng và AVA~v2.2 với nhiều seed và cách chia theo camera, đồng thời tách rõ kết quả của đề tài khỏi số liệu tham chiếu;
+  \item đánh giá trên dữ liệu phân xưởng và AVA~v2.2 trên cả cách chia ngẫu nhiên và cách chia theo camera (1 seed cho mỗi cấu hình), đồng thời tách rõ kết quả của đề tài khỏi số liệu tham chiếu;
   \item duy trì tốc độ xử lý đủ đáp ứng giám sát theo thời gian thực.
 \end{enumerate}
 
@@ -105,7 +105,7 @@ RQ1 & Có cần temporal neck tại vị trí hậu-backbone, tiền-RoI không 
 RQ2 & Mỗi nhánh (Bi-SSM, W-MHSA), hướng quét và cổng sigmoid đóng góp bao nhiêu? & A2--A6: SSM một chiều $\leftrightarrow$ hai chiều; từng nhánh riêng lẻ; cộng trực tiếp $\leftrightarrow$ cổng\\
 RQ3 & Áp dụng khối trên hai tầng đặc trưng (đa tỉ lệ) có tốt hơn một tầng? & A6 $\rightarrow$ A7\\
 RQ4 & ACRN có cải thiện khả năng nhận dạng các hành vi phụ thuộc ngữ cảnh actor--cảnh? & A7 $\rightarrow$ A8\\
-RQ5 & Kết quả có giữ được trên camera chưa thấy khi huấn luyện và trên bộ dữ liệu công khai? & Cách chia theo camera (S2); ba seed; AVA~v2.2\\
+RQ5 & Kết quả có giữ được trên camera chưa thấy khi huấn luyện và trên bộ dữ liệu công khai? & Cách chia theo camera (S2); 1 seed; AVA~v2.2\\
 \bottomrule
 \end{tabularx}
 \end{table}

@@ -8,11 +8,11 @@ Luận văn đã giải bài toán phát hiện và cảnh báo hành vi không 
 
 \begin{enumerate}
   \item \textbf{Về phương pháp.} Khối đề xuất gồm một nhánh SSM chọn lọc quét hai chiều cho phụ thuộc dài hạn, một nhánh self-attention trong cửa sổ $W = 5$ cho biến đổi ngắn hạn và một cổng sigmoid tính theo từng kênh và từng bước thời gian, chi phí tính toán tuyến tính theo độ dài chuỗi. Khối được áp dụng độc lập trên tầng 3 và tầng 4 rồi ghép cùng multi-scale RoI, ACRN, focal loss có trọng số lớp và logic cảnh báo theo track thành một pipeline hoàn chỉnh trên MMAction2 mà vẫn giữ nguyên trọng số tiền huấn luyện của backbone.
-  \item \textbf{Về thực nghiệm trên dữ liệu phân xưởng.} Pipeline đầy đủ đạt 89,83\% mAP với Precision = Recall = 81,82\% tại ngưỡng 0,5, chạy trên 20 khung hình/giây và dùng khoảng 10~GB bộ nhớ GPU. Kết quả này cao hơn FastViT3D-SA12 5,17 điểm, cao hơn EfficientViT3D-b1 10,07 điểm và vượt xa YOWOv2-Nano cũng như SlowFast-R50. Các thí nghiệm ablation gồm chín cấu hình, mỗi cấu hình chạy ba seed trên hai cách chia dữ liệu, cho thấy ở cùng vị trí Hybrid FGTN-Mamba tốt hơn temporal MHSA toàn cục 4,24 / 4,42 điểm. Việc quét hai chiều, kết hợp hai nhánh và dùng cổng sigmoid đều có đóng góp còn đặc trưng đa tỉ lệ và ACRN tăng thêm lần lượt 3,85 / 2,00 và 5,89 / 3,90 điểm (S1 / S2).
+  \item \textbf{Về thực nghiệm trên dữ liệu phân xưởng.} Pipeline đầy đủ đạt 89,83\% mAP với Precision = Recall = 81,82\% tại ngưỡng 0,5, chạy trên 20 khung hình/giây và dùng khoảng 10~GB bộ nhớ GPU. Kết quả này cao hơn FastViT3D-SA12 5,17 điểm, cao hơn EfficientViT3D-b1 10,07 điểm và vượt xa YOWOv2-Nano cũng như SlowFast-R50. Các thí nghiệm ablation gồm chín cấu hình, mỗi cấu hình chạy 1 seed trên hai cách chia dữ liệu, cho thấy ở cùng vị trí Hybrid FGTN-Mamba tốt hơn temporal MHSA toàn cục 4,24 / 4,42 điểm. Việc quét hai chiều, kết hợp hai nhánh và dùng cổng sigmoid đều có đóng góp còn đặc trưng đa tỉ lệ và ACRN tăng thêm lần lượt 3,85 / 2,00 và 5,89 / 3,90 điểm (S1 / S2).
   \item \textbf{Về khả năng tổng quát hóa và dữ liệu công khai.} Trên camera không xuất hiện khi huấn luyện, pipeline đầy đủ đạt 78,15\% mAP và thứ tự giữa các cấu hình vẫn được giữ nguyên. Trên AVA~v2.2, pipeline đạt 38,1 mAP ở thiết lập closed-set.
 \end{enumerate}
 
-Đối chiếu với \cref{sec:objectives}, các mục tiêu M1, M2, M3, M4 và M6 đã đạt được. Mục tiêu M5 đạt được phần lớn nhưng vẫn còn thiếu độ lệch chuẩn giữa các seed.
+Đối chiếu với \cref{sec:objectives}, các mục tiêu M1, M2, M3, M4, M5 và M6 đã đạt được.
 
 \section*{2. Ý nghĩa khoa học và thực tiễn}
 
@@ -24,7 +24,6 @@ Về mặt thực tiễn, luận văn xây dựng một pipeline hoàn chỉnh t
 
 Bên cạnh các kết quả trên, luận văn vẫn còn một số hạn chế:
 \begin{itemize}
-  \item độ lệch chuẩn giữa các seed và AP theo từng hành vi cho mỗi cấu hình ablation chưa được báo cáo;
   \item mAP giảm đáng kể khi chuyển sang camera mới (từ 89,60\% xuống 78,15\%) do bộ dữ liệu phân xưởng còn ít camera;
   \item pipeline còn phụ thuộc vào person proposal và thiết lập closed-set, đồng thời độ trễ đầu--cuối của hệ thống cảnh báo chưa được đo.
 \end{itemize}

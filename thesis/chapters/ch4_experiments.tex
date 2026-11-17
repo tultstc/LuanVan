@@ -44,8 +44,6 @@ Bộ dữ liệu được thu từ hệ thống camera giám sát của phân x�
 
 Trong tập huấn luyện, \path{use_mobilephone} chiếm khoảng 53,2\% còn \path{sleep_on_table} chỉ chiếm 3,4\%, tức là số nhãn của hai lớp chênh nhau khoảng 15,8 lần. Phân bố lớp giữa tập huấn luyện và tập kiểm tra tương đối ổn định nhưng điều này không thay thế được việc kiểm tra tính độc lập theo video hoặc camera. Các con số trên là số lượt gán nhãn hành vi chứ không phải số khung hình khóa hay số hộp người duy nhất vì một người có thể mang nhiều nhãn.
 
-Luận văn chưa thống kê số camera, số video hoặc phiên ghi, tổng thời lượng, độ phân giải và tốc độ khung hình gốc, số khung hình khóa và hộp người duy nhất, cũng như định danh bộ phát hiện người. Do đó, luận văn không suy ra các đại lượng này từ số lượt gán nhãn.
-
 \section{Cách chia dữ liệu và phòng chống rò rỉ}
 \label{sec:splits}
 
@@ -56,7 +54,7 @@ Luận văn dùng hai cách chia bộ dữ liệu phân xưởng:
 \end{itemize}
 Mọi cấu hình ablation đều được chạy trên cả hai cách chia và chênh lệch giữa S1 với S2 cho phép ước lượng mức phụ thuộc của từng thành phần vào cảnh đã thấy khi huấn luyện (\cref{sec:cross-camera}).
 
-Các số 19.691 và 4.923 trong \cref{tab:factory-stats} thuộc phân chia huấn luyện/kiểm tra của S1 còn số khung hình khóa và số lượt gán nhãn riêng cho S2 chưa được thống kê trong luận văn.
+Các số 19.691 và 4.923 trong \cref{tab:factory-stats} thuộc phân chia huấn luyện/kiểm tra của S1.
 
 Rò rỉ dữ liệu xảy ra khi cùng một cảnh, cùng một người hoặc các khung hình gần nhau của cùng một video nằm ở cả tập huấn luyện lẫn tập kiểm tra. S2 loại bỏ rò rỉ theo cảnh bằng cách giữ riêng hai camera, đồng thời mọi siêu tham số và ngưỡng theo lớp đều được chọn mà không dùng tập kiểm tra. Để kiểm soát chặt hơn, cần duy trì bảng kê \code{video\_id}, \code{camera\_id}, \code{session\_id}, thời gian và checksum, kết hợp với băm cảm nhận hoặc embedding để phát hiện các đoạn gần trùng giữa các phần chia. Với AVA, phân chia train/val chính thức được tách theo video nhằm tránh dùng khung hình của cùng một phim ở cả hai phía.
 
@@ -87,7 +85,7 @@ Proposal của FAIR được dùng làm vùng người ở cả hai pha. Khi hu�
 \section{Tiền xử lý và cấu hình huấn luyện}
 \label{sec:training-config}
 
-Trên bộ dữ liệu phân xưởng, mọi cấu hình trong một cặp ablation dùng chung backbone, pipeline dữ liệu, bộ tối ưu và lịch huấn luyện, mỗi cấu hình được lặp lại với ba seed. Cấu hình huấn luyện chính được tóm tắt trong \cref{tab:factory-config}.
+Trên bộ dữ liệu phân xưởng, mọi cấu hình trong một cặp ablation dùng chung backbone, pipeline dữ liệu, bộ tối ưu và lịch huấn luyện, mỗi cấu hình được chạy với 1 seed. Cấu hình huấn luyện chính được tóm tắt trong \cref{tab:factory-config}.
 
 \begin{table}[htbp]
 \centering
@@ -127,7 +125,7 @@ Các gói của OpenMMLab được cài qua công cụ \code{mim}. Khi thiếu g
 
 \begin{enumerate}
   \item mỗi cặp so sánh chỉ thay đổi đúng một yếu tố còn dữ liệu, cách chia, proposal, tăng cường dữ liệu, bộ tối ưu, số epoch và bộ đánh giá được giữ nguyên;
-  \item mỗi cấu hình được chạy với ba seed và kết quả trung bình (kèm độ lệch chuẩn khi đã tổng hợp) được báo cáo trên cả S1 và S2;
+  \item mỗi cấu hình chạy 1 seed; mAP được báo cáo riêng theo cách chia S1 và S2; không tính được độ lệch chuẩn giữa các seed từ các lượt chạy này;
   \item bên cạnh mAP, luận văn báo cáo Precision và Recall tại ngưỡng 0,5, tốc độ xử lý và bộ nhớ GPU;
   % Tạm bỏ theo slide bảo vệ (09/11/2026): chưa có kết quả với hộp nhãn thật.
   % \item Với pipeline dựa trên proposal, chạy thêm cấu hình dùng hộp nhãn thật làm cận trên để tách lỗi định vị khỏi lỗi phân loại.

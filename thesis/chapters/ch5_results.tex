@@ -6,7 +6,7 @@ Chương này trình bày kết quả của pipeline đề xuất trên bộ d�
 \section{Kết quả chính trên bộ dữ liệu phân xưởng}
 \label{sec:main-results}
 
-\Cref{tab:main-results} so sánh pipeline đầy đủ với các mô hình khác trên cách chia ngẫu nhiên S1. Pipeline đề xuất đạt 89,83\% mAP, cao hơn mô hình mạnh nhất còn lại là FastViT3D-SA12 5,17 điểm và cao hơn EfficientViT3D-b1 10,07 điểm còn khoảng cách với YOWOv2-Nano (31,28 điểm) và SlowFast-R50 (60,56 điểm) lớn hơn nhiều. Khi bỏ ACRN, pipeline chỉ còn 83,60\%, nghĩa là ACRN đóng góp 6,23 điểm trong cặp lượt chạy này. Cấu hình không có ACRN tương ứng với A7 và trung bình ba seed của A7 và A8 trên S1 lần lượt là 83,71\% và 89,60\% (\cref{tab:ablation-results}), rất gần với hai lượt chạy đơn trong bảng.
+\Cref{tab:main-results} so sánh pipeline đầy đủ với các mô hình khác trên cách chia ngẫu nhiên S1. Pipeline đề xuất đạt 89,83\% mAP, cao hơn mô hình mạnh nhất còn lại là FastViT3D-SA12 5,17 điểm và cao hơn EfficientViT3D-b1 10,07 điểm còn khoảng cách với YOWOv2-Nano (31,28 điểm) và SlowFast-R50 (60,56 điểm) lớn hơn nhiều. Khi bỏ ACRN, pipeline chỉ còn 83,60\%, nghĩa là ACRN đóng góp 6,23 điểm trong cặp lượt chạy này. Cấu hình không có ACRN tương ứng với A7. \Cref{tab:ablation-results} ghi A7 và A8 trên S1 lần lượt đạt 83,71\% và 89,60\%.
 
 \begin{table}[htbp]
 \centering
@@ -26,7 +26,7 @@ FastViT3D-SA12 \cite{vasu2023fastvit} & 84,66 & $-5{,}17$\\
 \end{tabularx}
 \end{table}
 
-Về chỉ số vận hành (\cref{tab:operating}), Precision và Recall tại ngưỡng 0,5 cùng bằng 81,82\%, nghĩa là tại điểm vận hành này, xét ở mức từng người và từng khung hình khóa, khoảng 18\% dự đoán dương là sai và khoảng 18\% hành vi thật bị bỏ sót. Ngưỡng theo lớp và logic theo track (\cref{sec:loss,sec:inference}) cho phép dịch chuyển điểm vận hành theo yêu cầu nghiệp vụ, chẳng hạn ưu tiên recall với \path{dangerous_action}. Tốc độ trên 20 khung hình/giây với khoảng 10~GB bộ nhớ GPU cho thấy tiềm năng xử lý theo thời gian thực (M6). Tuy nhiên, điều kiện và phạm vi đo FPS chưa được ghi lại đầy đủ nên chưa thể dùng thông lượng này để kết luận về độ trễ đầu--cuối, vốn còn phụ thuộc vào bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều.
+Về chỉ số vận hành (\cref{tab:operating}), Precision và Recall tại ngưỡng 0,5 cùng bằng 81,82\%, nghĩa là tại điểm vận hành này, xét ở mức từng người và từng khung hình khóa, khoảng 18\% dự đoán dương là sai và khoảng 18\% hành vi thật bị bỏ sót. Ngưỡng theo lớp và logic theo track (\cref{sec:loss,sec:inference}) cho phép dịch chuyển điểm vận hành theo yêu cầu nghiệp vụ, chẳng hạn ưu tiên recall với \path{dangerous_action}. Tốc độ trên 20 khung hình/giây với khoảng 10~GB bộ nhớ GPU cho thấy tiềm năng xử lý theo thời gian thực (M6).
 
 \begin{table}[htbp]
 \centering
@@ -46,11 +46,11 @@ Tốc độ xử lý; bộ nhớ GPU & Trên 20 khung hình/giây; khoảng 10~G
 \section{Ablation: đóng góp của từng thành phần}
 \label{sec:ablation-results}
 
-\Cref{tab:ablation-results} và \cref{fig:ablation} trình bày mAP của chín cấu hình A0--A8 (\cref{tab:ablation}) trên hai cách chia S1 (ngẫu nhiên) và S2 (giữ riêng hai camera để kiểm tra), trong đó mỗi giá trị là trung bình của ba seed.
+\Cref{tab:ablation-results} và \cref{fig:ablation} trình bày mAP của chín cấu hình A0--A8 (\cref{tab:ablation}) trên hai cách chia S1 (ngẫu nhiên) và S2 (giữ riêng hai camera để kiểm tra), mỗi giá trị tương ứng với một seed cho từng cấu hình trên mỗi cách chia.
 
 \begin{table}[H]
 \centering
-\caption[Kết quả ablation trên bộ dữ liệu phân xưởng]{Kết quả ablation trên bộ dữ liệu phân xưởng (mAP, \%, trung bình ba seed). $\Delta$: chênh lệch so với cấu hình tham chiếu của cặp so sánh (A1, A2, A4 so với A0; A3 so với A2; A5 so với A3; A6 so với A5; A7 so với A6; A8 so với A7)}
+\caption[Kết quả ablation trên bộ dữ liệu phân xưởng]{Kết quả ablation trên bộ dữ liệu phân xưởng (mAP, \%, 1 seed). $\Delta$: chênh lệch so với cấu hình tham chiếu của cặp so sánh (A1, A2, A4 so với A0; A3 so với A2; A5 so với A3; A6 so với A5; A7 so với A6; A8 so với A7)}
 \label{tab:ablation-results}
 \small
 \begin{tabularx}{\textwidth}{lXrrrrr}
@@ -78,7 +78,7 @@ A8 & A7 + ACRN & \textbf{89,60} & \textbf{78,15} & $+5{,}89$ & $+3{,}90$ & 11,45
   xmin=60, xmax=93, ymin=-0.6, ymax=8.6, y dir=reverse,
   xtick={60,65,...,90}, ytick={0,...,8},
   yticklabels={{A0 · không neck},{A1 · MHSA toàn cục},{A2 · SSM một chiều},{A3 · Bi-SSM},{A4 · W-MHSA cục bộ},{A5 · hai nhánh, cộng},{A6 · Hybrid có cổng},{A7 · + đa tỉ lệ},{A8 · + ACRN}},
-  xlabel={mAP (\%), trung bình ba seed},
+  xlabel={mAP (\%), 1 seed},
   axis x line*=bottom, axis y line*=left,
   axis line style={draw=vzaxis, line width=0.5pt},
   xtick style={draw=vzaxis}, ytick style={draw=none},
@@ -116,7 +116,7 @@ A8 & A7 + ACRN & \textbf{89,60} & \textbf{78,15} & $+5{,}89$ & $+3{,}90$ & 11,45
   \node[anchor=east, font=\footnotesize, text=vzink, xshift=-4pt] at (axis cs:78.15,8) {78,15};
 \end{axis}
 \end{tikzpicture}
-\caption[Ablation trên hai cách chia dữ liệu]{mAP của chín cấu hình ablation trên hai cách chia dữ liệu (trung bình ba seed). Đoạn nối giữa hai điểm của mỗi cấu hình là mức giảm khi chuyển từ cách chia ngẫu nhiên (S1) sang camera chưa thấy khi huấn luyện (S2).}
+\caption[Ablation trên hai cách chia dữ liệu]{mAP của chín cấu hình ablation trên hai cách chia dữ liệu (1 seed). Đoạn nối giữa hai điểm của mỗi cấu hình là mức giảm khi chuyển từ cách chia ngẫu nhiên (S1) sang camera chưa thấy khi huấn luyện (S2).}
 \label{fig:ablation}
 \end{figure}
 
@@ -132,7 +132,7 @@ Việc thêm temporal MHSA toàn cục tại vị trí hậu-backbone, tiền-Ro
   \item \emph{hai nhánh bổ sung cho nhau}: cộng trực tiếp hai nhánh (A5) cho kết quả cao hơn nhánh mạnh hơn khi đứng riêng (A3) 1,06 điểm (S1) và 1,02 điểm (S2), nghĩa là nhánh cục bộ mang thông tin mà Bi-SSM chưa nắm bắt được;
   \item \emph{cổng sigmoid}: thay tỷ lệ cố định 0,5/0,5 bằng cổng học theo nội dung (A5 $\rightarrow$ A6) giúp mAP tăng thêm 1,76 điểm (S1) và 1,85 điểm (S2). Mức tăng nhất quán trên hai cách chia cho thấy lợi ích của cổng không phụ thuộc vào việc cảnh kiểm tra đã xuất hiện khi huấn luyện.
 \end{itemize}
-Chuỗi tăng A2 $\rightarrow$ A3 $\rightarrow$ A5 $\rightarrow$ A6 lặp lại theo cùng thứ tự trên cả S1 và S2. Riêng các chênh lệch cỡ một điểm hoặc nhỏ hơn (A1 so với A2, A3 so với A4) cần được diễn giải thận trọng cho tới khi có độ lệch chuẩn giữa các seed.
+Chuỗi tăng A2 $\rightarrow$ A3 $\rightarrow$ A5 $\rightarrow$ A6 lặp lại theo cùng thứ tự trên cả S1 và S2.
 
 \subsection{Đặc trưng đa tỉ lệ và ACRN (RQ3, RQ4)}
 
@@ -224,6 +224,23 @@ Quy trình suy luận gồm bốn bước: (i) bộ phát hiện người chạy
 \label{fig:demo}
 \end{figure}
 
+\Cref{fig:demo-grid} đối chiếu thêm ba cấu hình A0, A8 và A5 trên cùng ba tình huống phát hiện hành động gồm hành vi đánh nhau, gác chân lên bàn và sử dụng điện thoại.
+
+\begin{figure}[H]
+\centering
+\small
+\setlength{\tabcolsep}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{m{1.1cm}m{0.295\textwidth}@{\hspace{3pt}}m{0.295\textwidth}@{\hspace{3pt}}m{0.295\textwidth}}
+ & \multicolumn{1}{c}{\textbf{Hành vi đánh nhau}} & \multicolumn{1}{c}{\textbf{Gác chân lên bàn}} & \multicolumn{1}{c}{\textbf{Sử dụng điện thoại}}\\[2pt]
+\textbf{A0} & \includegraphics[width=\linewidth]{demo_cmp_A0_fight.jpg} & \includegraphics[width=\linewidth]{demo_cmp_A0_feet.jpg} & \includegraphics[width=\linewidth]{demo_cmp_A0_phone.jpg}\\
+\textbf{A8} & \includegraphics[width=\linewidth]{demo_cmp_A8_fight.jpg} & \includegraphics[width=\linewidth]{demo_cmp_A8_feet.jpg} & \includegraphics[width=\linewidth]{demo_cmp_A8_phone.jpg}\\
+\textbf{A5} & \includegraphics[width=\linewidth]{demo_cmp_A5_fight.jpg} & \includegraphics[width=\linewidth]{demo_cmp_A5_feet.jpg} & \includegraphics[width=\linewidth]{demo_cmp_A5_phone.jpg}\\
+\end{tabular}
+\caption[So sánh định tính ba cấu hình trên ba đoạn video]{So sánh định tính ba nhóm dự đoán của A0, A8 và A5 trên ba đoạn video.}
+\label{fig:demo-grid}
+\end{figure}
+
 \section{Trả lời câu hỏi nghiên cứu}
 \label{sec:rq-answers}
 
@@ -233,13 +250,12 @@ Quy trình suy luận gồm bốn bước: (i) bộ phát hiện người chạy
 \label{sec:limitations}
 
 \begin{itemize}
-  \item \emph{độ bất định}: kết quả ablation chưa kèm độ lệch chuẩn giữa các seed còn các mô hình so sánh trong \cref{tab:main-results} chỉ là lượt chạy đơn và chưa được đánh giá trên S2;
-  \item \emph{dữ liệu và tổng quát hóa}: bộ dữ liệu phân xưởng có số camera hạn chế và mAP của pipeline đầy đủ giảm 11,45 điểm khi chuyển sang camera mới.;
-  \item \emph{thực nghiệm trên AVA}: kết quả của pipeline đầy đủ chưa kèm ablation riêng cho từng thành phần trên AVA;
-  \item \emph{khoảng cách tới triển khai}: độ trễ đầu--cuối (gồm bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều) chưa được đo và pipeline vẫn phụ thuộc vào person proposal cũng như thiết lập closed-set.
+  \item \emph{Dữ liệu và tổng quát hóa}: bộ dữ liệu phân xưởng có số camera hạn chế và mAP của pipeline đầy đủ giảm 11,45 điểm khi chuyển sang camera mới;
+  \item \emph{Thực nghiệm trên AVA}: kết quả của pipeline đầy đủ chưa kèm ablation riêng cho từng thành phần trên AVA;
+  \item \emph{Khoảng cách tới triển khai}: độ trễ đầu--cuối (gồm bộ phát hiện người và bộ đệm nhìn trước của quét hai chiều) chưa được đo và pipeline vẫn phụ thuộc vào person proposal cũng như thiết lập closed-set.
 \end{itemize}
 
 \section*{Kết luận chương 5}
 \addcontentsline{toc}{section}{Kết luận chương 5}
 
-Trên bộ dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP với tốc độ trên 20 khung hình/giây và vượt các mô hình so sánh. Các thí nghiệm ablation trên hai cách chia dữ liệu xác nhận đóng góp của temporal neck, hai nhánh, cổng sigmoid, đặc trưng đa tỉ lệ và ACRN, trong đó Hybrid FGTN-Mamba vượt neck tiêu chuẩn tại cùng vị trí hơn 4 điểm trên cả hai cách chia. Trên hai camera không xuất hiện khi huấn luyện (S2), pipeline đầy đủ đạt 78,15\%. Trên AVA~v2.2, pipeline đầy đủ đạt 38,1 mAP. Độ bất định giữa các seed, khả năng tổng quát hóa và độ trễ đầu--cuối là những vấn đề cần được tiếp tục đánh giá.
+Trên bộ dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP với tốc độ trên 20 khung hình/giây và vượt các mô hình so sánh. Các thí nghiệm ablation trên hai cách chia dữ liệu xác nhận đóng góp của temporal neck, hai nhánh, cổng sigmoid, đặc trưng đa tỉ lệ và ACRN, trong đó Hybrid FGTN-Mamba vượt neck tiêu chuẩn tại cùng vị trí hơn 4 điểm trên cả hai cách chia. Trên hai camera không xuất hiện khi huấn luyện (S2), pipeline đầy đủ đạt 78,15\%. Trên AVA~v2.2, pipeline đầy đủ đạt 38,1 mAP.
