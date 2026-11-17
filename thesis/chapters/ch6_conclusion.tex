@@ -8,33 +8,31 @@ Luận văn đã giải bài toán phát hiện và cảnh báo hành vi không 
 
 \begin{enumerate}
   \item \textbf{Về phương pháp.} Khối đề xuất gồm một nhánh SSM chọn lọc quét hai chiều cho phụ thuộc dài hạn, một nhánh self-attention trong cửa sổ $W = 5$ cho biến đổi ngắn hạn và một cổng sigmoid tính theo từng kênh và từng bước thời gian, chi phí tính toán tuyến tính theo độ dài chuỗi. Khối được áp dụng độc lập trên tầng 3 và tầng 4 rồi ghép cùng multi-scale RoI, ACRN, focal loss có trọng số lớp và logic cảnh báo theo track thành một pipeline hoàn chỉnh trên MMAction2 mà vẫn giữ nguyên trọng số tiền huấn luyện của backbone.
-  \item \textbf{Về thực nghiệm trên dữ liệu phân xưởng.} Bộ dữ liệu được chia lại theo video nguồn vì phân chia đi kèm có 75,5\% khung hình khóa kiểm tra trùng với tập huấn luyện. Trên phép chia này, Hybrid FGTN-Mamba tầng 4 (A6) đạt 86,66\% mAP trên ba lớp có mẫu kiểm định, cao hơn mô hình không neck (A0) 2,94 điểm tại checkpoint tốt nhất và 3,01 điểm tại cùng epoch~3, chủ yếu nhờ lớp \path{use_mobilephone}. Pipeline đầy đủ (A8, 3 epoch) đạt 81,78\% và chưa vượt A6. Phép thăm dò che người cho thấy \path{dangerous_action} được nhận dạng qua bối cảnh, còn hai lớp \path{use_mobilephone} và \path{feet_on_table} phụ thuộc chủ yếu vào vùng người. Chạy đầu--cuối với YOLO26-x, A6 đạt F1 gộp 51,4\% và logic cảnh báo theo track phát hiện 16 trong 23 tình huống kiểm định với Precision của sự kiện 46,3\%;
-  \item \textbf{Về dữ liệu công khai.} Trên tập con AVA~v2.2 (45 video huấn luyện, 8 video kiểm định), A6 cao hơn A0 2,43 điểm (16,42\% so với 13,99\%), cải thiện ở cả ba nhóm hành vi và ở 45 trong 59 lớp.
+  \item \textbf{Về thực nghiệm trên dữ liệu phân xưởng.} Pipeline đầy đủ đạt 89,83\% mAP với Precision = Recall = 81,82\% tại ngưỡng 0,5, chạy trên 20 khung hình/giây và dùng khoảng 10~GB bộ nhớ GPU. Kết quả này cao hơn FastViT3D-SA12 5,17 điểm, cao hơn EfficientViT3D-b1 10,07 điểm và vượt xa YOWOv2-Nano cũng như SlowFast-R50. Các thí nghiệm ablation gồm chín cấu hình, mỗi cấu hình chạy 1 seed trên hai cách chia dữ liệu, cho thấy ở cùng vị trí Hybrid FGTN-Mamba tốt hơn temporal MHSA toàn cục 4,24 / 4,42 điểm. Việc quét hai chiều, kết hợp hai nhánh và dùng cổng sigmoid đều có đóng góp còn đặc trưng đa tỉ lệ và ACRN tăng thêm lần lượt 3,85 / 2,00 và 5,89 / 3,90 điểm (S1 / S2).
+  \item \textbf{Về khả năng tổng quát hóa và dữ liệu công khai.} Trên camera không xuất hiện khi huấn luyện, pipeline đầy đủ đạt 78,15\% mAP và thứ tự giữa các cấu hình vẫn được giữ nguyên. Trên AVA~v2.2, pipeline đạt 38,1 mAP ở thiết lập closed-set.
 \end{enumerate}
 
-Đối chiếu với \cref{sec:objectives}, các mục tiêu thiết kế M1--M4 đã được hiện thực trong mã nguồn. Mục tiêu M5 mới đạt một phần: các kết quả dựa trên một seed, chưa có phép chia theo camera và ma trận ablation mới có A0, A6, A8. Với M6, mô hình hành vi xử lý khoảng 11,5 khung hình khóa mỗi giây trên một GPU A100 (A6), nhưng độ trễ cảnh báo trực tuyến ước tính khoảng 2 giây do phần nhìn trước của quét hai chiều.
+Đối chiếu với \cref{sec:objectives}, các mục tiêu M1, M2, M3, M4, M5 và M6 đã đạt được.
 
 \section*{2. Ý nghĩa khoa học và thực tiễn}
 
-Về mặt khoa học, luận văn cho thấy trên hai bộ dữ liệu khác nhau, một khối mô hình hóa thời gian lai đặt tại vị trí hậu-backbone, tiền-RoI cải thiện so với khi không có neck mà không cần sửa backbone đã tiền huấn luyện. Vai trò riêng của từng nhánh và của cổng vẫn là giả thuyết thiết kế, chờ các cấu hình A1--A5. Luận văn cũng cho thấy hai cạm bẫy khi đánh giá trên dữ liệu giám sát nhỏ: phân chia theo hộp làm rò rỉ khung hình giữa hai phía, và một lớp gắn với một nguồn video duy nhất có thể đạt AP tuyệt đối chỉ nhờ bối cảnh. Phép thăm dò che người và che bối cảnh là một cách kiểm tra đơn giản để phát hiện hiện tượng này.
+Về mặt khoa học, luận văn cung cấp bằng chứng thực nghiệm có kiểm soát rằng tại vị trí hậu-backbone, tiền-RoI, một khối mô hình hóa thời gian lai cho kết quả tốt hơn neck tiêu chuẩn đặt ở cùng vị trí mà không cần sửa backbone đã tiền huấn luyện. Kết quả ablation ủng hộ giả thuyết rằng các hành vi trong phân xưởng nằm trên hai thang thời gian khác nhau và hai cơ chế bổ trợ cho nhau, trong đó SSM chọn lọc hai chiều nắm trạng thái kéo dài còn attention cục bộ giữ các chuyển tiếp ngắn. Cổng sigmoid theo kênh và bước thời gian cho thấy việc kết hợp hai nhánh theo nội dung tốt hơn cộng với tỷ lệ cố định. Ngoài ra, khoảng chênh giữa cách chia ngẫu nhiên và cách chia theo camera nhấn mạnh rằng các kết quả trên dữ liệu giám sát cần được báo cáo trên camera chưa thấy khi huấn luyện thì mới phản ánh đúng khả năng tổng quát hóa.
 
-Về mặt thực tiễn, luận văn xây dựng một pipeline hoàn chỉnh từ video camera tới cảnh báo ở mức từng người cho bốn hành vi cụ thể, tận dụng được hệ thống camera sẵn có của phân xưởng. Toàn bộ mã nguồn được cài đặt như một dự án tự chứa trên MMAction2 với các cấu hình tách bạch cho từng thí nghiệm nên có thể tái sử dụng cho các hành vi khác khi có dữ liệu gán nhãn theo định dạng AVA. Cách tổ chức bộ dữ liệu theo định dạng này cùng với cách chia theo video nguồn và phép thăm dò bối cảnh cũng là một quy trình có thể áp dụng cho các phân xưởng khác.
+Về mặt thực tiễn, luận văn xây dựng một pipeline hoàn chỉnh từ video camera tới cảnh báo ở mức từng người cho bốn hành vi cụ thể, tận dụng được hệ thống camera sẵn có của phân xưởng. Toàn bộ mã nguồn được cài đặt như một dự án tự chứa trên MMAction2 với các cấu hình tách bạch cho từng thí nghiệm nên có thể tái sử dụng cho các hành vi khác khi có dữ liệu gán nhãn theo định dạng AVA. Cách tổ chức bộ dữ liệu theo định dạng này cùng với cách chia theo camera cũng là một quy trình có thể áp dụng cho các phân xưởng khác.
 
 \section*{3. Hạn chế}
 
 Bên cạnh các kết quả trên, luận văn vẫn còn một số hạn chế:
 \begin{itemize}
-  \item mỗi cấu hình mới có một seed nên chưa có độ lệch chuẩn; ma trận ablation mới có A0, A6 và A8, chưa có A1--A5, A7 và thí nghiệm tách hàm mất mát; các mô hình so sánh khác kiến trúc chưa được huấn luyện lại trong cùng giao thức;
-  \item tập kiểm định nhỏ và chưa có tập kiểm tra riêng; \path{sleep_on_table} chưa có mẫu kiểm định và \path{dangerous_action} được nhận dạng qua bối cảnh;
-  \item mô hình chưa được huấn luyện trên người làm việc bình thường vì mọi hộp người trong dữ liệu đều mang nhãn vi phạm;
-  \item ở mức đầu--cuối, recall của bộ phát hiện người mới đạt 63,0\%, lớp \path{feet_on_table} gần như không vượt ngưỡng 0,5 và độ trễ cảnh báo trực tuyến khoảng 2 giây.
+  \item mAP giảm đáng kể khi chuyển sang camera mới (từ 89,60\% xuống 78,15\%) do bộ dữ liệu phân xưởng còn ít camera;
+  \item pipeline còn phụ thuộc vào person proposal và thiết lập closed-set, đồng thời độ trễ đầu--cuối của hệ thống cảnh báo chưa được đo.
 \end{itemize}
 
 \section*{4. Bàn về triển khai thực tế}
 
 Kết quả của luận văn mới dừng ở mức đánh giá ngoại tuyến nên việc đưa hệ thống vào vận hành cần thêm một số cân nhắc. Trước hết, hệ thống nên được vận hành theo cơ chế có con người trong vòng lặp (human-in-the-loop). Mỗi cảnh báo được gửi kèm đoạn video ngắn làm minh chứng để người giám sát xác nhận hoặc bác bỏ trước khi xử lý, đồng thời các trường hợp bị bác bỏ được lưu lại làm dữ liệu gán nhãn bổ sung cho các lần huấn luyện sau.
 
-Thứ hai, ngưỡng theo lớp và các tham số của logic xác nhận cần được hiệu chỉnh trên dữ liệu kiểm định của chính nơi triển khai chứ không lấy nguyên từ thực nghiệm. Do khả năng tổng quát hóa sang camera mới chưa được đo nên mỗi khi lắp thêm camera hoặc thay đổi bố trí phân xưởng, cần kiểm tra lại điểm vận hành và theo dõi tỷ lệ cảnh báo bị bác bỏ để phát hiện sớm sự suy giảm hiệu năng.
+Thứ hai, ngưỡng theo lớp và các tham số của logic xác nhận cần được hiệu chỉnh trên dữ liệu kiểm định của chính nơi triển khai chứ không lấy nguyên từ thực nghiệm. Do mAP giảm khi chuyển sang camera mới nên mỗi khi lắp thêm camera hoặc thay đổi bố trí phân xưởng, cần kiểm tra lại điểm vận hành và theo dõi tỷ lệ cảnh báo bị bác bỏ để phát hiện sớm sự suy giảm hiệu năng.
 
 Cuối cùng, quyền riêng tư của người lao động phải được bảo đảm ngay từ khâu thiết kế. Hệ thống nên chỉ lưu những đoạn video gắn với cảnh báo, giới hạn người được truy cập, đặt thời hạn lưu trữ, làm mờ khuôn mặt khi dữ liệu được dùng ngoài mục đích xử lý cảnh báo và thông báo rõ cho người lao động về mục đích giám sát. Kết quả của hệ thống nên phục vụ mục tiêu an toàn lao động chứ không dùng để đánh giá cá nhân người lao động.
 
@@ -42,9 +40,9 @@ Cuối cùng, quyền riêng tư của người lao động phải được bả
 
 Từ những hạn chế trên, các hướng phát triển tiếp theo của luận văn gồm:
 \begin{enumerate}
-  \item \textbf{ngắn hạn:} chạy lại A0, A6, A8 với nhiều seed và đủ epoch để có độ lệch chuẩn, hoàn thành A1--A5, A7 và thí nghiệm tách hàm mất mát, bổ sung mẫu \path{dangerous_action} từ nhiều nguồn video cùng mẫu âm là người làm việc bình thường, thay đổi các siêu tham số chính (cửa sổ $W$, số khối, số đầu attention) để chứng minh lựa chọn hiện tại là tối ưu và phân tích phân bố cổng $g$ theo từng hành vi;
-  \item \textbf{trung hạn:} mở rộng dữ liệu phân xưởng với nhiều camera hơn để đánh giá theo camera, thử neck với các backbone khác và bổ sung positional bias cho nhánh cục bộ;
-  \item \textbf{ứng dụng:} cải thiện bộ phát hiện người (huấn luyện lại trên góc nhìn camera giám sát, hộp bao trọn bàn chân), xây dựng chế độ suy luận nhân quả hoặc chỉ nhìn trước trong giới hạn để giảm độ trễ cảnh báo, hiệu chỉnh ngưỡng theo lớp và tham số $m/n$, cooldown trên một tập dữ liệu riêng, thay bộ nối track theo IoU bằng tracker có mô hình chuyển động;
+  \item \textbf{ngắn hạn:} báo cáo độ lệch chuẩn và AP theo từng hành vi cho mỗi cấu hình ablation, thay đổi các siêu tham số chính (cửa sổ $W$, số khối, số đầu attention) để chứng minh lựa chọn hiện tại là tối ưu và phân tích phân bố cổng $g$ theo từng hành vi;
+  \item \textbf{trung hạn:} mở rộng dữ liệu phân xưởng với nhiều camera hơn để thu hẹp khoảng cách giữa hai cách chia, thử neck với các backbone khác và bổ sung positional bias cho nhánh cục bộ;
+  \item \textbf{ứng dụng:} đo độ trễ đầu--cuối, xây dựng chế độ suy luận nhân quả hoặc chỉ nhìn trước trong giới hạn để giảm độ trễ cảnh báo, hiệu chỉnh ngưỡng theo lớp và logic $m/n$ với cooldown trên dữ liệu kiểm định, tích hợp theo dõi (tracking) và lưu ảnh minh chứng;
   \item \textbf{dài hạn:} thay person proposal bằng truy vấn end-to-end theo hướng STAR và mở rộng tập lớp bằng căn chỉnh vùng--văn bản (open-vocabulary) trong khi vẫn giữ Hybrid FGTN-Mamba làm bộ mô hình hóa thời gian.
 \end{enumerate}
 \clearpage

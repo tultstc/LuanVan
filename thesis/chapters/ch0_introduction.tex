@@ -19,8 +19,8 @@ Mục tiêu chung của luận văn là xây dựng và đánh giá một hệ t
 \begin{enumerate}[label=(\roman*)]
   \item thiết kế khối Hybrid FGTN-Mamba gồm một nhánh mô hình không gian trạng thái (SSM) chọn lọc quét hai chiều và một nhánh self-attention trong cửa sổ thời gian, hai nhánh được kết hợp qua cổng sigmoid với tỷ trọng thay đổi theo nội dung đầu vào;
   \item xây dựng pipeline STAD hoàn chỉnh theo trình tự Video Swin-Tiny $\rightarrow$ Hybrid FGTN-Mamba trên hai tầng đặc trưng $\rightarrow$ RoI đa tỉ lệ $\rightarrow$ ACRN $\rightarrow$ head sigmoid đa nhãn;
-  \item đánh giá hệ thống trên bộ dữ liệu thu từ phân xưởng và bộ dữ liệu công khai AVA~v2.2, cả ở mức phân loại trên hộp người đúng lẫn ở mức đầu--cuối với bộ phát hiện người và logic cảnh báo;
-  \item định lượng đóng góp của từng thành phần bằng các thí nghiệm ablation trên một phép chia dữ liệu không rò rỉ giữa tập huấn luyện và tập kiểm định.
+  \item đánh giá hệ thống trên bộ dữ liệu thu từ phân xưởng và bộ dữ liệu công khai AVA~v2.2, có so sánh với SlowFast, YOWOv2, FastViT3D và EfficientViT3D;
+  \item định lượng đóng góp từng thành phần bằng ablation với một seed trên mỗi cách chia dữ liệu S1 và S2, trong đó S2 giữ riêng camera để kiểm tra.
 \end{enumerate}
 
 \section*{3. Đối tượng và phạm vi nghiên cứu}
@@ -32,12 +32,12 @@ Mục tiêu chung của luận văn là xây dựng và đánh giá một hệ t
   \item chỉ xét thiết lập \emph{closed-set} có giám sát, tức tập nhãn cố định từ trước và dữ liệu huấn luyện được gán nhãn đầy đủ, không xét các hướng open-vocabulary và zero-shot;
   \item dữ liệu chính gồm bốn hành vi mục tiêu là sử dụng điện thoại, ngủ trên bàn, gác chân lên bàn và hành vi nguy hiểm, thu từ nhiều camera trong phân xưởng; AVA~v2.2 \cite{gu2018ava} được dùng làm chuẩn đánh giá công khai;
   \item vùng chứa người được lấy từ một bộ phát hiện người có sẵn (với AVA là bộ đề xuất do FAIR công bố) và bộ phát hiện này không được huấn luyện lại;
-  \item luận văn chỉ báo cáo các lượt chạy có nhật ký huấn luyện và đánh giá đi kèm; mỗi cấu hình mới được chạy với một seed và ma trận ablation mới thực hiện được các cấu hình A0, A6 và A8, các điểm này được nêu lại trong phần hạn chế.
+  \item do tài nguyên tính toán có hạn nên một số phân tích chưa được thực hiện, cụ thể là AP theo từng hành vi cho mỗi cấu hình ablation và độ lệch chuẩn giữa các seed; các điểm này được nêu lại trong phần hạn chế.
 \end{itemize}
 
 \section*{4. Phương pháp nghiên cứu}
 
-Luận văn kết hợp ba phương pháp: nghiên cứu tài liệu để hệ thống hóa các họ phương pháp STAD hiện có và chỉ ra hạn chế chung của chúng; thiết kế khối đề xuất và phân tích về mặt lý thuyết, kể cả độ phức tạp tính toán; kiểm chứng bằng thực nghiệm theo giao thức ablation trên phép chia dữ liệu theo video nguồn, kết hợp phép thăm dò che người và che bối cảnh để kiểm tra mô hình dựa vào hành vi hay vào bối cảnh.
+Luận văn kết hợp ba phương pháp: nghiên cứu tài liệu để hệ thống hóa các họ phương pháp STAD hiện có và chỉ ra hạn chế chung của chúng; thiết kế khối đề xuất và phân tích về mặt lý thuyết, kể cả độ phức tạp tính toán; kiểm chứng bằng thực nghiệm theo giao thức ablation, trong đó mỗi lần chỉ thay đổi một yếu tố và mỗi cấu hình được chạy với 1 seed trên hai cách chia dữ liệu.
 
 \section*{5. Đóng góp của luận văn}
 
@@ -46,7 +46,7 @@ Luận văn có bốn đóng góp chính:
   \item đề xuất khối Hybrid FGTN-Mamba gồm một nhánh SSM chọn lọc hai chiều (bidirectional selective SSM) để nắm phụ thuộc dài hạn và một nhánh attention theo cửa sổ thời gian để giữ các chuyển tiếp ngắn, hai nhánh được kết hợp qua cổng sigmoid tính riêng cho từng kênh và từng bước thời gian; chi phí tính toán của khối là $O(TC + TWC)$, tuyến tính theo độ dài chuỗi;
   \item đặt khối ở vị trí sau backbone và trước bước cắt vùng người (hậu-backbone, tiền-RoI), áp dụng độc lập trên hai tầng đặc trưng với bộ tham số riêng, nhờ đó đặc trưng được làm giàu thông tin thời gian trước khi tách ra cho từng người mà không cần sửa backbone đã tiền huấn luyện;
   \item tích hợp RoI đa tỉ lệ, ACRN, focal loss có trọng số lớp, ngưỡng riêng cho từng lớp và logic cảnh báo theo track thành một pipeline cảnh báo hoàn chỉnh ở mức từng người, cài đặt độc lập trên nền MMAction2 (\path{projects/fgtn_ava});
-  \item về thực nghiệm, trên dữ liệu phân xưởng chia theo video nguồn, Hybrid FGTN-Mamba tầng 4 (A6) đạt 86,66\% mAP trên ba lớp có mẫu kiểm định, cao hơn mô hình không neck 2,94 điểm (3,01 điểm tại cùng epoch~3); trên tập con AVA~v2.2, A6 cao hơn mô hình không neck 2,43 điểm (16,42\% so với 13,99\%); phép thăm dò cho thấy lớp \path{dangerous_action} được nhận dạng qua bối cảnh; khi chạy đầu--cuối với bộ phát hiện YOLO26-x và logic cảnh báo, A6 đạt F1 gộp 51,4\% và cảnh báo được 16 trong 23 tình huống kiểm định. Các kết quả dựa trên một seed.
+  \item về thực nghiệm, trên dữ liệu phân xưởng, pipeline đầy đủ đạt 89,83\% mAP với Precision và Recall cùng bằng 81,82\% tại ngưỡng 0,5 và tốc độ trên 20 khung hình/giây, cao hơn FastViT3D-SA12 5,17 điểm và EfficientViT3D-b1 10,07 điểm; các thí nghiệm ablation với 1 seed trên hai cách chia dữ liệu cho phép định lượng đóng góp của từng nhánh, của cổng, của đặc trưng đa tỉ lệ và của ACRN; trên hai camera không xuất hiện khi huấn luyện, pipeline đạt 78,15\% mAP; trên AVA~v2.2 ở thiết lập closed-set, pipeline đạt 38,1 mAP.
 \end{enumerate}
 Cũng cần nói rõ rằng mô hình không gian trạng thái, attention cục bộ, đặc trưng đa tỉ lệ hay ACRN đều không phải khái niệm mới. Điểm mới của luận văn nằm ở vị trí đặt khối, cách tham số hóa riêng cho từng tầng và cách ghép nối các thành phần cho bài toán STAD theo từng người (\cref{sec:novelty}).
 
